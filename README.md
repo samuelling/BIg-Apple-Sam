@@ -2,7 +2,7 @@
 
 An After Dark–style night skyline you can zoom into. From far away it's just yellow window lights under a turning sky. Up close, every lit window is a small room with people living out their evenings.
 
-Open `index.html` in a browser (or the GitHub Pages site). No build step, no dependencies beyond a Google Font.
+Open `index.html` in a browser (or the GitHub Pages site). No build step and no dependencies.
 
 ## What's going on in there
 
