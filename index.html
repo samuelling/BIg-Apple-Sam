@@ -448,14 +448,15 @@ function setupRes(C,u,r){
   u.partyRoom=u.ri.tv;
   decorate(u);
 }
-const OTINT=[{m:[.95,1,.96],o:'#d6e3c8',c:'#f6faee'},{m:[1,.94,.8],o:'#f0dcae',c:'#fff4d8'},{m:[.88,.96,1.06],o:'#c8dcf2',c:'#eef6ff'},{m:[.97,.99,.9],o:'#e4e8c2',c:'#fafae6'}];
+const OTINT=[{m:[1,.95,.82],o:'#f3dc9a',c:'#fff4d8'},{m:[1,.93,.76],o:'#ffd77e',c:'#fff0c8'},{m:[.97,.99,.9],o:'#ece4b8',c:'#fafae6'},{m:[.92,.97,1],o:'#dfe4d8',c:'#f2f6f4'}];
 function officeLight(u,i,t){
   const rm=u.rooms[i];if(rm.type==='server')return'server';
   const L=Math.floor(t/1440),h=mod(t,1440)/60,dw=dowOf(L),q=k=>hr(u.id,i,L,k);
-  if(dw>=1&&dw<=5){const on=6.8+q(1)*2.4,off=Math.min(23.7,u.workEnd+(-Math.log(1-q(2)*.985))*1.3);
+  if(q(11)<.08)return q(12)<.5?'office':'odim';
+  if(dw>=1&&dw<=5){const on=6.8+q(1)*2.4,off=Math.min(25,u.workEnd+(-Math.log(1-q(2)*.985))*2.4);
     if(h>=on&&h<off&&q(5)>.06&&!(rm.type==='meet'&&q(6)<.55))return'office'}
   else if(q(7)<.05){const on=10+q(8)*4,off=on+1+q(9)*5;if(h>=on&&h<off)return'office'}
-  if(u.secure&&q(10)<.85)return'odim';
+  if(u.secure&&q(10)<.6)return'odim';
   return'off';
 }
 function officeMix(base,occ){return occ==='off'?base:base==='office'||occ==='on'?'office':base==='server'?'server':'lamp'}
@@ -469,7 +470,7 @@ function setupOffice(C,u,r){
   if(r()<.65)mkPerson(C,u,'janitor',r);
   u.bulb=[.95,1,.96];u.bulbO='#d6e3c8';u.leaveRoom=0;u.partyRoom=0;
   const t=u.b.tenants.find(t=>u.f>=t.f0&&u.f<t.f1);u.tenant=t?t.name:u.b.tenants[0].name;
-  const ti=t?u.b.tenants.indexOf(t):0;u.otint=OTINT[hash(u.b.id,ti,C.seed,71)%OTINT.length];u.secure=hr(u.id,C.seed,72)<.1;u.workEnd=16.6+hr(u.b.id,ti,73)*1.4;
+  const ti=t?u.b.tenants.indexOf(t):0;u.otint=OTINT[hash(u.b.id,ti,C.seed,71)%OTINT.length];u.secure=hr(u.id,C.seed,72)<.12;u.workEnd=16.6+hr(u.b.id,ti,73)*1.4;
 }
 function mkUnit(C,b,f,c0,n,kind,r){
   const u={id:C.units.length,b,f,c0,n,kind,x0:b.x+SIDE+c0*CW,wy:-(LOBBY+(f+1)*CH)+4,rooms:[],people:[],pets:[],light:new Array(n).fill('off'),
@@ -2001,7 +2002,7 @@ const reduce=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motio
 const DET0=()=>24/RW*DPR,DET1=()=>40/RW*DPR;
 function ovColor(u,i,mode,now){
   switch(mode){
-    case 'on':return u.bulbO;case 'office':return u.otint?u.otint.o:'#d6e3c8';case 'odim':return'#34485a';case 'lamp':return'#9c7a42';case 'server':return'#1e5058';case 'dim':return'#a87a3c';
+    case 'on':return u.bulbO;case 'office':return u.otint?u.otint.o:'#d6e3c8';case 'odim':return'#b89a5a';case 'lamp':return'#e0b058';case 'server':return'#5a7aa8';case 'dim':return'#a87a3c';
     case 'tv':return TVO[hash(u.id,i,Math.floor(now*5))%3];case 'screen':return'#3c7f86';case 'fridge':return'#8399a8';
     case 'disco':return DISCO_O[(Math.floor(now*3)+u.id)%4];case 'candle':return'#c8803a';case 'rose':return'#c8707a';case 'aqua':return'#1f4466';case 'safelight':return'#a02418';case 'proj':return'#9a7a50';default:return null;
   }
@@ -2027,7 +2028,7 @@ function drawOverview(now){
     const buckets=new Map();const add=(col,x0,y0,x1,y1)=>{let p=buckets.get(col);if(!p){p=new Path2D();buckets.set(col,p)}const a=X(x0),b=Y(y0);p.rect(a,b,Math.max(1,X(x1)-a),Math.max(1,Y(y1)-b))};
     for(const b of row){if(b.x+b.w<vx0||b.x>vx1)continue;
       for(const u of b.units){if(u.wy>vy1||u.wy+RH<oy)continue;
-        for(let i=0;i<u.n;i++){if(SEASON&&!u.vacant&&(SEASON==='halloween'?u.spooky:u.xmas)&&STARK>.3){const wx=u.x0+i*CW+4;add(SEASON==='halloween'?'#ff3a24':'#f0c850',wx,u.wy,wx+RW,u.wy+3)}let c=ovColor(u,i,u.light[i],now);if(DQ>0)c=c?LH(c,glass,DQ*.75):(DQ>.04?LH(bkRow?'#0e1020':'#06070c',glass,DQ):null);if(!c&&u.b.ostyle==='glass'&&STARK>.3)c=bkRow?'#141e2c':'#172434';if(!c)continue;const wx=u.x0+i*CW+4;if(wx>vx1||wx+RW<vx0)continue;if(u.b.ostyle==='ribbon')add(c,u.x0+i*CW+(i===0?2:0),u.wy+1,u.x0+(i+1)*CW-(i===u.n-1?2:0),u.wy+RH-1);else add(c,wx,u.wy,wx+RW,u.wy+RH)}}
+        for(let i=0;i<u.n;i++){if(SEASON&&!u.vacant&&(SEASON==='halloween'?u.spooky:u.xmas)&&STARK>.3){const wx=u.x0+i*CW+4;add(SEASON==='halloween'?'#ff3a24':'#f0c850',wx,u.wy,wx+RW,u.wy+3)}let c=ovColor(u,i,u.light[i],now);if(DQ>0)c=c?LH(c,glass,DQ*.75):(DQ>.04?LH(bkRow?'#0e1020':'#06070c',glass,DQ):null);if(!c)continue;const wx=u.x0+i*CW+4;if(wx>vx1||wx+RW<vx0)continue;add(c,wx,u.wy,wx+RW,u.wy+RH)}}
       if(b.shop){if(shopOpen(b.shop,mod(simMin,1440))){add(b.shop.wall,b.x+6,-19,b.x+b.w-6,-3);add(b.shop.sign,b.x+6,-23,b.x+b.w-6,-21)}}
       else if(b.office)add('#7f9e94',b.x+6,-20,b.x+b.w-6,0);
       else{const cx=b.x+Math.floor(b.w/2);add('#e0b870',cx-4,-18,cx+4,0)}
