@@ -118,6 +118,16 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
 .ico:hover span,.ico:focus-visible span{background:var(--title)}
 .ico:focus-visible{outline:none}
 
+/* autopilot / screensaver */
+.saver #hud,.saver #panel,.saver #icons,.saver #dlg,.auto #hud,.auto #panel,.auto #icons{display:none!important}
+.saver #c,.auto #c,.saver,.auto{cursor:none}
+#cap{left:calc(24px + env(safe-area-inset-left,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:min(400px,calc(100vw - 48px));opacity:0;pointer-events:none;transition:opacity 1.4s}
+#cap.on{opacity:1}
+#cap .cl{padding:6px 10px 8px;line-height:1.35}
+#cap .dim{color:var(--mute)}
+.fld{font:13px var(--font);width:9.5em;padding:2px 4px;background:var(--paper);color:var(--ink);border:1px solid;border-color:var(--shadow) var(--hi) var(--hi) var(--shadow);box-shadow:inset 1px 1px var(--ink);user-select:all}
+.fld:focus-visible{outline:1px dotted var(--ink);outline-offset:1px}
+
 /* message box */
 #dlg{left:50%;top:42%;transform:translate(-50%,-50%);width:min(370px,calc(100vw - 32px));z-index:20}
 #dlg .cl{display:flex;gap:14px;align-items:flex-start;padding:16px 16px 4px}
@@ -146,12 +156,14 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
       <div class="row">
         <button class="btn" id="peek" title="P">Peek in a window</button>
         <button class="btn" id="out" title="Esc">Zoom out</button>
+        <button class="btn" id="saverBtn" title="S">Screensaver</button>
       </div>
       <div class="row">
         <button class="btn" id="when" hidden>Back to now</button>
         <button class="btn" id="new">New city&hellip;</button>
       </div>
       <div class="row"><label class="chk"><input type="checkbox" id="nightLock" checked><span>Always night</span></label></div>
+      <div class="row"><label class="lbl" for="codeOut">City code:</label><input class="fld" id="codeOut" readonly spellcheck="false"><button class="btn" id="copyCode">Copy</button></div>
       <div id="hint">Scroll or pinch to zoom in, drag to look around, and click a window to meet who lives there. This city is yours; it keeps living while you're away.</div>
     </div>
   </div>
@@ -164,6 +176,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
   </div>
 </div>
 <div id="icons"></div>
+<div id="cap" class="win" aria-live="polite"><div class="in"><div class="tb"><span class="sys" aria-hidden="true"></span><span class="tt" id="capT"></span></div><div class="cl" id="capB"></div></div></div>
 <div id="dlg" class="win" role="dialog" aria-modal="true" aria-labelledby="dlgT" aria-describedby="dlgM" hidden>
   <div class="in">
     <div class="tb" id="dTb"><span class="sys" aria-hidden="true"></span><span class="tt" id="dlgT">Big Apple Sam</span></div>
@@ -1803,7 +1816,7 @@ function dragWin(win,handle){
     handle.addEventListener('pointermove',mv);handle.addEventListener('pointerup',end);handle.addEventListener('pointercancel',end);
   });
 }
-function peek(){
+function peek(){if(AP.on)apStop();
   let best=null;
   for(let k=0;k<800&&!best;k++){const u=city.units[Math.floor(Math.random()*city.units.length)];if(u.kind!=='res')continue;
     if(u.people.some(p=>!p.away&&p.act!=='sleep')&&u.light.some(m=>m!=='off')){const L=Math.floor(simMin/1440);if(k<300&&!eventsFor(u,L).some(e=>simMin>=e.s&&simMin<e.e)&&Math.random()<.6)continue;best=u}}
@@ -1811,11 +1824,90 @@ function peek(){
   select(best);follow=true;const s=clamp(W*.55/(Math.max(3,best.n)*CW),DET1()*1.4,Math.min(sMax,H*.3/RH));flyTo(best.x0+best.n*CW/2,best.wy+RH/2,s,1400);renderPanel();
 }
 
+
+/* ============================================================
+   Autopilot: a camera "director" for screensaver use.
+   Drifts along the skyline, picks a lively apartment, zooms in,
+   lingers with a caption, sometimes hops to a neighbor, pulls back.
+   ============================================================ */
+const SAVER=(typeof window!=='undefined'&&window.BAS_SAVER)||null;
+const AP={on:false,native:false,phase:'wide',until:0,target:null,recent:[],dir:1,hops:0,armed:0,mx:undefined,my:undefined,capT:0};
+const AP_EV={party:9,birthday:9,date:8,datenight:7,argue:7,nightmare:6,visit:5,story:5,famdinner:5,gamenight:5,cuddle:4,pizza:4,close:1.5};
+const AP_BUSY=new Set(['cook','dance','guitar','exercise','paint','phone','mope','insomnia','game','baby','jobsearch','nursery','play','yoga','knit','computer','eat','dishes','snack','homework','vacuum','stargaze','window','sick']);
+const ux=u=>u.x0+u.n*CW/2,uy=u=>u.wy+RH/2;
+function apClose(u){return clamp(W*.5/(Math.max(3,u.n)*CW),DET1()*1.4,Math.min(sMax,H*.3/RH))}
+function apScore(u,t){
+  if(u.kind!=='res'||!u.people.length)return-1;
+  if(u.occ===undefined){u.occ=false;if(u.b.row==='back')for(const fb of city.front)if(fb.x<u.x0+u.n*CW+6&&fb.x+fb.w>u.x0-6&&fb.antTop<u.wy+RH+4){u.occ=true;break}}
+  if(u.occ)return-1;
+  const lit=u.light.some(m=>m!=='off'&&m!=='kidsnight');if(!lit&&STARK>.5)return-1;
+  let sc=0;for(const e of activeEvents(u,t))sc+=AP_EV[e.type]||3;
+  for(const p of u.people){const s=segAt(p,t);if(s.act==='away')continue;sc+=s.act==='sleep'?.2:1.5;if(AP_BUSY.has(s.act))sc+=1.5}
+  sc+=u.pets.length*.5;if(AP.recent.includes(u.id))sc*=.1;
+  return sc;
+}
+function apPick(){
+  const t=simMin,cx=cam.x+W/2/cam.s,best=[];
+  for(let k=0;k<500;k++){const u=city.units[Math.floor(Math.random()*city.units.length)];const sc=apScore(u,t);if(sc<2)continue;
+    const w=sc/(1+Math.abs(ux(u)-cx)/1800);best.push([w,u])}
+  if(!best.length)return null;best.sort((a,b)=>b[0]-a[0]);return best[Math.floor(Math.random()*Math.min(5,best.length))][1];
+}
+function apNeighbor(u){
+  const t=simMin;let bw=0,bu=null;
+  for(const v of u.b.units){if(v===u||Math.abs(v.f-u.f)>3)continue;const sc=apScore(v,t);if(sc>2.5&&sc>bw){bw=sc;bu=v}}
+  return bu;
+}
+function capEl(){return document.getElementById('cap')}
+function capFill(u){
+  const el=capEl();if(!el)return;const L=Math.floor(simMin/1440);
+  document.getElementById('capT').textContent=u.kind==='office'?`${u.tenant} - Floor ${u.f+2}`:`${u.b.name} - Apt ${u.f+2}${u.letter}`;
+  const lines=[];for(const e of activeEvents(u,simMin))lines.push(`<b>${esc(chipText(u,e))}</b>`);
+  for(const p of u.people){if(p.away||!p.beat)continue;const l=p.beat.lab||label(p,p.act,p.seg||segAt(p,simMin));lines.push(`${esc(p.first)}: ${esc(lc(l))}`)}
+  if(!lines.length)lines.push('Nobody home right now.');
+  const rt=relText(u,L);if(rt&&lines.length<4)lines.push(`<span class="dim">${esc(rt)}</span>`);
+  document.getElementById('capB').innerHTML=lines.slice(0,4).join('<br>');
+}
+function capShow(u){if(SAVER&&SAVER.captions===false)return;capFill(u);capEl().classList.add('on');AP.capT=rnow}
+function capHide(){const el=capEl();if(el)el.classList.remove('on')}
+function apStart(native){
+  AP.on=true;AP.native=native;AP.phase='wide';AP.until=rnow+(native?10:4);AP.armed=rnow+1.2;AP.mx=undefined;AP.target=null;
+  follow=false;select(null);document.body.classList.add('auto');
+  flyTo(cam.x+W/2/cam.s,-200,sMin*1.12,native?10:2500);
+  if(!native&&document.documentElement.requestFullscreen){try{const q=document.documentElement.requestFullscreen();if(q&&q.catch)q.catch(()=>{})}catch(e){}}
+}
+function apStop(){
+  if(!AP.on||AP.native)return;AP.on=false;AP.stoppedAt=rnow;capHide();document.body.classList.remove('auto');wake();
+  if(document.fullscreenElement&&document.exitFullscreen){try{const q=document.exitFullscreen();if(q&&q.catch)q.catch(()=>{})}catch(e){}}
+}
+function apTick(dt){
+  const t=rnow;
+  switch(AP.phase){
+    case 'wide':
+      if(!anim){cam.x+=AP.dir*14*dt;const vw=W/cam.s;if(cam.x<=0)AP.dir=1;if(cam.x>=city.W-vw-1)AP.dir=-1;clampCam()}
+      if(t>AP.until&&!anim){const u=apPick();if(u){AP.target=u;AP.hops=0;AP.phase='approach';flyTo(ux(u),uy(u),DET1()*1.25,6000)}else AP.until=t+6}
+      break;
+    case 'approach':if(!anim){AP.phase='look';AP.until=t+5}break;
+    case 'look':if(t>AP.until){AP.phase='close';flyTo(ux(AP.target),uy(AP.target),apClose(AP.target),4500)}break;
+    case 'close':if(!anim){AP.phase='dwell';AP.until=t+45+Math.random()*45;AP.recent.push(AP.target.id);if(AP.recent.length>16)AP.recent.shift();capShow(AP.target)}break;
+    case 'dwell':
+      if(t-AP.capT>2&&capEl().classList.contains('on')){AP.capT=t;capFill(AP.target)}
+      if(t>AP.until){capHide();const nb=AP.hops<2&&Math.random()<.4?apNeighbor(AP.target):null;
+        if(nb){AP.hops++;AP.target=nb;AP.phase='close';flyTo(ux(nb),uy(nb),apClose(nb),3500)}
+        else{AP.phase='retreat';flyTo(cam.x+W/2/cam.s,cam.y+H/2/cam.s,DET1()*.9,4000)}}
+      break;
+    case 'retreat':if(!anim){AP.phase='wide';AP.until=t+18+Math.random()*14;flyTo(cam.x+W/2/cam.s,-200,sMin*1.12,6000)}break;
+  }
+}
+/* city codes: share one city between the browser and the screensaver */
+const cityCode=()=>(city.seed>>>0).toString(36)+'-'+city.born.toString(36);
+function parseCode(s){const m=/^\s*([0-9a-z]{1,8})-([0-9a-z]{1,6})\s*$/i.exec(s||'');if(!m)return null;const seed=parseInt(m[1],36),born=parseInt(m[2],36);
+  return seed>0&&seed<2147483648&&born>10000&&born<100000?{seed,born}:null}
+
 /* ---------- persistence ---------- */
 const STORE='big-apple-sam/v1';
 const localNow=()=>(Date.now()-new Date().getTimezoneOffset()*60000)/60000;
 function loadState(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');return s&&typeof s.seed==='number'?s:null}catch(e){return null}}
-function saveState(){try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,night:nightLock,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel?sel.id:null,follow}))}catch(e){}}
+function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,night:nightLock,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel?sel.id:null,follow}))}catch(e){}}
 
 /* ---------- main loop ---------- */
 let bufBox=null,bufF=-1;
@@ -1832,13 +1924,16 @@ function ensureBuf(now,f8){
   renderBuf(now,f8);bufF=f8;
 }
 let wasBusy=false,lastClock='',lastWall=0,panelT=0,lastWake=0,hudHover=false,saveT=0,clockEl,liveEl,whenBtn,hintEl;
+let lastMs=0;
 function frame(ms){
+  if(SAVER&&ms-lastMs<31){requestAnimationFrame(frame);return}lastMs=ms;
   const now=ms/1000;rnow=now;
   const wall=Date.now(),wd=(wall-lastWall)/1000;lastWall=wall;
   if(wd>2){if(!paused)simMin+=wd/60}else if(!paused)simMin+=wd*speed/60;
   if(Math.abs(simMin-lastUpd)>=.5){updateWorld(simMin);lastUpd=simMin}
   updateSun();
   stepAnim(ms);
+  if(AP.on)apTick(Math.min(.1,Math.max(0,wd)));
   if(follow&&sel&&!anim){const cx=sel.x0+sel.n*CW/2,cy=sel.wy+RH/2;cam.x+=(cx-W/2/cam.s-cam.x)*.08;cam.y+=(cy-H/2/cam.s-cam.y)*.08;clampCam()}
   const tod=mod(simMin,1440);
   if(!paused)updateCars(Math.min(.1,Math.max(0,wd)),tod);
@@ -1874,6 +1969,7 @@ function updateCars(dt,tod){
 function startCity(seed,born){
   city=genCity(seed,born);makeSky(seed);sel=null;follow=false;computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
   for(let k=0;k<12;k++)updateCars(1,mod(simMin,1440));updateWorld(simMin);lastUpd=simMin;bufBox=null;bufF=-1;
+  const co=document.getElementById('codeOut');if(co)co.value=cityCode();
 }
 function wake(){lastWake=performance.now();document.body.classList.remove('idle')}
 
@@ -1881,12 +1977,18 @@ function boot(){
   cv=document.getElementById('c');ctx=cv.getContext('2d');bufCv=document.createElement('canvas');bctx=bufCv.getContext('2d');
   clockEl=document.getElementById('clk');liveEl=document.getElementById('live');whenBtn=document.getElementById('when');hintEl=document.getElementById('hint');
   DPR=Math.min(2,window.devicePixelRatio||1);W=Math.round(innerWidth*DPR);H=Math.round(innerHeight*DPR);cv.width=W;cv.height=H;
-  const st=loadState();
-  if(st){speed=st.speed||1;paused=!!st.paused;nightLock=st.night!==false;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
+  const q=new URLSearchParams(location.search),hm=/^#city-([0-9a-z]+-[0-9a-z]+)$/i.exec(location.hash);
+  const want=parseCode((SAVER&&SAVER.code)||(hm&&hm[1])||q.get('city'));
+  let st=loadState();if(want&&!(st&&st.seed===want.seed&&st.born===want.born))st=null;
+  if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;document.body.classList.add('saver')}
+  if(!st&&want){simMin=localNow();startCity(want.seed,want.born)}
+  else if(st){speed=st.speed||1;paused=!!st.paused;nightLock=st.night!==false;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
     if(st.cam){cam.s=st.cam.s*DPR;cam.x=st.cam.x;cam.y=st.cam.y;clampCam()}
     if(st.sel!=null&&city.units[st.sel]){sel=city.units[st.sel];follow=!!st.follow}
     if(cam.s>=DET0())hintEl.classList.add('gone')}
   else{simMin=localNow();startCity((Math.random()*2e9)|0,Math.floor(localNow()/1440))}
+  if(SAVER){simMin=localNow();speed=[1,10,60].includes(SAVER.speed)?SAVER.speed:1;paused=false;sel=null;follow=false;
+    const vw=W/cam.s;cam.x=((SAVER.display||0)*.37%1)*Math.max(0,city.W-vw);clampCam();hintEl.classList.add('gone')}
   saveState();
   addEventListener('resize',resize);
   addEventListener('pagehide',saveState);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveState()});
@@ -1948,10 +2050,20 @@ function boot(){
     else if('1234'.includes(e.key)&&e.key.length===1)setSpeed([1,10,60,600][+e.key-1]);
     else if(e.key==='Escape'){if(sel)select(null);else zoomOut()}
     else if(e.key==='p'||e.key==='P')peek();
+    else if((e.key==='s'||e.key==='S')&&!AP.on&&rnow-(AP.stoppedAt||-9)>.5)apStart(false);
     else if(e.key==='f'||e.key==='F'){if(sel){follow=!follow;renderPanel()}}
     else if(e.key==='+'||e.key==='=')flyTo(cam.x+W/2/cam.s,cam.y+H/2/cam.s,cam.s*1.8,400);
     else if(e.key==='-'||e.key==='_')flyTo(cam.x+W/2/cam.s,cam.y+H/2/cam.s,cam.s/1.8,400)});
   addEventListener('mousemove',wake);
+  document.getElementById('saverBtn').addEventListener('click',()=>apStart(false));
+  const co=document.getElementById('codeOut');co.value=cityCode();
+  document.getElementById('copyCode').addEventListener('click',e=>{const b=e.currentTarget;const done=()=>{b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1500)};
+    try{navigator.clipboard.writeText(co.value).then(done,()=>{co.focus();co.select()})}catch(err){co.focus();co.select()}});
+  const apExit=e=>{if(!AP.on||AP.native||rnow<AP.armed)return;
+    if(e.type==='pointermove'){if(AP.mx===undefined){AP.mx=e.clientX;AP.my=e.clientY;return}if(Math.hypot(e.clientX-AP.mx,e.clientY-AP.my)<12)return}
+    apStop()};
+  for(const ev of ['pointermove','pointerdown','keydown','wheel'])addEventListener(ev,apExit,true);
+  if(SAVER)apStart(true);
   lastWall=Date.now();wake();renderIcons();renderPanel();requestAnimationFrame(frame);
 }
 if(typeof document!=='undefined'&&document.getElementById('c'))boot();

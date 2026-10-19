@@ -1,0 +1,51 @@
+name: Build screen saver
+
+on:
+  push:
+    branches: [main]
+    paths: ["index.html", "saver/**", ".github/workflows/screensaver.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: saver
+        run: xcodegen generate
+
+      - name: Build universal .saver
+        working-directory: saver
+        run: |
+          xcodebuild -project BigAppleSam.xcodeproj -target BigAppleSam -configuration Release \
+            SYMROOT="$PWD/build" ONLY_ACTIVE_ARCH=NO build | tail -n 40
+          ls -la "build/Release"
+          lipo -info "build/Release/Big Apple Sam.saver/Contents/MacOS/Big Apple Sam"
+          test -f "build/Release/Big Apple Sam.saver/Contents/Resources/index.html"
+
+      - name: Zip
+        working-directory: saver/build/Release
+        run: ditto -c -k --sequesterRsrc --keepParent "Big Apple Sam.saver" "$GITHUB_WORKSPACE/Big-Apple-Sam-saver.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Big-Apple-Sam-saver
+          path: Big-Apple-Sam-saver.zip
+
+      - name: Publish rolling "latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest Big-Apple-Sam-saver.zip \
+            --title "Big Apple Sam screen saver (latest build)" \
+            --notes "Built from ${GITHUB_SHA::7}. Unzip, then double-click Big Apple Sam.saver to install. See the README for the one-time security step." \
+            --target "$GITHUB_SHA"
