@@ -7,7 +7,8 @@ Open `index.html` in a browser (or the GitHub Pages site). No build step and no 
 ## What's going on in there
 
 - **One city per browser.** The skyline is generated once from a random seed and saved in `localStorage`, along with the clock and where you were looking. Come back tomorrow and it's the same city, and the clock has kept running while you were away.
-- **Live clock.** By default the city runs at 1×, synced to your local time. Speed buttons go up to 600×; "Back to now" re-syncs, and "Skip to 7 PM" jumps to the evening.
+- **Live clock.** By default the city runs at 1×, synced to your local time. Speeds go 60×, 600×, 6000× (a day in about four minutes) and 1 day/s (a year in about six minutes). "Back to now" re-syncs, and "Skip to 7 PM" jumps to the evening.
+- **Years go by.** Fast-forward and the city ages. Every apartment has its own deterministic history: people grow older and go gray, kids grow up and leave at 18, students graduate, workers retire, couples move in together, hit rough patches, split up or have babies (who grow into kids with their own beds), pets come and go, and people eventually die. Households move out, the window goes dark with a FOR RENT sign, and new tenants arrive with their own furniture. Each apartment's window shows an "Over the years" timeline.
 - **A real sky.** You're looking south from about 42°N. Stars (including Orion, the Pleiades, Cygnus, Vega, Sirius and friends) rise and set with sidereal time, and the moon moves and shows the correct phase.
 - **Day and night.** The sun rises and sets on the real schedule for the date (tick "Always night" to keep it dark): twilight colors, a blue daytime sky, sunlit facades and glassy windows, with streetlights and headlights switching on at dusk.
 - **About 6,000 residents.** Each has a job, a daily routine, two personality traits, a mood that shifts day to day, and a birthday. Many have a multi-week life arc: getting over a breakup, dating someone new, grieving a spouse, learning guitar, writing a novel, looking for work, training for a marathon, homesick, insomnia. Couples are newlyweds, steady, in a rough patch, or expecting (the baby arrives on a real date).
@@ -17,7 +18,7 @@ Open `index.html` in a browser (or the GitHub Pages site). No build step and no 
 
 ## Controls
 
-Scroll or pinch to zoom, drag to pan, click a window. Keys: `Space` pause, `1`–`4` speed, `P` peek into a random window, `S` screensaver (autopilot), `F` follow, `Esc` close / zoom out, `+`/`-` zoom.
+Scroll or pinch to zoom, drag to pan, click a window. Keys: `Space` pause, `1`–`5` speed, `P` peek into a random window, `S` screensaver (autopilot), `F` follow, `Esc` close / zoom out, `+`/`-` zoom.
 
 **Screensaver button.** Hands the camera to an autopilot that drifts along the skyline, picks a lively apartment (a party, a date night, someone up at 3 AM), zooms in and lingers with a caption, sometimes hops next door, then pulls back. Move the mouse or press a key to take over again.
 
