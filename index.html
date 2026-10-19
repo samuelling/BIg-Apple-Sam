@@ -289,6 +289,11 @@ const ACT={
   nursery:{spot:'center',light:'on',lab:'Getting the nursery ready'},away:{spot:null,light:'off',lab:'Out'},
   work:{spot:'desk',light:'office',lab:'Working at the desk'},meeting:{spot:'meet',light:'office',lab:'In a meeting'},coffee:{spot:'cooler',light:'office',lab:'Getting coffee'},
   janitor:{spot:'wanderAll',light:'on',lab:'Cleaning the floor'},
+  synth:{spot:'center',light:'on',lab:'Making music'},theremin:{spot:'center',light:'dim',lab:'Playing the theremin'},
+  film:{spot:'table',light:'on',lab:'Fiddling with a film camera'},fish:{spot:'center',light:'on',lab:'Tending the aquarium'},
+  water:{spot:'window',light:'on',lab:'Watering the plants'},cycle:{spot:'center',light:'on',lab:'Riding the stationary bike'},
+  grade:{spot:'table',light:'on',lab:'Grading'},grant:{spot:'desk',light:'on',lab:'Writing a grant'},papers:{spot:'sofa',light:'on',lab:'Reading papers'},
+  slides:{light:'proj',lab:'Slide night'},gamedev:{light:'on',lab:'Making a video game'},
   birthday:{light:'on',lab:'Birthday party'},argue:{light:'on',lab:'Arguing'},datenight:{light:'on',lab:'Date night'},cuddle:{light:'tv',lab:'Cuddled up on the sofa'},
   close:{light:'rose',lab:'Curtains drawn'},date:{light:'on',lab:'On a date'},famdinner:{light:'on',lab:'Family dinner'},story:{light:'dim',lab:'Bedtime story'},
   nightmare:{light:'dim',lab:'Bad dream'},visit:{light:'on',lab:'Has a visitor'},pizza:{light:'on',lab:'Waiting on a pizza'},gamenight:{light:'tv',lab:'Game night'}
@@ -296,15 +301,15 @@ const ACT={
 const WHY={work:'At work',drinks:'Out for drinks after work',night:'Out for the night',errands:'Out running errands',shift:'On the night shift',
   bakery:'At the bakery',walk:'Out for a morning walk',visit:'Visiting friends',class:'In class',friends:'Out with friends',party:'At a party across town',
   gym:'At the gym',school:'At school',park:'At the park',commute:'Not in yet',lunch:'Out to lunch',home:'Gone home for the day',weekend:'Off for the weekend',
-  off:'Night off',date:'Out on a date',run:'Out for a run',race:'Running the marathon',interview:'At a job interview',sick:'Home sick'};
-const LEAVE={work:'{n} left for work.',shift:'{n} left for the night shift.',bakery:'{n} left for the bakery in the dark.',date:'{n} left for a date.',night:'{n} headed out for the night.',
+  off:'Night off',drone:'Out flying the drone',date:'Out on a date',run:'Out for a run',race:'Running the marathon',interview:'At a job interview',sick:'Home sick'};
+const LEAVE={drone:'{n} went out to fly the drone.',work:'{n} left for work.',shift:'{n} left for the night shift.',bakery:'{n} left for the bakery in the dark.',date:'{n} left for a date.',night:'{n} headed out for the night.',
   run:'{n} went out for a run.',race:'{n} left to run the marathon.',interview:'{n} left for a job interview, nervous.',party:'{n} went out to a party.',school:'{n} left for school.',class:'{n} left for class.'};
-const ARRIVE={work:'{n} got home from work.',shift:'{n} got home from the night shift.',bakery:'{n} got home smelling like bread.',date:'{n} got home from the date.',night:'{n} got home late.',
+const ARRIVE={drone:'{n} got back with new drone footage.',work:'{n} got home from work.',shift:'{n} got home from the night shift.',bakery:'{n} got home smelling like bread.',date:'{n} got home from the date.',night:'{n} got home late.',
   run:'{n} got back from a run.',race:'{n} came home with a marathon medal.',interview:'{n} got back from the interview.',party:'{n} stumbled home from the party.',school:'{n} got home from school.',errands:'{n} got home with groceries.'};
 const POSE={bed:'lie',sofaLie:'lieSofa',bedsit:'sitbed',table:'sitside',desk:'sitside',sofa:'sit',meet:'sit',tvfloor:'floorsit'};
 const FB={desk:['desk','table','sofa'],table:['table','sofa'],tvfloor:['tvfloor','center'],sofa:['sofa'],center:['center'],stove:['stove'],sink:['sink','stove'],
   fridge:['fridge','stove'],meet:['meet','desk'],cooler:['cooler','center'],bedsit:['bedsit','sofa'],sofaLie:['sofaLie','bed'],bed:['bed']};
-const PRI={off:0,kidsnight:.5,moon:.7,fridge:1,screen:2,tv:3,candle:3.5,rose:3.6,dim:4,on:5,office:5,disco:6};
+const PRI={off:0,kidsnight:.5,aqua:.6,moon:.7,proj:3.4,safelight:4.5,fridge:1,screen:2,tv:3,candle:3.5,rose:3.6,dim:4,on:5,office:5,disco:6};
 
 /* ============================================================
    Rooms: furniture layout & where people go (unflipped coords)
@@ -371,6 +376,7 @@ function mkPerson(C,u,arch,r,o={}){
   p.traits=arch==='office'||arch==='janitor'?[]:kid?[pk(KTRAITS)]:pickN(r,TRAITS,2);
   p.mbase=p.traits.reduce((a,t)=>a+(TRAIT_MOOD[t]||0),0);
   const fr=r();p.bd=GEN.day-Math.round((age+fr)*YR);p.bday=doyOf(p.bd);
+  assignLikes(C,p);
   p.retireAge=62+hash(p.id,5,C.seed)%8;p.gradAge=22+hash(p.id,6,C.seed)%4;
   Object.assign(p,{x:-99,tx:0,face:1,away:true,act:'away',seg:null,row:8,pose:'stand',moving:false,mf:1,bedSlot:0,bedRoom:0});
   if(GEN.base==null)C.people.push(p);u.people.push(p);return p;
@@ -437,6 +443,7 @@ function setupRes(C,u,r){
   const bl=pk(BULBS);u.bulb=bl.m;u.bulbO=bl.o;
   u.leaveRoom=Math.max(0,roomWith(u,'sofa'));
   u.partyRoom=u.ri.tv;
+  decorate(u);
 }
 function setupOffice(C,u,r){
   const n=u.n;const types=[];const brk=Math.floor(r()*n);
@@ -564,7 +571,7 @@ function fitHousehold(u){
 const RUNTIME=new Set(['u','pc','scm','mc','si','siL','seg','beat','act','away','x','tx','moving','mf','room','st','wander','wkey','wt','pose','row','face','belly','_ta','small','on','grayed']);
 function snapP(p){const o={};for(const k in p)if(!RUNTIME.has(k))o[k]=p[k];
   o.hobbies=p.hobbies?p.hobbies.slice():[];o.preg=!!p.preg;o.arc=p.arc||null;o.sleepSofa=!!p.sleepSofa;o.babyParent=!!p.babyParent;o.dateG=p.dateG||null;return o}
-const UF=['rel','relSince','baby','due','babyName','mates','fam','vacant','rooms','ri','bulb','bulbO','leaveRoom','partyRoom','babySkin'];
+const UF=['rel','relSince','baby','due','babyName','mates','fam','vacant','rooms','ri','bulb','bulbO','leaveRoom','partyRoom','babySkin','tank','tankRoom','plants','spooky','xmas','bike','slides'];
 function snapEra(C,u,k,s,kind){
   const e={k,s,kind,people:u.people.slice(),ps:u.people.map(snapP),pets:u.pets.map(x=>Object.assign({},x))};
   for(const f of UF)e[f]=u[f];
@@ -693,7 +700,7 @@ function fastLights(u,t){
   const occ=u.vacant?0:Math.min(1,u.people.length/2);
   const p=(.05+.55*gauss(h,20.8,2.1)+.22*gauss(h,7,.9)+.1*(h>9&&h<17?1:0))*occ;
   const blk=Math.floor(t/25);
-  for(let i=0;i<u.n;i++){const q=hr(u.id,i,blk,41);lit[i]=q<p?(q<p*.28?'tv':'on'):(u.ri&&i===u.ri.kid&&h<7?'kidsnight':'off')}
+  for(let i=0;i<u.n;i++){const q=hr(u.id,i,blk,41);lit[i]=q<p?(q<p*.28?'tv':'on'):(u.ri&&i===u.ri.kid&&h<7?'kidsnight':u.tank&&!u.vacant&&i===u.tankRoom?'aqua':'off')}
 }
 
 /* ============================================================
@@ -753,6 +760,46 @@ function relText(u,L){
 /* ============================================================
    Daily plans (the big strokes of each day)
    ============================================================ */
+/* Interests drawn at roughly real-world rates (per adult unless noted). */
+const RATES={
+  guitar:{all:.07,creative:.2,student:.12,label:'Plays guitar'},
+  synth:{all:.02,creative:.06,label:'Makes music on synthesizers'},
+  modular:{of:'synth',p:.1,label:'Modular synths / grid sequencers'},
+  theremin:{all:.0002,creative:.001,label:'Plays the theremin'},
+  film:{all:.02,creative:.05,student:.04,label:'Shoots film'},
+  darkroom:{of:'film',p:.15,label:'Develops film at home'},
+  coffee:{all:.12,label:'Specialty coffee at home'},
+  retro:{all:.04,student:.07,label:'Retro video games'},
+  drone:{all:.01,label:'Flies a drone'},
+  carni:{all:.003,label:'Grows carnivorous plants'},
+  maker:{all:.01,label:'Makes video games with their kids'},
+  prof:{worker:.006,label:'Professor'}
+};
+const HH={tank:.08,plants:.35,spooky:.08,xmas:.25,bike:.07,slides:.005};
+const PROFS=['professor of neuroscience','professor of psychology','vision scientist','professor of biology','lab manager'];
+function assignLikes(C,p){
+  const L={};p.likes=L;if(p.kid||p.arch==='office'||p.arch==='janitor')return;
+  const q=k=>hr(p.id,k,C.seed,77);let k=0;
+  for(const [name,r] of Object.entries(RATES)){k++;
+    if(r.of){if(L[r.of]&&q(k)<r.p)L[name]=true;continue}
+    const rate=r[p.arch]!==undefined?r[p.arch]:r.all||0;if(q(k)<rate)L[name]=true}
+  p.hobbies=p.hobbies.filter(h=>h!=='guitar');
+  if(L.guitar||p.workAct==='guitar')p.hobbies.push('guitar');
+  if(L.synth)p.hobbies.push('synth','synth');if(L.theremin)p.hobbies.push('theremin');if(L.film)p.hobbies.push('film');
+  if(L.carni)p.hobbies.push('water');
+  if(L.prof){p.job=PROFS[hash(p.id,C.seed,5)%PROFS.length];p.hobbies.push('grade','grant','papers')}
+}
+function decorate(u){
+  const q=k=>hr(u.id,GEN.day,k,313),types=u.rooms.map(r=>r.type);
+  u.tank=q(1)<HH.tank?(q(2)<.25?'shrimp':'fish'):null;
+  u.tankRoom=['living','bedsit','studio','kitchen','bedroom','study','kids'].map(t=>types.indexOf(t)).find(i=>i>=0);
+  u.plants=q(3)<HH.plants;u.spooky=q(4)<HH.spooky;u.xmas=q(5)<HH.xmas;u.bike=q(6)<HH.bike;
+  u.slides=q(7)<(u.people.some(p=>p.likes&&p.likes.film)?.08:HH.slides);
+  for(const p of u.people){if(p.kid)continue;if(u.tank)p.hobbies.push('fish');if(u.plants&&q(8+p.id%5)<.5)p.hobbies.push('water');if(u.bike)p.hobbies.push('cycle','cycle')}
+}
+const TANKXY={living:[1,2],bedsit:[1,1],studio:[0,1],kitchen:[10,2],bedroom:[11,3],study:[5,2],kids:[8,1]};
+const KODA=['#d8a050','#c86a3a','#5a8ac8','#e8d0a0','#7a9a5a','#b84a3a','#e8b870','#6a9ab8'];
+let SEASON='';
 function pickLeisure(p,r,hAbs,mood,L){
   const h=mod(hAbs,24);const o=p.hobbies.slice();
   if(!p.kid){o.push('mope','window');if(p.preg||(p.babyParent&&p.u.due!==undefined&&L<p.u.due))o.push('nursery')}
@@ -764,6 +811,10 @@ function pickLeisure(p,r,hAbs,mood,L){
     if(a==='vacuum'&&(h>=21||h<9))x=0;
     if(a==='dance')x=(h>=23?.3:1)+Math.max(0,mood)*.8;
     if(a==='play'&&h>=19)x=.4;
+    if(a==='theremin'||a==='synth')x=h>=23||h<7?.3:1.2;
+    if(a==='grade'||a==='grant')x=dowOf(L)>=1&&dowOf(L)<=5?1.4:.5;
+    if(a==='cycle')x=h>=21||h<6?.2:1;
+    if(a==='fish'||a==='water')x=.5;
     if(a==='mope')x=Math.max(0,-mood-.2)*1.8;
     if(a==='window')x=.12+Math.max(0,-mood)*.4;
     if(a==='nursery')x=1.2;
@@ -809,7 +860,7 @@ function buildPlan(p,L){
         if(friSat&&!dOut&&ch(.3)){dinner();add('away',150+r()*120,'night');leis(at(24.5+j(.6)));bed()}
         else evening(friSat?24.5+j(.6):23.1+j(.6))}
       else{until('sleep',at(8.7+j(1.1)));add('ready',20);add('cook',20+r()*10);add('eat',25);if(ch(.4))add('dishes',12);
-        leis(at(12.4+j(.5)));if(ch(.65))add('away',90+r()*170,'errands');if(ch(.3))add('vacuum',20+r()*20);
+        leis(at(12.4+j(.5)));if(p.likes&&p.likes.drone&&ch(.35))add('away',60+r()*70,'drone');if(ch(.65))add('away',90+r()*170,'errands');if(ch(.3))add('vacuum',20+r()*20);
         leis(at(18.4+j(.6)));evening(24.7+j(.8))}
       break;
     case 'jobless':
@@ -912,7 +963,8 @@ const SC={
     B.add(rng(4,8),{sp:'wander',wr:c.u.ri.bed,lab:'Getting dressed'});
     B.add(rng(2,4),{sp:'center',room:Math.max(0,u.ri.bed),arm:1,prop:'brush',lab:'Brushing hair'});
     B.add(1,{sp:'center',room:Math.max(0,u.ri.bed),emo:mood>.3?'sparkle':'sigh',lab:'Checking the mirror'});
-    B.rest({sp:'stove',prop:'mug',fx:'steam',lab:'Making coffee'})},
+    const cf=c.p.likes&&c.p.likes.coffee;if(cf){B.add(rng(1,2),{sp:'stove',arm:1,lab:'Weighing beans to the tenth of a gram'});B.add(rng(1,2),{sp:'stove',arm:1,emo:'...',lab:'Grinding coffee'})}
+    B.rest({sp:'stove',prop:'mug',fx:'steam',lab:cf?'Pour-over, very precisely':'Making coffee'})},
   cook(c){const{B,ch,rng,p,mood}=c;const clumsy=p.traits.includes('clumsy'),musical=p.traits.includes('musical')||p.traits.includes('cheerful');
     B.add(rng(.8,1.6),{sp:'fridge',fx:'fridge',lab:'Getting ingredients out'});
     B.add(rng(3,7),{sp:'sink',arm:1,prop:'knife',lab:'Chopping vegetables'});
@@ -950,7 +1002,7 @@ const SC={
       [mood<-.8?.25:0,()=>[[rng(4,8),{sp:'sofa',tv:1,tvc:chn,prop:'icecream',emo:'sigh',lab:'Eating ice cream straight from the tub'}]]],
       [.06,()=>[[rng(2,5),{sp:'sofa',prop:'phone',tv:1,tvc:chn,emo:c.pk(['ha','heart','...'])}]]]]);
     if(doze){B.e=E;B.rest({sp:'sofaLie',pose:'lieSofa',tv:1,tvc:chn,emo:'zzz',lab:'Fell asleep in front of the TV',log:'{n} fell asleep in front of the TV.'})}},
-  game(c){const{rng}=c;loop(c,()=>[[rng(3,8),{sp:'tvfloor',tv:'game',prop:'pad',arm:1}]],[
+  game(c){const{rng,p}=c;const rl=p.likes&&p.likes.retro?c.pk(['Playing Zelda on an old NES','Playing Tetris on a Game Boy','Blowing into an NES cartridge']):undefined;loop(c,()=>[[rng(3,8),{sp:'tvfloor',tv:'game',prop:'pad',arm:1,lab:rl}]],[
     [.2,()=>[[.6,{sp:'tvfloor',tv:'game',prop:'pad',emo:'!',lab:'Beat a level!'}]]],[.18,()=>[[.6,{sp:'tvfloor',tv:'game',prop:'pad',emo:'anger',lab:'Lost a life'}]]],
     [.04,()=>[[1,{sp:'tvfloor',pose:'stand',tv:'game',emo:'anger',lab:'Rage-quit',log:'{n} rage-quit a video game.'}]]]])},
   read(c){const{B,p,ch,rng}=c;const E=B.e;const doze=c.late&&ch(.2)&&E-B.t>30;if(doze)B.e=E-rng(8,20);
@@ -968,7 +1020,7 @@ const SC={
       [mood>1?.15:.02,()=>[[rng(2,4),{sp:'center',pose:'stand',prop:'guitar',notes:1,emo:'note',lab:'Rocking out standing up'}]]],
       [mood<-.8?.25:0,()=>[[rng(3,6),{sp:'sofa',prop:'guitar',notes:1,emo:'tear',lab:'Playing something sad'}]]]])},
   computer(c){const{p,rng,L}=c;const nov=p.arc==='novel'&&L<p.finish,prog=/programmer/.test(p.job);
-    const lab=nov?'Writing the novel':prog?'Writing code':'On the computer';
+    const lab=nov?'Writing the novel':prog?'Writing code':p.likes&&p.likes.retro&&c.late?'Dialing into a BBS':'On the computer';
     if(p.arc==='novel'&&L===p.finish&&mod(c.seg.s,1440)>17*60)c.B.add(3,{sp:'desk',mon:'type',emo:'!',lab:'Typed THE END',log:'{n} typed THE END on the first draft.'});
     loop(c,()=>[[rng(3,8),{sp:'desk',arm:1,mon:'type',lab}]],[
       [.1,()=>[[rng(2,3),{sp:'stove',prop:'mug',fx:'steam',lab:'Coffee refill'}]]],
@@ -1025,6 +1077,31 @@ const SC={
   coffee(c){c.B.rest({sp:'cooler',prop:'mug',emo:'ha',lab:'Chatting by the water cooler'})},
   janitor(c){const{rng}=c;loop(c,()=>[[rng(3,6),{sp:'wanderAll',prop:'vacuum'}]],[[.15,()=>[[rng(1,3),{sp:'window',emo:'note',lab:'Taking a break, radio on'}]]]])},
   party(c){loop(c,()=>[[c.rng(3,6),{sp:'center',pose:'dance',notes:1}]],[])},
+  synth(c){const{p,rng,pk,u}=c;const mod=p.likes&&p.likes.modular;
+    loop(c,()=>mod?pk([[[rng(3,7),{sp:'center',prop:'rack',arm:1,notes:1,lab:'Patching the modular synth'}]],[[rng(3,6),{sp:'center',prop:'grid',arm:1,notes:1,lab:'Sequencing synths from a grid of blinking lights'}]],[[rng(3,6),{sp:'center',prop:'keys',arm:1,notes:1,lab:'Playing the synth'}]]])
+      :[[rng(3,7),{sp:'center',prop:'keys',arm:1,notes:1,lab:pk(['Playing the synth','Building a chord progression','Twisting the filter knob'])}]],[
+      [.18,()=>[[1,{sp:'center',prop:mod?'rack':'keys',arm:1,emo:'sparkle',lab:'Found a great sound'}]]],
+      [.12,()=>[[1.2,{sp:'center',prop:'keys',emo:'anger',lab:'Debugging MIDI sync',log:'{n} is fighting with MIDI sync again.'}]]],
+      [.12,()=>[[rng(2,4),{sp:'center',prop:'keys',arm:1,notes:1,emo:'note',lab:'Recording a take'}]]],
+      [.08,()=>[[rng(2,4),{sp:'sofa',prop:'phones',emo:'note',lab:'Listening back on headphones'}]]]])},
+  theremin(c){const{rng,u,pk}=c;const cat=u.pets.some(a=>a.kind==='cat');
+    loop(c,()=>[[rng(3,6),{sp:'center',pose:'wave',prop:'theremin',notes:1,lab:pk(['Playing the theremin','Theremin practice: wobbly scales','Playing something eerie on the theremin'])}]],[
+      [cat?.2:0,()=>[[1,{sp:'center',pose:'wave',prop:'theremin',emo:'sweat',lab:'Playing the theremin. The cat has left the room.'}]]],
+      [.15,()=>[[1,{sp:'center',pose:'wave',prop:'theremin',emo:'sparkle',lab:'Nailed the pitch',log:'{n} is playing the theremin.'}]]]])},
+  film(c){const{p,rng,ch,B}=c;
+    if(p.likes&&p.likes.darkroom&&ch(.5)){B.add(rng(10,18),{sp:'sink',li:'safelight',arm:1,lab:'Developing film under the red safelight',log:'{n} turned the kitchen into a darkroom.'});
+      B.add(rng(3,6),{sp:'center',prop:'negs',li:'safelight',emo:'sparkle',lab:'Hanging negatives to dry'})}
+    loop(c,()=>c.pk([[[rng(3,6),{sp:'table',prop:'camera',arm:1,lab:'Loading a roll of film'}]],[[rng(3,6),{sp:'window',prop:'camera',lab:'Shooting the skyline from the window'}]],
+      [[rng(3,6),{sp:'table',prop:'camera',arm:1,lab:'Cleaning an old lens'}]],[[rng(3,6),{sp:'table',prop:'negs',lab:'Looking at negatives against the light'}]]]),[[.15,()=>[[.8,{sp:'table',prop:'camera',emo:'sparkle',lab:'Found the perfect frame'}]]]])},
+  fish(c){const{u,rng,pk}=c;const tr=u.tankRoom!==undefined?u.tankRoom:0,w=u.tank==='shrimp'?'shrimp':'fish';
+    loop(c,()=>[[rng(2,5),{sp:'center',room:tr,arm:1,lab:pk([`Feeding the ${w}`,`Watching the ${w} tank`,'Topping off the tank water'])}]],[[.2,()=>[[.8,{sp:'center',room:tr,emo:'heart',lab:`Watching the ${w}`}]]]])},
+  water(c){const{p,rng}=c;const cn=p.likes&&p.likes.carni;
+    loop(c,()=>[[rng(2,4),{sp:'window',prop:'can',arm:1,lab:cn?'Watering the carnivorous plants with distilled water':'Watering the plants'}]],[[cn?.3:0,()=>[[1,{sp:'window',emo:'sparkle',lab:'Feeding a fly to the Venus flytrap'}]]]])},
+  cycle(c){const{rng,pk}=c;loop(c,()=>[[rng(3,6),{sp:'center',pose:'bike',prop:'bike',lab:pk(['Riding the stationary bike','Interval sprints on the bike','Easy spin on the bike'])}]],[[.25,()=>[[1,{sp:'center',pose:'bike',prop:'bike',emo:'sweat',lab:'Checking heart rate'}]]]])},
+  grade(c){const{rng}=c;loop(c,()=>[[rng(3,7),{sp:'table',prop:'paper',arm:1,lab:'Grading lab reports'}]],[[.2,()=>[[1,{sp:'table',prop:'paper',emo:'sigh',lab:'Another lab report citing Wikipedia'}]]],[.12,()=>[[1,{sp:'table',prop:'paper',emo:'heart',lab:"Wrote 'Great insight!' in the margin"}]]]])},
+  grant(c){const{rng}=c;loop(c,()=>[[rng(3,7),{sp:'desk',arm:1,mon:'type',lab:'Writing a grant (due tomorrow at 5 PM)'}]],[[.15,()=>[[1,{sp:'desk',emo:'anger',lab:'Fighting the page limit'}]]],
+    [.12,()=>[[1,{sp:'desk',mon:'type',emo:'sigh',lab:'Rewriting the Specific Aims again',log:'{n} is rewriting the Specific Aims again.'}]]],[.1,()=>[[rng(2,3),{sp:'stove',prop:'mug',fx:'steam',lab:'Coffee refill'}]]]])},
+  papers(c){const{rng}=c;loop(c,()=>[[rng(4,9),{sp:'sofa',prop:'paper',lab:'Reading a journal article'}]],[[.15,()=>[[1,{sp:'sofa',prop:'paper',emo:'idea',lab:'Had an idea for an experiment'}]]],[.1,()=>[[1,{sp:'sofa',prop:'paper',emo:'zzz',lab:'Dozing off over a methods section'}]]]])},
   idle(c){c.B.rest({sp:'sofa'})}
 };
 const scriptLogFix=(b,p)=>{if(b.log)b.log=b.log.replace(/\{n\}/g,p.first)};
@@ -1111,6 +1188,10 @@ function eventsFor(u,L){
   for(const p of ad){const lone=p.arc==='lonely'||p.arc==='grief';const q=(lone?.28:p.arch==='retiree'?.12:.05)*(weekend?1.6:1);
     if(ch(q)){const iv=homeIv(p,H(13),H(21));const d=Math.round(rng(80,140));const s=win(iv,d);
       if(s>=0){const cast=castOf(u);const g=p.arch==='retiree'?pk([cast[2],cast[3],cast[0]]):pk(cast);put({type:'visit',s,e:s+d,who:[p],guests:[g],room:u.ri.tv})}}}
+  if(u.slides&&ad.length&&ch(friSat?.25:.05)){const iv=homeIv(ad[0],H(19.3),H(22.8));const d=Math.round(rng(50,80));const s=win(iv,d);
+    if(s>=0){const who=u.people.filter(p=>homeAt(p,s+1));if(who.length)put({type:'slides',s,e:s+d,who,room:u.ri.tv})}}
+  if(kids.length){const mk=ad.find(p=>p.likes&&p.likes.maker);if(mk&&ch(weekend?.35:.15)){const k0=pk(kids);const iv=ivAnd(homeIv(mk,H(weekend?13:18.4),H(19.3)),homeIv(k0,H(weekend?13:18.4),H(19.3)));
+    const d=Math.round(rng(40,70));const s=win(iv,d);if(s>=0)put({type:'gamedev',s,e:s+d,who:[mk,k0],room:u.ri.tv})}}
   if(ch(.04)&&ad.length){const p=pk(ad);const s=win(homeIv(p,H(19),H(22.5)),45);if(s>=0)put({type:'pizza',s,e:s+45,who:[p],room:u.ri.tv})}
   if(u.mates&&ad.length===2&&ch(.25)){const iv=ivAnd(homeIv(ad[0],H(19),H(26)),homeIv(ad[1],H(19),H(26)));const d=Math.round(rng(60,110));const s=win(iv,d);
     if(s>=0)put({type:'gamenight',s,e:s+d,who:ad.slice(),room:u.ri.tv})}
@@ -1225,6 +1306,12 @@ function evScript(u,ev){
       A(p).e+=2;A(p).rest({sp:'door',pose:'wave',emo:'heart',lab:`Saying goodbye to ${g.first}`});break}
     case 'pizza':{const p=W[0];A(p).add(ev.e-ev.s-22,{sp:'sofa',room:tv,tv:1,tvc:1,lab:'Ordered a pizza, watching TV',log:`${p.first} ordered a pizza.`});
       A(p).add(1.5,{sp:'door',courier:1,prop:'pizza',emo:'ha',lab:'Pizza delivery!',log:'Pizza delivery!'});A(p).rest({sp:'sofa',room:tv,tv:1,tvc:1,prop:'pizza',arm:1,emo:'heart',lab:'Pizza on the sofa'});break}
+    case 'slides':{let k=0;for(const x of W){const B=A(x);
+        loop({B,r,stop:false},()=>[[rng(4,9),{sp:'sofa',room:tv,fx:'proj',li:'proj',emo:pk(['ha','heart','...','sparkle']),lab:'Slide night: old family slides on the projector',log:k===0?`${x.first} set up the slide projector. Old family slides tonight.`:null}]],[[.12,()=>[[1,{sp:'sofa',room:tv,fx:'proj',li:'proj',emo:'tear',lab:'A slide of someone who is gone now'}]]]]);k++}
+      break}
+    case 'gamedev':{const[p0,kd]=W;
+      A(p0).add(ev.e-ev.s,{sp:'desk',arm:1,mon:'type',emo:'idea',lab:`Making a video game with ${kd.first} (it's ${kd.first}'s idea)`,log:`${p0.first} and ${kd.first} are making a video game together.`});
+      fill(kd,()=>[[rng(2,4),{sp:'center',pose:'jump',emo:pk(['idea','ha','!']),lab:`Explaining the next level to ${p0.first}`}]],[]);break}
     case 'gamenight':{const[a,b]=W;fill(a,()=>[[rng(3,7),{sp:'tvfloor',room:tv,tv:'game',prop:'pad',arm:1}]],[[.3,()=>[[.6,{sp:'tvfloor',room:tv,tv:'game',prop:'pad',emo:pk(['!','anger','ha'])}]]]]);
       fill(b,()=>[[rng(3,7),{sp:'tvfloor',room:tv,tv:'game',prop:'pad',arm:1}]],[[.3,()=>[[.6,{sp:'tvfloor',room:tv,tv:'game',prop:'pad',emo:pk(['!','anger','ha'])}]]]]);
       tl.get(K(a)).b[0].log=`${a.first} and ${b.first} started a video game marathon.`;break}
@@ -1276,6 +1363,7 @@ function updateUnit(u,t,tod,day){
   else{
     if(!home&&!u.vacant&&hr(u.id,day,77)<.16)lit[u.leaveRoom]='on';
     if(u.ri.kid>=0&&lit[u.ri.kid]==='off'&&u.people.some(p=>p.kid&&p.act==='sleep'))lit[u.ri.kid]='kidsnight';
+    if(u.tank&&!u.vacant&&lit[u.tankRoom]==='off')lit[u.tankRoom]='aqua';
   }
 }
 let rnow=0;
@@ -1342,6 +1430,7 @@ function liveUnit(u,now){
     }
     if(best==='off'&&rm.type==='kids'&&rm.occ.some(a=>a.beat.pose==='lie'))best='kidsnight';
     if(u.kind==='office'){const dw=dowOf(Math.floor(t/1440));if(dw!==0&&dw!==6&&tod>=450&&tod<1170)best='office';else if(best==='off'&&hr(u.id,i,Math.floor(t/1440),3)<.06)best='office'}
+    if(best==='off'&&u.tank&&!u.vacant&&i===u.tankRoom)best='aqua';
     u.light[i]=best;
   }
   if(!actors.length&&u.kind==='res'&&!u.vacant&&hr(u.id,Math.floor(t/1440),77)<.16)u.light[u.leaveRoom]='on';
@@ -1437,6 +1526,8 @@ function drawPersonCore(p,X,oy,pose,face,f8,row,o){
     case 'sitbed':{const t0=kid?6:5;head(t0-2);torso(t0,kid?2:3);return{tTop:t0,head:t0-2,hxw:X+hx,hy:oy+t0-2+yo}}
     case 'sit':case 'sitbounce':{const r2=row-(pose==='sitbounce'&&f8%2?1:0);const tTop=r2-tl;head(tTop-2);torso(tTop,tl);put(-1,row,Pn);put(0,row,Pn);put(1,row,Pn);legs(row+1,10,[-1,1]);return{tTop,head:tTop-2,hxw:X+hx,hy:oy+tTop-2+yo}}
     case 'sitside':{const tTop=row-tl;head(tTop-2);torso(tTop,tl);put(-1,row,Pn);put(0,row,Pn);put(1,row,Pn);put(2*face,row,Pn);legs(row+1,10,[2*face]);return{tTop,head:tTop-2,hxw:X+hx,hy:oy+tTop-2+yo}}
+    case 'bike':{const tTop=8-tl;head(tTop-2);torso(tTop,tl);put(0,8,Pn);put(face,8,Pn);const k=f8%2;
+      if(k){put(face,9,Pn);put(face,10,F)}else{put(2*face,9,Pn);put(2*face,10,F)}put(2*face,tTop+1,S);return{tTop,head:tTop-2,hxw:X+hx,hy:oy+tTop-2+yo}}
     case 'floorsit':{const tTop=10-tl;head(tTop-2);torso(tTop,tl);put(-1,10,Pn);put(0,10,Pn);put(1,10,Pn);put(2*face,10,Pn);return{tTop,head:tTop-2,hxw:X+hx,hy:oy+tTop-2+yo}}
     case 'pushup':{const up=f8%4<2?0:1;const y=8+up;for(let k=-2;k<=2;k++)put(k*face,y,T);put(-3*face,y+1,Pn);put(-4*face,y+1,Pn);put(3*face,y-1,Hc);put(3*face,y,S);put(4*face,y,S);put(2*face,y+1,S);put(2*face,10,S);return{tTop:y,head:y-1}}
     default:{
@@ -1495,6 +1586,16 @@ function drawProps(p,X,oy,face,inf,f8,pose,b){
     case 'wrench':put(2*face,10,'#9a9aa2');put(3*face,9,'#c8b088');put(4*face,9,'#c8b088');put(3*face,10,'#c8b088');break;
     case 'blocks':put(2*face,10,'#d84a3a');put(3*face,10,'#3a7ad8');put(2*face,9,'#e8c84a');break;
     case 'knife':put(2*face,inf.tTop+2,'#c8c8d0');break;
+    case 'keys':{for(let k=1;k<=4;k++)put(k*face,7,k%2?'#f0f0f0':'#1a1a1a');put(face,6,'#3a3a40');put(4*face,6,'#ff5a3a');put(face,8,'#3a3a40');put(face,9,'#3a3a40');put(4*face,8,'#3a3a40');put(4*face,9,'#3a3a40');break}
+    case 'rack':{for(let y=2;y<6;y++)for(let x=2;x<6;x++)put(x*face,y,(x+y+f8)%5===0?['#ff5a5a','#5aff8a','#ffe45a'][(x+y)%3]:'#2a2a30');put(3*face,6,'#e8c84a');put(4*face,7,'#3a8aff');put(5*face,6,'#ff5a3a');break}
+    case 'grid':{for(let x=1;x<=4;x++)for(let y=6;y<8;y++)put(x*face,y,(x+y+(f8>>1))%4===0?'#fff2a0':'#4a4a50');put(face,8,'#3a3a40');put(4*face,8,'#3a3a40');break}
+    case 'theremin':{const b=2*face;put(b,7,'#6a4a2a');put(b+face,7,'#6a4a2a');put(b+2*face,7,'#6a4a2a');put(b+face,8,'#3a3a40');put(b+face,9,'#3a3a40');put(b+face,10,'#3a3a40');
+      for(let y=3;y<7;y++)put(b+2*face,y,'#c8c8d0');put(b-face,6,'#c8c8d0');put(b-face,7,'#c8c8d0');break}
+    case 'camera':put(face*2,inf.head+1,'#2a2a2a');put(face*3,inf.head+1,'#9a9aa2');break;
+    case 'negs':put(2*face,inf.tTop-1,'#3a2a1a');put(2*face,inf.tTop,'#c87a3a');put(2*face,inf.tTop+1,'#3a2a1a');put(2*face,inf.tTop+2,'#c87a3a');break;
+    case 'can':put(2*face,inf.tTop+2,'#4a8a5a');put(3*face,inf.tTop+1,'#4a8a5a');put(4*face,inf.tTop+2,'#8ad0ff');break;
+    case 'phones':put(face>0?-1:2,inf.head,'#2a2a2a');put(face>0?2:-1,inf.head,'#2a2a2a');break;
+    case 'bike':{const fr='#3a3a40';put(0,9,fr);put(0,10,fr);put(-1,10,fr);put(face,10,fr);put(2*face,10,fr);put(3*face,9,'#6a6a72');put(3*face,10,'#6a6a72');put(3*face,8,fr);put(3*face,7,fr);put(3*face,inf.tTop+1,fr);put(4*face,inf.tTop+1,fr);break}
   }
 }
 const GLYPH={heart:['X.X','XXX','.X.'],note:['.XX','.X.','XX.'],'!':['X','X','.','X'],'?':['XX','.X','..','X.'],anger:['X.X','.X.','X.X'],
@@ -1601,7 +1702,7 @@ function lightMult(u,i,mode,f8){
     case 'screen':return[.2,.3,.36];case 'fridge':return[.34,.37,.42];case 'kidsnight':return[.28,.24,.3];
     case 'disco':return DISCO_M[(f8+u.id)%4];case 'moon':return[.3,.33,.5];
     case 'candle':{const k=.9+.18*hr(u.id,i,f8>>1);return[.6*k,.4*k,.22*k]}
-    case 'rose':return[.85,.48,.52];
+    case 'rose':return[.85,.48,.52];case 'aqua':return[.14,.22,.38];case 'safelight':return[.8,.14,.1];case 'proj':return[.32,.28,.24];
     default:return[.13,.14,.24];
   }
 }
@@ -1614,7 +1715,9 @@ function drawRoom(u,i,ox,oy,now,f8){
   if(rm.paper){const pc=P(rm.paper);for(let x=1;x<RW;x+=3)fr(ox+x,oy,1,11,pc)}
   fr(ox,oy+11,RW,1,P(rm.floor));
   const eL=Math.floor(simMin/1440),era=u.era;
-  if(!u.vacant)furn(rm,R,u);
+  if(!u.vacant){furn(rm,R,u);
+    if(u.plants&&hr(u.id,i,17)<.6){const px=hr(u.id,i,18)<.5?0:13;R(px,10,1,1,'#b0603a');R(px+2,10,1,1,'#b0603a');R(px,8,1,2,'#3a8a3a');R(px+2,9,1,1,'#4aa04a');R(px+1,8,1,1,'#5ab05a')}
+    if(u.tank&&i===u.tankRoom){const t=TANKXY[rm.type]||[1,2];R(t[0],t[1],5,3,'#2a6aa8');R(t[0],t[1],5,1,'#6ab0e0');R(t[0],t[1]+3,5,1,'#3a3a40');R(t[0]+4,t[1]+1,1,2,'#3a9a4a')}}
   if(era&&!u.vacant&&((era.kind==='movein'&&eL===era.s)||(era.end.type==='moveout'&&eL===era.e-1))){
     const bx=(x,y,w,h)=>{R(x,y,w,h,'#a87c48');R(x,y,w,1,'#c89a60');R(x+(w>>1),y,1,h,'#d8c8a0')};
     bx(1,8,3,3);bx(4,9,3,2);bx(2,6,2,2);bx(11,8,4,3);bx(12,6,3,2)}
@@ -1645,6 +1748,11 @@ function drawRoom(u,i,ox,oy,now,f8){
   /* light sources, screens and effects stay bright: drawn after lighting */
   const M=(o,c)=>R(o.x,o.y,o.w,o.h||1,c);
   if(meta.lamp&&(mode==='on'||mode==='dim'))M(meta.lamp,'#ffe9a6');
+  if(u.tank&&!u.vacant&&i===u.tankRoom){const t=TANKXY[rm.type]||[1,2],dark=mode==='off'||mode==='aqua'||mode==='tv'||mode==='kidsnight'||mode==='dim';
+    if(dark){R(t[0],t[1],5,3,'#3a8ad0');R(t[0],t[1],5,1,'#8ad0ff');R(t[0]+4,t[1]+1,1,2,'#4ab05a')}
+    if(u.tank==='shrimp'){for(let k=0;k<3;k++)R(t[0]+((f8+k*3+(hash(u.id,k)&3))%4),t[1]+2,1,1,'#e03a2a')}
+    else{const fx=(f8>>1)+u.id;R(t[0]+(fx%4),t[1]+1,1,1,'#ff9a3a');R(t[0]+((fx+2)%4),t[1]+2,1,1,'#ffe05a')}}
+  if(fx.has('proj')){const sl=Math.floor(now/7)+u.id;for(let y=0;y<3;y++)for(let x=0;x<7;x++)R(1+x,y,1,1,y===0?KODA[(sl+x>>2)%2?2:7]:KODA[hash(sl,x,y)%KODA.length])}
   if(meta.blamp&&(mode==='dim'||mode==='on'||mode==='rose'))M(meta.blamp,mode==='rose'?'#ffb0a0':'#ffe0a0');
   if(meta.ceil&&mode==='office')M(meta.ceil,'#f6faee');
   if(meta.tv&&tv!==null){const t=meta.tv;for(let y=0;y<(t.h||1);y++)for(let x=0;x<t.w;x++){let c;
@@ -1674,6 +1782,10 @@ function drawRoom(u,i,ox,oy,now,f8){
     for(let x=0;x<RW;x++){if(x>=half&&x<RW-half)continue;fr(ox+x,oy,1,11,x%3===0?c2:c1)}
     if(glow&&prog>=1){SIL=true;for(const a of actors){if(a.x<lo||a.x>=hi)continue;drawA(a,true)}SIL=false;
       for(const [a,X,inf,face,pf] of fxEm)if(a.beat&&a.beat.emo==='heart')drawEmote('heart',X,oy,inf.head,face,pf,a.id,now,inf.sx)}}
+  if(SEASON&&!u.vacant){
+    if(SEASON==='halloween'&&u.spooky){for(let x=0;x<RW;x+=2)R(x,0,1,1,((x>>1)+f8)%3?'#ff2a1a':'#7a1008');
+      if(i===0||i===u.n-1){const sx=hr(u.id,i,21)<.5?2:12;R(sx,2,2,2,'#f0ece0');R(sx,3,1,1,'#1a1a1a');R(sx+1,3,1,1,'#1a1a1a');R(sx,4,1,3,'#e0dcd0');R(sx-1,5,1,1,'#e0dcd0');R(sx+1,5,1,1,'#e0dcd0')}}
+    if(SEASON==='xmas'&&u.xmas){const XC=['#ff3a3a','#3aff6a','#3a8aff','#ffd23a'];for(let x=0;x<RW;x+=2)R(x,0,1,1,XC[((x>>1)+(f8>>1))%4])}}
   clipAll();
 }
 const COURIER={id:777,cS:'#cf9466',cH:'#2a2a2a',cT:'#c83a2a',cP:'#2a2a3a',cF:'#1c1c1c',hat:'#c83a2a',kid:false};
@@ -1796,6 +1908,7 @@ function updateSun(){
   SUN={ra:sra,sd:Math.sin(sdec),cd:Math.cos(sdec)};
   const Hh=(LST-sra)*Math.PI/180,alt=Math.asin(SUN.sd*sLat+SUN.cd*cLat*Math.cos(Hh))*57.2958;
   SUNALT=nightLock?-30:alt;
+  {const dd=new Date(Math.floor(simMin/1440)*86400000),m=dd.getUTCMonth(),d=dd.getUTCDate();SEASON=(m===8&&d>=20)||m===9?'halloween':(m===11)||(m===0&&d<=6)?'xmas':''}
   DAYK=smooth((SUNALT+8)/14);DQ=Math.round(DAYK*20)/20;STARK=clamp((-SUNALT-3)/9,0,1);
   const age=mod(d-5.26,29.530588),lm=mod(ls+age*12.19075,360)*Math.PI/180;
   const mra=mod(Math.atan2(Math.sin(lm)*Math.cos(eps),Math.cos(lm))*57.2958,360),mdec=Math.asin(Math.sin(eps)*Math.sin(lm));
@@ -1848,7 +1961,7 @@ function ovColor(u,i,mode,now){
   switch(mode){
     case 'on':return u.bulbO;case 'office':return'#d6e3c8';case 'dim':return'#a87a3c';
     case 'tv':return TVO[hash(u.id,i,Math.floor(now*5))%3];case 'screen':return'#3c7f86';case 'fridge':return'#8399a8';
-    case 'disco':return DISCO_O[(Math.floor(now*3)+u.id)%4];case 'candle':return'#c8803a';case 'rose':return'#c8707a';default:return null;
+    case 'disco':return DISCO_O[(Math.floor(now*3)+u.id)%4];case 'candle':return'#c8803a';case 'rose':return'#c8707a';case 'aqua':return'#1f4466';case 'safelight':return'#a02418';case 'proj':return'#9a7a50';default:return null;
   }
 }
 function drawOverview(now){
@@ -1868,7 +1981,7 @@ function drawOverview(now){
     const buckets=new Map();const add=(col,x0,y0,x1,y1)=>{let p=buckets.get(col);if(!p){p=new Path2D();buckets.set(col,p)}const a=X(x0),b=Y(y0);p.rect(a,b,Math.max(1,X(x1)-a),Math.max(1,Y(y1)-b))};
     for(const b of row){if(b.x+b.w<vx0||b.x>vx1)continue;
       for(const u of b.units){if(u.wy>vy1||u.wy+RH<oy)continue;
-        for(let i=0;i<u.n;i++){let c=ovColor(u,i,u.light[i],now);if(DQ>0)c=c?LH(c,glass,DQ*.75):(DQ>.04?LH(bkRow?'#0e1020':'#06070c',glass,DQ):null);if(!c)continue;const wx=u.x0+i*CW+4;if(wx>vx1||wx+RW<vx0)continue;add(c,wx,u.wy,wx+RW,u.wy+RH)}}
+        for(let i=0;i<u.n;i++){if(SEASON&&!u.vacant&&(SEASON==='halloween'?u.spooky:u.xmas)&&STARK>.3){const wx=u.x0+i*CW+4;add(SEASON==='halloween'?'#ff3a24':'#f0c850',wx,u.wy,wx+RW,u.wy+3)}let c=ovColor(u,i,u.light[i],now);if(DQ>0)c=c?LH(c,glass,DQ*.75):(DQ>.04?LH(bkRow?'#0e1020':'#06070c',glass,DQ):null);if(!c)continue;const wx=u.x0+i*CW+4;if(wx>vx1||wx+RW<vx0)continue;add(c,wx,u.wy,wx+RW,u.wy+RH)}}
       if(b.shop){if(shopOpen(b.shop,mod(simMin,1440))){add(b.shop.wall,b.x+6,-19,b.x+b.w-6,-3);add(b.shop.sign,b.x+6,-23,b.x+b.w-6,-21)}}
       else if(b.office)add('#7f9e94',b.x+6,-20,b.x+b.w-6,0);
       else{const cx=b.x+Math.floor(b.w/2);add('#e0b870',cx-4,-18,cx+4,0)}
@@ -1930,7 +2043,7 @@ function chipText(u,e){const g=e.guests[0];switch(e.type){
   case 'party':return'Party tonight';case 'birthday':{const p=u.people.find(x=>x.id===e.data.pid);return`${p.first}'s birthday`}
   case 'argue':return'An argument';case 'datenight':return'Date night';case 'cuddle':return'A quiet night in';case 'close':return'Curtains drawn';
   case 'date':return`Date with ${g.first}`;case 'famdinner':return'Family dinner';case 'story':return'Bedtime story';case 'nightmare':return'A bad dream';
-  case 'visit':return`Visitor: ${g.first} (${g.rel})`;case 'pizza':return'Pizza night';case 'gamenight':return'Game night'}return''}
+  case 'visit':return`Visitor: ${g.first} (${g.rel})`;case 'pizza':return'Pizza night';case 'gamenight':return'Game night';case 'slides':return'Slide night';case 'gamedev':return'Making a video game'}return''}
 function journal(u,t){
   const out=[];const t0=t-7*60;if(u.kind!=='res')return out;
   const inEv=(p,tt)=>{const L=Math.floor(tt/1440);for(const d of [L-1,L])for(const e of eventsFor(u,d))if(tt>=e.s&&tt<e.e&&e.who.includes(p)&&beatIn(evScript(u,e).get('p'+p.id),tt))return true;return false};
@@ -2015,7 +2128,7 @@ function peek(){if(AP.on)apStop();
    ============================================================ */
 const SAVER=(typeof window!=='undefined'&&window.BAS_SAVER)||null;
 const AP={on:false,native:false,phase:'wide',until:0,target:null,recent:[],dir:1,hops:0,armed:0,mx:undefined,my:undefined,capT:0};
-const AP_EV={party:9,birthday:9,date:8,datenight:7,argue:7,nightmare:6,visit:5,story:5,famdinner:5,gamenight:5,cuddle:4,pizza:4,close:1.5};
+const AP_EV={slides:6,gamedev:6,party:9,birthday:9,date:8,datenight:7,argue:7,nightmare:6,visit:5,story:5,famdinner:5,gamenight:5,cuddle:4,pizza:4,close:1.5};
 const AP_BUSY=new Set(['cook','dance','guitar','exercise','paint','phone','mope','insomnia','game','baby','jobsearch','nursery','play','yoga','knit','computer','eat','dishes','snack','homework','vacuum','stargaze','window','sick']);
 const ux=u=>u.x0+u.n*CW/2,uy=u=>u.wy+RH/2;
 function apClose(u){return clamp(W*.5/(Math.max(3,u.n)*CW),DET1()*1.4,Math.min(sMax,H*.3/RH))}
