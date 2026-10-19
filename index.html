@@ -162,7 +162,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
         <button class="btn" id="when" hidden>Back to now</button>
         <button class="btn" id="new">New city&hellip;</button>
       </div>
-      <div class="row"><label class="chk"><input type="checkbox" id="nightLock" checked><span>Always night</span></label></div>
+      <div class="row"><label class="chk"><input type="checkbox" id="nightLock"><span>Always night</span></label></div>
       <div class="row"><label class="lbl" for="codeOut">City code:</label><input class="fld" id="codeOut" readonly spellcheck="false"><button class="btn" id="copyCode">Copy</button></div>
       <div id="hint">Scroll or pinch to zoom in, drag to look around, and click a window to meet who lives there. This city is yours; it keeps living while you're away.</div>
     </div>
@@ -1598,7 +1598,7 @@ function project(ra,sd,cd,lst,half,k,cx,yh){
   return[cx+dx*k,yh-alt*k,alt];
 }
 /* sun & daylight (real solar position at the viewer's latitude; "Always night" pins it below the horizon) */
-let nightLock=true,SUNALT=-30,DAYK=0,DQ=0,STARK=1,LST=0,SUN=null,MOON=null;
+let nightLock=false,nightPick=null,SUNALT=-30,DAYK=0,DQ=0,STARK=1,LST=0,SUN=null,MOON=null;
 const smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x)};
 const LHC=new Map();
 function LH(a,b,t){if(t<=0)return a;if(t>=1)return b;const k=a+b+t;let v=LHC.get(k);if(v)return v;
@@ -1907,7 +1907,7 @@ function parseCode(s){const m=/^\s*([0-9a-z]{1,8})-([0-9a-z]{1,6})\s*$/i.exec(s|
 const STORE='big-apple-sam/v1';
 const localNow=()=>(Date.now()-new Date().getTimezoneOffset()*60000)/60000;
 function loadState(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');return s&&typeof s.seed==='number'?s:null}catch(e){return null}}
-function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,night:nightLock,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel?sel.id:null,follow}))}catch(e){}}
+function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,nightPick,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel?sel.id:null,follow}))}catch(e){}}
 
 /* ---------- main loop ---------- */
 let bufBox=null,bufF=-1;
@@ -1982,7 +1982,7 @@ function boot(){
   let st=loadState();if(want&&!(st&&st.seed===want.seed&&st.born===want.born))st=null;
   if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;document.body.classList.add('saver')}
   if(!st&&want){simMin=localNow();startCity(want.seed,want.born)}
-  else if(st){speed=st.speed||1;paused=!!st.paused;nightLock=st.night!==false;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
+  else if(st){speed=st.speed||1;paused=!!st.paused;nightPick=typeof st.nightPick==='boolean'?st.nightPick:null;nightLock=nightPick===true;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
     if(st.cam){cam.s=st.cam.s*DPR;cam.x=st.cam.x;cam.y=st.cam.y;clampCam()}
     if(st.sel!=null&&city.units[st.sel]){sel=city.units[st.sel];follow=!!st.follow}
     if(cam.s>=DET0())hintEl.classList.add('gone')}
@@ -2042,7 +2042,7 @@ function boot(){
   dragWin(dlg,document.getElementById('dTb'));
   document.getElementById('close').addEventListener('click',()=>select(null));
   const nl=document.getElementById('nightLock');nl.checked=nightLock;
-  nl.addEventListener('change',()=>{nightLock=nl.checked;updateSun();bufF=-1;saveState()});
+  nl.addEventListener('change',()=>{nightLock=nightPick=nl.checked;updateSun();bufF=-1;saveState()});
   document.getElementById('follow').addEventListener('change',e=>{follow=e.target.checked;renderPanel()});
   addEventListener('keydown',e=>{wake();if(window.isDlgOpen&&isDlgOpen()){if(e.key==='Escape')closeDlg();return}
     if((e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')&&(e.key===' '||e.key==='Enter'))return;

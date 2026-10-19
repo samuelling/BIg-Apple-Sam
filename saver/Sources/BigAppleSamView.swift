@@ -24,7 +24,7 @@ final class BigAppleSamView: ScreenSaverView {
     private lazy var defaults: ScreenSaverDefaults? = {
         let id = Bundle(for: BigAppleSamView.self).bundleIdentifier ?? "com.samuelling.BigAppleSam"
         let d = ScreenSaverDefaults(forModuleWithName: id)
-        d?.register(defaults: ["cityCode": "", "alwaysNight": true, "captions": true, "speed": 1])
+        d?.register(defaults: ["cityCode": "", "alwaysNight": false, "captions": true, "speed": 1])
         return d
     }()
 
@@ -80,7 +80,7 @@ final class BigAppleSamView: ScreenSaverView {
         }()
         let cfg: [String: Any] = [
             "code": defaults?.string(forKey: "cityCode") ?? "",
-            "night": defaults?.bool(forKey: "alwaysNight") ?? true,
+            "night": defaults?.bool(forKey: "alwaysNight") ?? false,
             "captions": isPreview ? false : (defaults?.bool(forKey: "captions") ?? true),
             "speed": defaults?.integer(forKey: "speed") ?? 1,
             "display": screenIndex,
@@ -113,7 +113,7 @@ final class BigAppleSamView: ScreenSaverView {
     override var configureSheet: NSWindow? {
         if sheet == nil { buildSheet() }
         codeField.stringValue = defaults?.string(forKey: "cityCode") ?? ""
-        nightBox.state = (defaults?.bool(forKey: "alwaysNight") ?? true) ? .on : .off
+        nightBox.state = (defaults?.bool(forKey: "alwaysNight") ?? false) ? .on : .off
         captionBox.state = (defaults?.bool(forKey: "captions") ?? true) ? .on : .off
         let speed = defaults?.integer(forKey: "speed") ?? 1
         speedPopup.selectItem(withTag: [1, 10, 60].contains(speed) ? speed : 1)
