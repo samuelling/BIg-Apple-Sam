@@ -2035,6 +2035,32 @@ function apPick(){
     const w=sc/(1+Math.abs(ux(u)-cx)/1800);best.push([w,u])}
   if(!best.length)return null;best.sort((a,b)=>b[0]-a[0]);return best[Math.floor(Math.random()*Math.min(5,best.length))][1];
 }
+/* tracking shot: glide along a floor, drop a floor at the building's edge, come back */
+function rowRange(b,f){const t=b.tiers.find(t=>f>=t.f0&&f<t.f1);return t?[b.x+SIDE+t.c0*CW,b.x+SIDE+t.c1*CW]:null}
+const rowY=f=>-(LOBBY+(f+1)*CH)+4+RH/2;
+function rowClear(b,f){if(f<0||f>=b.floors)return false;const g=rowRange(b,f);if(!g||g[1]-g[0]<CW*2)return false;if(b.row==='front')return true;
+  const y=rowY(f)-RH/2;for(const fb of city.front)if(fb.x<g[1]&&fb.x+fb.w>g[0]&&fb.antTop<y+RH+4)return false;return true}
+const scanZoom=()=>clamp(W/(3.2*CW),DET1()*1.4,Math.min(sMax,H*.3/RH));
+function apScanStart(u){
+  if(!rowClear(u.b,u.f))return false;
+  AP.scan={b:u.b,f:u.f,dir:Math.random()<.5?1:-1,vdir:Math.random()<.7?-1:1,until:rnow+50+Math.random()*40,u:null,turns:0};
+  AP.phase='scan';capHide();flyTo(ux(u),uy(u),scanZoom(),2200);return true;
+}
+function apScanTick(t,dt){
+  const sc=AP.scan;if(anim)return;
+  const vw=W/cam.s,vh=H/cam.s,g=rowRange(sc.b,sc.f);let cx=cam.x+vw/2;
+  cx+=sc.dir*3.2*dt;
+  if(!g||(sc.dir>0&&cx>g[1]-CW*.6)||(sc.dir<0&&cx<g[0]+CW*.6)){
+    let nf=sc.f+sc.vdir;if(!rowClear(sc.b,nf)){sc.vdir=-sc.vdir;nf=sc.f+sc.vdir}
+    if(t>sc.until||sc.turns>=4||!rowClear(sc.b,nf)){capHide();AP.phase='retreat';flyTo(cx,cam.y+vh/2,DET1()*.9,4000);return}
+    sc.f=nf;sc.dir=-sc.dir;sc.turns++;const ng=rowRange(sc.b,nf);cx=clamp(cx,ng[0]+CW*.6,ng[1]-CW*.6);
+  }
+  const ty=rowY(sc.f),cy=cam.y+vh/2,ny=cy+(ty-cy)*Math.min(1,dt*1.2);
+  cam.x=cx-vw/2;cam.y=ny-vh/2;clampCam();
+  const u=Math.abs(ny-ty)<RH*.6?hitUnit(cx,ty):null,ok=u&&u.kind==='res'&&!u.vacant&&u.people.length;
+  if(u!==sc.u){sc.u=u;if(ok){capShow(u);if(!AP.recent.includes(u.id)){AP.recent.push(u.id);if(AP.recent.length>16)AP.recent.shift()}}else capHide()}
+  else if(ok&&t-AP.capT>2){AP.capT=t;capFill(u)}
+}
 function apNeighbor(u){
   const t=simMin;let bw=0,bu=null;
   for(const v of u.b.units){if(v===u||Math.abs(v.f-u.f)>3)continue;const sc=apScore(v,t);if(sc>2.5&&sc>bw){bw=sc;bu=v}}
@@ -2071,13 +2097,14 @@ function apTick(dt){
       break;
     case 'approach':if(!anim){AP.phase='look';AP.until=t+5}break;
     case 'look':if(t>AP.until){AP.phase='close';flyTo(ux(AP.target),uy(AP.target),apClose(AP.target),4500)}break;
-    case 'close':if(!anim){AP.phase='dwell';AP.until=t+45+Math.random()*45;AP.recent.push(AP.target.id);if(AP.recent.length>16)AP.recent.shift();capShow(AP.target)}break;
+    case 'close':if(!anim){if(AP.hops===0&&Math.random()<.4&&apScanStart(AP.target))break;AP.phase='dwell';AP.until=t+45+Math.random()*45;AP.recent.push(AP.target.id);if(AP.recent.length>16)AP.recent.shift();capShow(AP.target)}break;
     case 'dwell':
       if(t-AP.capT>2&&capEl().classList.contains('on')){AP.capT=t;capFill(AP.target)}
-      if(t>AP.until){capHide();const nb=AP.hops<2&&Math.random()<.4?apNeighbor(AP.target):null;
+      if(t>AP.until){capHide();if(Math.random()<.35&&apScanStart(AP.target))break;const nb=AP.hops<2&&Math.random()<.4?apNeighbor(AP.target):null;
         if(nb){AP.hops++;AP.target=nb;AP.phase='close';flyTo(ux(nb),uy(nb),apClose(nb),3500)}
         else{AP.phase='retreat';flyTo(cam.x+W/2/cam.s,cam.y+H/2/cam.s,DET1()*.9,4000)}}
       break;
+    case 'scan':apScanTick(t,dt);break;
     case 'retreat':if(!anim){AP.phase='wide';AP.until=t+18+Math.random()*14;flyTo(cam.x+W/2/cam.s,-200,sMin*1.12,6000)}break;
   }
 }

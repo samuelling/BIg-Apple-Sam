@@ -20,7 +20,7 @@ Open `index.html` in a browser (or the GitHub Pages site). No build step and no 
 
 Scroll or pinch to zoom, drag to pan, click a window. Keys: `Space` pause, `1`–`5` speed, `P` peek into a random window, `S` screensaver (autopilot), `F` follow, `Esc` close / zoom out, `+`/`-` zoom.
 
-**Screensaver button.** Hands the camera to an autopilot that drifts along the skyline, picks a lively apartment (a party, a date night, someone up at 3 AM), zooms in and lingers with a caption, sometimes hops next door, then pulls back. Move the mouse or press a key to take over again.
+**Screensaver button.** Hands the camera to an autopilot that drifts along the skyline, picks a lively apartment (a party, a date night, someone up at 3 AM), zooms in and lingers with a caption, sometimes hops next door or glides slowly along the floor from apartment to apartment (dropping a floor at the building's edge and coming back the other way), then pulls back. Move the mouse or press a key to take over again.
 
 **City code.** The controls window shows a code like `bod5nr-g09`. Open the page with `#city-bod5nr-g09` on the end of the address, or paste the code into the screen saver's options, to watch the same city somewhere else.
 
