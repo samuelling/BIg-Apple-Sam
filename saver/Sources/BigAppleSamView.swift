@@ -18,13 +18,14 @@ final class BigAppleSamView: ScreenSaverView {
     private var sheet: NSWindow?
     private var codeField: NSTextField!
     private var speedPopup: NSPopUpButton!
+    private var displayPopup: NSPopUpButton!
     private var nightBox: NSButton!
     private var captionBox: NSButton!
 
     private lazy var defaults: ScreenSaverDefaults? = {
         let id = Bundle(for: BigAppleSamView.self).bundleIdentifier ?? "com.samuelling.BigAppleSam"
         let d = ScreenSaverDefaults(forModuleWithName: id)
-        d?.register(defaults: ["cityCode": "", "alwaysNight": false, "captions": true, "speed": 1])
+        d?.register(defaults: ["cityCode": "", "alwaysNight": false, "captions": true, "speed": 1, "display": 1])
         return d
     }()
 
@@ -83,6 +84,7 @@ final class BigAppleSamView: ScreenSaverView {
             "night": defaults?.bool(forKey: "alwaysNight") ?? false,
             "captions": isPreview ? false : (defaults?.bool(forKey: "captions") ?? true),
             "speed": defaults?.integer(forKey: "speed") ?? 1,
+            "gfx": ["cga", "vga", "svga"][max(0, min(2, defaults?.integer(forKey: "display") ?? 1))],
             "display": screenIndex,
             "preview": isPreview,
         ]
@@ -117,40 +119,52 @@ final class BigAppleSamView: ScreenSaverView {
         captionBox.state = (defaults?.bool(forKey: "captions") ?? true) ? .on : .off
         let speed = defaults?.integer(forKey: "speed") ?? 1
         speedPopup.selectItem(withTag: [1, 10, 60].contains(speed) ? speed : 1)
+        displayPopup.selectItem(withTag: max(0, min(2, defaults?.integer(forKey: "display") ?? 1)))
         return sheet
     }
 
     private func buildSheet() {
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 250),
+        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 400, height: 290),
                          styleMask: [.titled], backing: .buffered, defer: false)
         w.title = "Big Apple Sam"
         guard let v = w.contentView else { return }
 
         let codeLabel = NSTextField(labelWithString: "City code:")
-        codeLabel.frame = NSRect(x: 20, y: 204, width: 90, height: 20)
+        codeLabel.frame = NSRect(x: 20, y: 244, width: 90, height: 20)
         v.addSubview(codeLabel)
 
-        codeField = NSTextField(frame: NSRect(x: 115, y: 202, width: 265, height: 24))
+        codeField = NSTextField(frame: NSRect(x: 115, y: 242, width: 265, height: 24))
         codeField.placeholderString = "e.g. bod5nr-g09"
         v.addSubview(codeField)
 
         let help = NSTextField(wrappingLabelWithString:
             "Copy the city code from the controls window in the web version to watch the same city. Leave it blank and the screen saver keeps a city of its own.")
-        help.frame = NSRect(x: 115, y: 150, width: 265, height: 46)
+        help.frame = NSRect(x: 115, y: 190, width: 265, height: 46)
         help.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
         help.textColor = .secondaryLabelColor
         v.addSubview(help)
 
         let speedLabel = NSTextField(labelWithString: "Clock:")
-        speedLabel.frame = NSRect(x: 20, y: 116, width: 90, height: 20)
+        speedLabel.frame = NSRect(x: 20, y: 156, width: 90, height: 20)
         v.addSubview(speedLabel)
 
-        speedPopup = NSPopUpButton(frame: NSRect(x: 112, y: 111, width: 180, height: 28), pullsDown: false)
+        speedPopup = NSPopUpButton(frame: NSRect(x: 112, y: 151, width: 180, height: 28), pullsDown: false)
         for (title, tag) in [("Live (real time)", 1), ("10× faster", 10), ("60× faster", 60)] {
             speedPopup.addItem(withTitle: title)
             speedPopup.lastItem?.tag = tag
         }
         v.addSubview(speedPopup)
+
+        let displayLabel = NSTextField(labelWithString: "Display:")
+        displayLabel.frame = NSRect(x: 20, y: 116, width: 90, height: 20)
+        v.addSubview(displayLabel)
+
+        displayPopup = NSPopUpButton(frame: NSRect(x: 112, y: 111, width: 230, height: 28), pullsDown: false)
+        for (title, tag) in [("CGA (4 colors)", 0), ("VGA", 1), ("SVGA (sharper close-ups)", 2)] {
+            displayPopup.addItem(withTitle: title)
+            displayPopup.lastItem?.tag = tag
+        }
+        v.addSubview(displayPopup)
 
         nightBox = NSButton(checkboxWithTitle: "Always night", target: nil, action: nil)
         nightBox.frame = NSRect(x: 113, y: 84, width: 260, height: 20)
@@ -181,6 +195,7 @@ final class BigAppleSamView: ScreenSaverView {
         defaults?.set(nightBox.state == .on, forKey: "alwaysNight")
         defaults?.set(captionBox.state == .on, forKey: "captions")
         defaults?.set(speedPopup.selectedTag(), forKey: "speed")
+        defaults?.set(displayPopup.selectedTag(), forKey: "display")
         defaults?.synchronize()
         closeSheet()
         if isPreview { teardown(); loadPage() }
