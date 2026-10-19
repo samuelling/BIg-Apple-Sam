@@ -66,7 +66,7 @@ button,label{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 
 /* control window */
 #hud{left:calc(12px + env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));
-  width:min(344px,calc(100vw - 24px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)))}
+  width:min(372px,calc(100vw - 24px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px)))}
 #hud .cl{padding:8px;display:flex;flex-direction:column;gap:7px}
 .lcd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 8px;background:var(--paper);
   border:1px solid;border-color:var(--shadow) var(--hi) var(--hi) var(--shadow);box-shadow:inset 1px 1px var(--ink),inset -1px -1px var(--face)}
@@ -149,9 +149,10 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
         <span class="lbl">Speed:</span>
         <button class="btn" id="pause" aria-pressed="false" title="Space">Pause</button>
         <button class="btn" data-sp="1" aria-pressed="true" title="Key 1">1&times;</button>
-        <button class="btn" data-sp="10" aria-pressed="false" title="Key 2">10&times;</button>
-        <button class="btn" data-sp="60" aria-pressed="false" title="Key 3">60&times;</button>
-        <button class="btn" data-sp="600" aria-pressed="false" title="Key 4">600&times;</button>
+        <button class="btn" data-sp="60" aria-pressed="false" title="Key 2">60&times;</button>
+        <button class="btn" data-sp="600" aria-pressed="false" title="Key 3">600&times;</button>
+        <button class="btn" data-sp="6000" aria-pressed="false" title="Key 4">6000&times;</button>
+        <button class="btn" data-sp="86400" aria-pressed="false" title="Key 5: one day per second">1 day/s</button>
       </div>
       <div class="row">
         <button class="btn" id="peek" title="P">Peek in a window</button>
@@ -360,7 +361,7 @@ function mkPerson(C,u,arch,r,o={}){
   const pk=a=>a[Math.floor(r()*a.length)],ri=(a,b)=>a+Math.floor(r()*(b-a+1));
   const kid=arch==='kid';const rg=AGES[arch];const age=ri(rg[0],rg[1]);
   const shirt=arch==='janitor'?'#5a6a7a':arch==='office'?pk(['#e8e8e8','#c8d8ec','#9ab0d0','#e8e0d0','#3a4a6a','#7a2a3a']):undefined;
-  const p=Object.assign({id:C.people.length+1,u,arch,kid,age,first:pk(kid?KIDN:FIRST),last:o.last||pk(LAST)},mkLook(r,{age,kid,shirt}));
+  const p=Object.assign({id:GEN.base!=null?GEN.base+(GEN.n++):C.people.length+1,u,arch,kid,age,first:pk(kid?KIDN:FIRST),last:o.last||pk(LAST)},mkLook(r,{age,kid,shirt}));
   p.job=JOBS[arch]?pk(JOBS[arch]):'';
   p.anchor=ANCHOR[arch];
   p.hobbies=kid?['tv','game','play','read','tv']:[...pickN(r,HOB[arch],3),'tv',...(r()<.4?['phone']:[]),...(r()<.25?['vacuum']:[])];
@@ -369,9 +370,10 @@ function mkPerson(C,u,arch,r,o={}){
   if(arch==='creative')p.workAct=/illustrator|comic/.test(p.job)?'paint':/composer|songwriter/.test(p.job)?'guitar':'computer';
   p.traits=arch==='office'||arch==='janitor'?[]:kid?[pk(KTRAITS)]:pickN(r,TRAITS,2);
   p.mbase=p.traits.reduce((a,t)=>a+(TRAIT_MOOD[t]||0),0);
-  p.bday=Math.floor(r()*365);
+  const fr=r();p.bd=GEN.day-Math.round((age+fr)*YR);p.bday=doyOf(p.bd);
+  p.retireAge=62+hash(p.id,5,C.seed)%8;p.gradAge=22+hash(p.id,6,C.seed)%4;
   Object.assign(p,{x:-99,tx:0,face:1,away:true,act:'away',seg:null,row:8,pose:'stand',moving:false,mf:1,bedSlot:0,bedRoom:0});
-  C.people.push(p);u.people.push(p);return p;
+  if(GEN.base==null)C.people.push(p);u.people.push(p);return p;
 }
 function roomWith(u,st){let v=u.rw[st];if(v!==undefined)return v;v=-1;
   for(let i=0;i<u.n;i++){const rm=u.rooms[i];if(st==='tv'?rm.meta.tv:rm.spots[st]){v=i;break}}u.rw[st]=v;return v}
@@ -389,27 +391,15 @@ function pickArc(p,r,single){
   return o[Math.floor(r()*o.length)];
 }
 function setupArcs(C,u,ppl,r,mates){
-  const ri=(a,b)=>a+Math.floor(r()*(b-a+1)),pk=a=>a[Math.floor(r()*a.length)],B=C.born;
+  const ri=(a,b)=>a+Math.floor(r()*(b-a+1)),pk=a=>a[Math.floor(r()*a.length)],B=GEN.day;
   const ad=ppl.filter(p=>!p.kid);
   if(ad.length===2&&!mates){
     const old=ad.every(p=>p.arch==='retiree');
     u.rel=u.baby?'parents':old?'steady':pk(['newlyweds','steady','steady','rocky',(u.n===3&&ad.every(p=>p.age<44))?'expecting':'newlyweds']);
-    u.years=u.rel==='newlyweds'?0:old?ri(30,55):ri(3,22);
+    const yrs=u.rel==='newlyweds'?ri(0,1):old?ri(30,55):ri(3,22);u.relSince=B-Math.round(yrs*YR)-ri(0,200);
     if(u.rel==='expecting'){u.due=B+ri(5,40);ad[ri(0,1)].preg=true;u.babyName=pk(KIDN)}
   }
-  for(const p of ad){
-    if(r()>.6)continue;
-    const a=pickArc(p,r,ad.length===1||mates);p.arc=a;p.arcS=B+ri(-12,12);
-    if(a==='heartbreak'){p.arcS=B-ri(0,6);p.ex=pk(FIRST)}
-    if(a==='dating'||a==='heartbreak'){p.dateG=mkGuest(mulberry32(hash(p.id,77,C.seed)),'date',p.age+ri(-4,4),'d')}
-    if(a==='learning'){p.learn=pk(['guitar','paint']);if(!p.hobbies.includes(p.learn))p.hobbies.push(p.learn);p.arcS=B-ri(0,25)}
-    if(a==='novel'){p.arcS=B-ri(10,60);p.finish=B+ri(5,45);if(!p.hobbies.includes('computer'))p.hobbies.push('computer')}
-    if(a==='jobhunt'){p.arcS=B-ri(0,10);p.hired=B+ri(4,22)}
-    if(a==='marathon'){p.arcS=B-ri(10,40);let d=B+ri(12,36);while(dowOf(d)!==0)d++;p.race=d}
-    if(a==='grief'){p.arcS=B-ri(30,220);p.lost=pk(FIRST)}
-    if(a==='homesick')p.place=pk(PLACES);
-    if(a==='insomnia')p.arcS=B-ri(0,30);
-  }
+  for(const p of ad){if(r()>.6)continue;rollArc(C,p,u,r,B,ad.length===1||mates)}
 }
 function setupRes(C,u,r){
   const pk=a=>a[Math.floor(r()*a.length)],ch=q=>r()<q,ri=(a,b)=>a+Math.floor(r()*(b-a+1));
@@ -431,6 +421,7 @@ function setupRes(C,u,r){
   for(const a of spec){const same=!mates&&(a==='kid'||ppl.length===0||r()<.6);ppl.push(mkPerson(C,u,a,r,{last:same?fam:undefined}))}
   u.baby=baby;u.mates=mates;u.fam=fam;
   setupArcs(C,u,ppl,r,mates);
+  if(baby){u.due=GEN.day-ri(20,700);u.babyName=pk(KIDN)}
   const needDesk=ppl.some(p=>p.hobbies.includes('computer')||p.workAct==='computer');
   const bv=baby||u.rel==='expecting'?'dresser':needDesk?'desk':pk(['dresser','dresser','desk']);
   u.rooms=types.map(t=>mkRoom(t,r,t==='bedroom'?bv:t==='living'?pk(['lamp','shelf']):null));
@@ -438,15 +429,7 @@ function setupRes(C,u,r){
   if(roomWith(u,'desk')<0)for(const p of ppl){p.hobbies=p.hobbies.filter(h=>h!=='computer');if(p.workAct==='computer')p.workAct='read'}
   const adultBed=types.findIndex(t=>t==='bedroom'||t==='bedsit'||t==='studio'),kidsRoom=types.indexOf('kids');
   u.ri={k:Math.max(0,roomWith(u,'stove')),tv:Math.max(0,roomWithTV(u,'center')),bed:adultBed,kid:kidsRoom,crib:types.indexOf('bedroom')};
-  let slot=0,kslot=0,par=0;
-  ppl.forEach((p,k)=>{
-    if(p.kid){p.bedRoom=kidsRoom;p.bedSlot=kslot++;return}
-    p.bedRoom=adultBed;
-    if(mates&&k===1&&roomWith(u,'sofaLie')>=0)p.sleepSofa=true;
-    else p.bedSlot=ppl.filter(x=>!x.kid).length===1?(ch(.5)?0:1):slot++;
-    if(baby||u.rel==='expecting'){p.babyParent=true;p.parentIdx=par++}
-  });
-  if(types[adultBed]==='studio')ppl.forEach(p=>p.bedSlot=0);
+  fitHousehold(u);
   u.babySkin=ppl[0].cS;
   u.pets=[];
   if(ch(.26)){const cat=ch(.72);u.pets.push({kind:cat?'cat':'dog',name:pk(cat?CATN:DOGN),col:pk(cat?['#2a2a2a','#d08a3a','#8a8a8a','#e8e0d0','#5a4030']:['#c8a070','#3a2a1a','#e8e0d0','#8a5a30']),
@@ -470,7 +453,7 @@ function mkUnit(C,b,f,c0,n,kind,r){
     letter:String.fromCharCode(65+b.units.filter(x=>x.f===f).length),partyOn:false};
   b.units.push(u);C.units.push(u);
   for(let i=0;i<n;i++){b.cellU[f*b.cols+c0+i]=u.id}
-  if(kind==='office')setupOffice(C,u,r);else setupRes(C,u,r);
+  if(kind==='office')setupOffice(C,u,r);else{setupRes(C,u,r);initEras(C,u)}
 }
 function mkBuilding(C,r,x,cols,floors,row){
   const pk=a=>a[Math.floor(r()*a.length)],ch=q=>r()<q,ri=(a,b)=>a+Math.floor(r()*(b-a+1));
@@ -513,6 +496,7 @@ function mkShop(C,r){const pk=a=>a[Math.floor(r()*a.length)];const type=pk(Objec
 function shopOpen(s,tod){const h=tod/60,[a,b]=s.open;return b>24?(h>=a||h<b-24):(h>=a&&h<b)}
 function genCity(seed,born){
   const r=mulberry32(seed);const ri=(a,b)=>a+Math.floor(r()*(b-a+1));
+  GEN.day=born;GEN.base=null;GEN.n=0;
   const C={seed,born,W:5200,back:[],front:[],units:[],people:[],lamps:[],cars:[],nextId:1};
   let x=-ri(0,40);
   while(x<C.W+20){const b=mkBuilding(C,r,x,ri(4,10),ri(13,44),'back');C.back.push(b);x+=b.w+ri(0,4)}
@@ -521,6 +505,195 @@ function genCity(seed,born){
   for(let lx=40+ri(0,60);lx<C.W;lx+=ri(150,210))C.lamps.push(lx);
   C.top=Math.min(...C.back.concat(C.front).map(b=>b.antTop));
   return C;
+}
+
+
+/* ============================================================
+   Years: aging, tenancy turnover and life events.
+   Each apartment has a deterministic chain of "eras" derived from the
+   city seed. An era is a snapshot of the household; it ends with the
+   earliest of many competing events (exponential waiting times for
+   chance events, exact dates for birthdays that change a life).
+   ============================================================ */
+const YR=365.2425;
+const fmix=h=>{h^=h>>>16;h=Math.imul(h,0x85ebca6b);h^=h>>>13;h=Math.imul(h,0xc2b2ae35);h^=h>>>16;return h>>>0};
+const srng=(a,b,c,d)=>{const r=mulberry32(fmix(hash(a,b,c,d)^0x9e3779b9));r();r();return r};
+const GEN={day:0,base:null,n:0};
+const ageAt=(p,L)=>(L-p.bd)/YR;
+const art=w=>/^[aeiou]/i.test(w)?'an '+w:'a '+w;
+const plural=n=>/(s|x|z|ch|sh)$/i.test(n)?n+'es':n+'s';
+const fmtMonth=L=>new Date(L*86400000).toLocaleDateString('en-US',{month:'short',year:'numeric',timeZone:'UTC'});
+function houseName(u){
+  const ad=u.people.filter(p=>!p.kid),ks=u.people.filter(p=>p.kid);
+  if(!u.people.length)return'The tenants';
+  if(ad.length===1&&!ks.length)return ad[0].first+' '+ad[0].last;
+  if(u.mates)return ad.map(p=>p.first).join(' and ');
+  if(ad.length===2&&ad[0].last!==ad[1].last&&!ks.length)return ad[0].first+' and '+ad[1].first;
+  return'The '+plural((ad[0]||u.people[0]).last);
+}
+function rollArc(C,p,u,r,B,single){
+  const ri=(a,b)=>a+Math.floor(r()*(b-a+1)),pk=a=>a[Math.floor(r()*a.length)];
+  const a=pickArc(p,r,single);p.arc=a;p.arcS=B+ri(-12,12);
+  if(a==='heartbreak'){p.arcS=B-ri(0,6);p.ex=pk(FIRST)}
+  if(a==='dating'||a==='heartbreak'){p.dateG=mkGuest(mulberry32(hash(p.id,77,C.seed,B)),'date',p.age+ri(-4,4),'d')}
+  if(a==='learning'){p.learn=pk(['guitar','paint']);if(!p.hobbies.includes(p.learn))p.hobbies.push(p.learn);p.arcS=B-ri(0,25)}
+  if(a==='novel'){p.arcS=B-ri(10,60);p.finish=B+ri(5,45);if(!p.hobbies.includes('computer'))p.hobbies.push('computer')}
+  if(a==='jobhunt'){p.arcS=B-ri(0,10);p.hired=B+ri(4,22)}
+  if(a==='marathon'){p.arcS=B-ri(10,40);let d=B+ri(12,36);while(dowOf(d)!==0)d++;p.race=d}
+  if(a==='grief'){p.arcS=B-ri(30,220);p.lost=pk(FIRST)}
+  if(a==='homesick')p.place=pk(PLACES);
+  if(a==='insomnia')p.arcS=B-ri(0,30);
+  return a;
+}
+/* beds, sofas and baby duty for whoever lives here now */
+function fitHousehold(u){
+  const ppl=u.people,ad=ppl.filter(p=>!p.kid),ks=ppl.filter(p=>p.kid);
+  const bed=u.ri.bed,kr=u.ri.kid,sofa=roomWith(u,'sofaLie')>=0;
+  const studio=bed>=0&&u.rooms[bed].type==='studio',babyOn=!!(u.baby||u.due!==undefined);
+  let slot=0,par=0;
+  ad.forEach((p,k)=>{p.bedRoom=bed;p.sleepSofa=false;p.babyParent=false;
+    if(u.mates&&k===1&&sofa)p.sleepSofa=true;
+    else p.bedSlot=studio?0:ad.length===1?(hash(p.id,31)&1):Math.min(slot++,1);
+    if(babyOn&&!u.mates){p.babyParent=true;p.parentIdx=par++}});
+  let kslot=0;
+  ks.forEach(p=>{p.sleepSofa=false;p.babyParent=false;
+    if(kr>=0&&kslot<2){p.bedRoom=kr;p.bedSlot=kslot++}
+    else if(sofa&&!ad.some(a=>a.sleepSofa)){p.bedRoom=bed;p.sleepSofa=true}
+    else{p.bedRoom=bed;p.bedSlot=2}});
+}
+const RUNTIME=new Set(['u','pc','scm','mc','si','siL','seg','beat','act','away','x','tx','moving','mf','room','st','wander','wkey','wt','pose','row','face','belly','_ta','small','on','grayed']);
+function snapP(p){const o={};for(const k in p)if(!RUNTIME.has(k))o[k]=p[k];
+  o.hobbies=p.hobbies?p.hobbies.slice():[];o.preg=!!p.preg;o.arc=p.arc||null;o.sleepSofa=!!p.sleepSofa;o.babyParent=!!p.babyParent;o.dateG=p.dateG||null;return o}
+const UF=['rel','relSince','baby','due','babyName','mates','fam','vacant','rooms','ri','bulb','bulbO','leaveRoom','partyRoom','babySkin'];
+function snapEra(C,u,k,s,kind){
+  const e={k,s,kind,people:u.people.slice(),ps:u.people.map(snapP),pets:u.pets.map(x=>Object.assign({},x))};
+  for(const f of UF)e[f]=u[f];
+  e.end=eraEnd(C,u,e);e.e=e.end.t;return e;
+}
+function applyEra(u,e){
+  for(const f of UF)u[f]=e[f];
+  u.people=e.people.slice();
+  e.people.forEach((p,i)=>{Object.assign(p,e.ps[i]);p.pc=null;p.scm=null;p.mc=null;p.si=0;p.siL=undefined;p.u=u});
+  u.pets=e.pets.map(x=>Object.assign({},x));u.rw={};u.evc=null;u.cast=null;u.guests=null;u.era=e;
+}
+function eraEnd(C,u,era){
+  const r=srng(u.id,era.k,C.seed,99),S=era.s;
+  const ex=rate=>rate>0?S+1+Math.floor(-Math.log(1-r()*.999999)*YR/rate):Infinity;
+  if(era.vacant)return{t:S+14+Math.floor(r()*110),type:'movein'};
+  const ad=u.people.filter(p=>!p.kid),ks=u.people.filter(p=>p.kid),c=[];
+  const soon=(t,id)=>t>S?t:S+30+hash(id,u.id,S)%400;
+  const add=(t,type,who)=>c.push({t:Math.max(t,S+1),type,who});
+  const babyOn=!!(u.baby||u.due!==undefined);
+  let mv;
+  if(u.mates)mv=.2;else if(ad.length===1&&!ks.length){const a=ageAt(ad[0],S);mv=a<35?.28:a<60?.12:.05}
+  else if(ks.length||babyOn)mv=.08;else mv=ad.every(p=>p.arch==='retiree')?.04:.12;
+  add(ex(mv),'moveout');
+  for(const p of ad){
+    add(ex(Math.min(.5,.00025*Math.exp(.095*(ageAt(p,S)-30)))),'death',p);
+    if(['worker','night','baker','creative'].includes(p.arch))add(soon(p.bd+Math.round(p.retireAge*YR),p.id),'retire',p);
+    if(p.arch==='student')add(soon(p.bd+Math.round(p.gradAge*YR),p.id),'graduate',p);
+    if(p.arc==='dating'&&ad.length===1&&!ks.length&&!u.mates&&u.n>=2&&p.dateG)add(ex(.45),'partnerin',p);
+  }
+  for(const k of ks)add(k.bd+Math.round(18*YR),'kidleaves',k);
+  if(u.due!==undefined)add(u.due+Math.round(4*YR),'babygrows');
+  if(ad.length===2&&!u.mates){
+    const rel=u.rel;
+    if(rel==='rocky'){add(ex(.3),'breakup');add(ex(.4),'reconcile')}
+    else if(rel==='steady'||rel==='newlyweds'){add(ex(rel==='steady'?.03:.02),'breakup');add(ex(.06),'rough')}
+    if((rel==='steady'||rel==='newlyweds')&&!babyOn&&u.n>=3&&ks.length<2&&ad.every(p=>ageAt(p,S)<43))add(ex(.14),'expecting');
+  }
+  if(u.mates&&ad.length===2)add(ex(.3),'roommate');
+  if(ad.length)add(ex(.8),'arc');
+  if(u.pets.length)add(ex(.08),'petdies');else add(ex(.05),'adopt');
+  c.sort((a,b)=>a.t-b.t);return c[0];
+}
+function freshHousehold(u){u.people=[];u.pets=[];u.rel=undefined;u.relSince=undefined;u.baby=false;u.due=undefined;u.babyName=undefined;u.mates=false;u.vacant=false}
+function buildNext(C,u,era){
+  applyEra(u,era);
+  const ev=era.end,t=ev.t,k=era.k+1,r=srng(u.id,k*7919+13,C.seed,7);
+  const pk=a=>a[Math.floor(r()*a.length)],ri=(a,b)=>a+Math.floor(r()*(b-a+1));
+  GEN.day=t;GEN.base=10000000+(hash(u.id,k,C.seed,3)%100000000)*16;GEN.n=0;
+  const H=(txt,d=t)=>{u.hist.push([d,txt]);if(u.hist.length>48)u.hist.shift()};
+  const p=ev.who,ad=u.people.filter(x=>!x.kid),other=p?ad.find(x=>x!==p):null;
+  const drop=x=>{u.people=u.people.filter(y=>y!==x)};
+  for(const x of u.people)x.age=Math.floor(ageAt(x,t));
+  let kind=ev.type;
+  switch(ev.type){
+    case 'movein':freshHousehold(u);setupRes(C,u,r);fitHousehold(u);H(houseName(u)+' moved in.');
+      if(u.rel==='expecting')H(`Baby ${u.babyName} was born.`,u.due);break;
+    case 'moveout':H(houseName(u)+' moved out.');freshHousehold(u);u.vacant=true;break;
+    case 'death':{
+      H(`${p.first} ${p.last} passed away at ${Math.floor(ageAt(p,t))}.`);drop(p);
+      const left=u.people.filter(x=>!x.kid);
+      if(!left.length){freshHousehold(u);u.vacant=true;break}
+      if(!u.mates&&other&&u.people.includes(other)){other.arc='grief';other.arcS=t;other.lost=p.first;u.rel=undefined;u.relSince=undefined}
+      if(left.length<2)u.mates=false;break}
+    case 'retire':{const old=p.job;p.arch='retiree';p.job='retired '+old.replace(/^retired /,'');p.anchor=ANCHOR.retiree;
+      p.hobbies=[...pickN(r,HOB.retiree,3),'tv'];p.offDays=[];p.workAct=undefined;p.tvLove=3;
+      H(`${p.first} retired after years as ${art(old)}.`);break}
+    case 'graduate':{p.arch=pk(['worker','worker','creative']);p.job=pk(JOBS[p.arch]);p.anchor=ANCHOR[p.arch];
+      if(p.arch==='creative')p.workAct=/illustrator|comic/.test(p.job)?'paint':/composer|songwriter/.test(p.job)?'guitar':'computer';
+      H(`${p.first} graduated and started work as ${art(p.job)}.`);break}
+    case 'partnerin':{const g=p.dateG,age=Math.max(20,Math.floor(ageAt(p,t))+ri(-4,4));
+      const q=mkPerson(C,u,age>=66?'retiree':pk(['worker','worker','creative','night']),r);
+      Object.assign(q,{first:g.first,cS:g.cS,cH:g.cH,cT:g.cT,cP:g.cP,cF:g.cF,skirt:g.skirt,cK:g.cK,longHair:g.longHair});
+      q.bd=t-Math.round((age+r())*YR);q.bday=doyOf(q.bd);q.age=age;
+      p.arc=null;p.dateG=null;u.rel='newlyweds';u.relSince=t;
+      H(`${g.first} moved in with ${p.first}.`);break}
+    case 'kidleaves':drop(p);H(`${p.first} turned 18 and moved out${pk([' to go to college',' into a first apartment',' to start a job across town'])}.`);break;
+    case 'babygrows':{const q=mkPerson(C,u,'kid',r,{last:u.fam||(ad[0]&&ad[0].last)});
+      q.first=u.babyName||q.first;q.bd=u.due;q.bday=doyOf(q.bd);q.age=4;q.cS=u.babySkin||q.cS;
+      u.due=undefined;u.baby=false;u.babyName=undefined;if(u.rel==='expecting'||u.rel==='parents')u.rel='steady';
+      for(const a of ad)a.preg=false;H(`${q.first} turned four and got a bed of their own.`);break}
+    case 'expecting':{const a=ad[hash(u.id,k)&1]||ad[0];u.due=t+ri(150,250);u.babyName=pk(KIDN);u.rel='expecting';a.preg=true;u.babySkin=pk(ad).cS;
+      H(`${ad.map(x=>x.first).join(' and ')} found out they're expecting.`);H(`Baby ${u.babyName} was born.`,u.due);break}
+    case 'breakup':{const lv=r()<.5?ad[0]:ad[1],st=lv===ad[0]?ad[1]:ad[0];drop(lv);
+      st.arc='heartbreak';st.arcS=t;st.ex=lv.first;st.dateG=mkGuest(mulberry32(hash(st.id,78,C.seed,t)),'date',Math.floor(ageAt(st,t))+ri(-4,4),'d');
+      u.rel=undefined;u.relSince=undefined;H(`${lv.first} and ${st.first} split up. ${lv.first} moved out.`);break}
+    case 'reconcile':u.rel='steady';H(`${ad[0].first} and ${ad[1].first} patched things up.`);break;
+    case 'rough':u.rel='rocky';H(`${ad[0].first} and ${ad[1].first} hit a rough patch.`);break;
+    case 'roommate':{const lv=pk(ad);drop(lv);const q=mkPerson(C,u,pk(['student','worker','creative','night']),r);
+      H(`${lv.first} moved out; ${q.first} ${q.last} took the spare room.`);break}
+    case 'arc':{const q=pk(ad);const single=ad.length===1||u.mates;const a=rollArc(C,q,u,r,t,single);
+      const T={learning:`${q.first} started learning ${q.learn==='guitar'?'guitar':'to paint'}.`,marathon:`${q.first} signed up for a marathon.`,
+        novel:`${q.first} started writing a novel.`,jobhunt:`${q.first} lost their job.`,dating:`${q.first} started dating again.`};
+      if(a==='jobhunt'&&!['worker'].includes(q.arch)){q.arc=null}else if(T[a]&&!(q.did||'').includes(a+'|')){q.did=(q.did||'')+a+'|';H(T[a])}break}
+    case 'petdies':{const a=u.pets[0];H(`${a.name} the ${a.kind} died. The apartment is quieter.`);u.pets=[];break}
+    case 'adopt':{const cat=r()<.65,nm=pk(cat?CATN:DOGN);u.pets=[{kind:cat?'cat':'dog',name:nm,col:pk(cat?['#2a2a2a','#d08a3a','#8a8a8a','#e8e0d0','#5a4030']:['#c8a070','#3a2a1a','#e8e0d0','#8a5a30']),
+      x:6+Math.floor(r()*(u.n*CW-12)),tx:0,state:'sit',until:0,face:1,yo:0}];H(`Adopted ${art(cat?'cat':'dog')} named ${nm}.`);break}
+  }
+  if(!u.vacant&&u.people.length)fitHousehold(u);
+  GEN.base=null;
+  return snapEra(C,u,k,t,kind);
+}
+function initEras(C,u){
+  const r=mulberry32(hash(u.id,C.seed,1234)),B=C.born;
+  const ad=u.people.filter(p=>!p.kid),old=ad.length&&ad.every(p=>p.arch==='retiree'),fam=u.people.some(p=>p.kid)||u.baby;
+  const yrs=old?3+r()*32:fam?1+r()*9:r()*8,S0=B-Math.round(yrs*YR)-Math.floor(r()*60);
+  u.hist=[[S0,houseName(u)+' moved in.']];
+  if(u.rel==='expecting')u.hist.push([u.due,`Baby ${u.babyName} was born.`]);
+  u.eras=[snapEra(C,u,0,S0,'start')];u.era=u.eras[0];
+}
+function syncEra(u,L){
+  const e=u.era;if(e&&L>=e.s&&L<e.e)return false;
+  const E=u.eras;let last=E[E.length-1],g=0;
+  while(last.e<=L&&g++<600){const nx=buildNext(city,u,last);E.push(nx);if(E.length>10)E.shift();last=nx}
+  let f=E[0];for(let i=E.length-1;i>=0;i--)if(E[i].s<=L){f=E[i];break}
+  applyEra(u,f);return true;
+}
+function refreshAges(L){
+  for(const u of city.units){if(u.kind!=='res')continue;
+    for(const p of u.people){p.age=Math.max(0,Math.floor(ageAt(p,L)));p.small=p.kid&&p.age<13;
+      if(p.age>=60&&!p.grayed){p.grayed=true;if(hr(p.id,8)<.75&&!/^#(bd|e2|9a)/.test(p.cH))p.cH=hr(p.id,9)<.5?'#bdbdbd':'#e2e2e2'}}}
+}
+let eraL=null;
+function fastLights(u,t){
+  const tod=mod(t,1440),h=tod/60,L=Math.floor(t/1440),lit=u.light;
+  if(u.kind==='office'){const dw=dowOf(L),on=dw!==0&&dw!==6&&tod>=450&&tod<1170;for(let i=0;i<u.n;i++)lit[i]=on||hr(u.id,i,L,3)<.06?'office':'off';return}
+  const occ=u.vacant?0:Math.min(1,u.people.length/2);
+  const p=(.05+.55*gauss(h,20.8,2.1)+.22*gauss(h,7,.9)+.1*(h>9&&h<17?1:0))*occ;
+  const blk=Math.floor(t/25);
+  for(let i=0;i<u.n;i++){const q=hr(u.id,i,blk,41);lit[i]=q<p?(q<p*.28?'tv':'on'):(u.ri&&i===u.ri.kid&&h<7?'kidsnight':'off')}
 }
 
 /* ============================================================
@@ -533,7 +706,7 @@ const dateTonight=(p,L)=>datingOf(p,L)&&hr(p.id,L,60)<((dowOf(L)===5||dowOf(L)==
 const dateIn=(p,L)=>dateTonight(p,L)&&hr(p.id,L,61)<.5;
 const dateOut=(p,L)=>dateTonight(p,L)&&!dateIn(p,L);
 const archOf=(p,L)=>p.arc==='jobhunt'&&L<p.hired?'jobless':p.arch;
-const relOf=(u,L)=>u.rel==='expecting'&&L>=u.due?'parents':u.rel;
+const relOf=(u,L)=>u.rel==='expecting'&&L>=u.due?'parents':u.rel==='newlyweds'&&u.relSince!==undefined&&L-u.relSince>730?'steady':u.rel;
 const hasBaby=(u,L)=>u.baby||(u.due!==undefined&&L>=u.due);
 const learnSkill=(p,L)=>p.arc==='learning'?clamp((L-p.arcS+18)/60,0,1):.85;
 function sadOf(p,L){switch(p.arc){
@@ -547,7 +720,7 @@ function moodOf(p,L){
   if(p.arc==='jobhunt'){if(L<p.hired)v-=.5;else if(L-p.hired<10)v+=1.2}
   if(p.arc==='marathon'&&L>=p.race&&L-p.race<4)v+=1.1;
   if(p.arc==='novel'&&L>=p.finish&&L-p.finish<5)v+=1.2;
-  const rel=p.u.rel;if(rel==='newlyweds')v+=.5;if(rel==='rocky')v-=.4;
+  const rel=relOf(p.u,L);if(rel==='newlyweds')v+=.5;if(rel==='rocky')v-=.4;
   if(p.u.due!==undefined&&!p.kid){const d=L-p.u.due;if(d>=0&&d<14)v+=.8;else if(d<0)v+=.3}
   if(isSick(p,L))v-=.8;if(datingOf(p,L))v+=.4;
   v=clamp(v,-2,2);m.set(L,v);if(m.size>8)m.delete(m.keys().next().value);return v;
@@ -571,7 +744,7 @@ function arcText(p,L){
 }
 function relText(u,L){
   const r=relOf(u,L);if(!r)return'';
-  if(r==='newlyweds')return'Newlyweds.';if(r==='steady')return`Together ${u.years} years.`;if(r==='rocky')return'Going through a rough patch.';
+  if(r==='newlyweds')return'Newlyweds.';if(r==='steady'){const y=u.relSince!==undefined?Math.max(1,Math.floor((L-u.relSince)/YR)):5;return`Together ${y} year${y===1?'':'s'}.`}if(r==='rocky')return'Going through a rough patch.';
   if(r==='expecting')return`Expecting a baby in ${u.due-L} day${u.due-L===1?'':'s'}.`;
   if(r==='parents')return u.due!==undefined?`New parents: baby ${u.babyName} is ${L-u.due} day${L-u.due===1?'':'s'} old.`:'Up nights with a new baby.';
   return'';
@@ -1101,14 +1274,16 @@ function updateUnit(u,t,tod,day){
   if(!home)u.partyOn=false;
   if(u.kind==='office'){const dw=dowOf(day);for(let i=0;i<u.n;i++){if(dw!==0&&dw!==6&&tod>=450&&tod<1170)lit[i]='office';else if(hr(u.id,i,day,3)<.06)lit[i]='office'}}
   else{
-    if(!home&&hr(u.id,day,77)<.16)lit[u.leaveRoom]='on';
+    if(!home&&!u.vacant&&hr(u.id,day,77)<.16)lit[u.leaveRoom]='on';
     if(u.ri.kid>=0&&lit[u.ri.kid]==='off'&&u.people.some(p=>p.kid&&p.act==='sleep'))lit[u.ri.kid]='kidsnight';
   }
 }
 let rnow=0;
 function updateWorld(t){
   const tod=mod(t,1440),day=Math.floor(t/1440);
-  for(const u of city.units){if(u.liveAt&&rnow-u.liveAt<1.2)continue;updateUnit(u,t,tod,day)}
+  if(day!==eraL){eraL=day;for(const u of city.units)if(u.eras)syncEra(u,day);refreshAges(day)}
+  const fast=speed>=20000&&!paused;
+  for(const u of city.units){if(u.liveAt&&rnow-u.liveAt<1.2)continue;if(fast)fastLights(u,t);else updateUnit(u,t,tod,day)}
 }
 function beatRoom(u,a,b){
   const sp=b.sp||'center';
@@ -1169,7 +1344,7 @@ function liveUnit(u,now){
     if(u.kind==='office'){const dw=dowOf(Math.floor(t/1440));if(dw!==0&&dw!==6&&tod>=450&&tod<1170)best='office';else if(best==='off'&&hr(u.id,i,Math.floor(t/1440),3)<.06)best='office'}
     u.light[i]=best;
   }
-  if(!actors.length&&u.kind==='res'&&hr(u.id,Math.floor(t/1440),77)<.16)u.light[u.leaveRoom]='on';
+  if(!actors.length&&u.kind==='res'&&!u.vacant&&hr(u.id,Math.floor(t/1440),77)<.16)u.light[u.leaveRoom]='on';
   // movement
   const dt=now-(u.pt??-99);u.pt=now;const snap=dt>1.5;const step=Math.min(dt,1.5)*14*Math.max(1,(paused?0:speed)/40);
   for(const a of actors){
@@ -1246,7 +1421,7 @@ function renderHi(p,acc,inf,face,pose){
   }
 }
 function drawPersonCore(p,X,oy,pose,face,f8,row,o){
-  const kid=p.kid,ll=kid?1:2,tl=kid?2:3,S=P(p.cS),Hc=P(p.cH),T=P(p.cT),Pn=P(p.cP),F=P(p.cF);
+  const kid=p.small!==undefined?p.small:p.kid,ll=kid?1:2,tl=kid?2:3,S=P(p.cS),Hc=P(p.cH),T=P(p.cT),Pn=P(p.cP),F=P(p.cF);
   const yo=(o&&o.yo)||0;
   const put=(dx,dy,c)=>{if(HIACC)HIACC.push(X+dx,oy+dy+yo,c);else pp(X+dx,oy+dy+yo,c)};
   const hx=face>0?0:-1;
@@ -1438,7 +1613,11 @@ function drawRoom(u,i,ox,oy,now,f8){
   fr(ox,oy,RW,RH,P(rm.wall));
   if(rm.paper){const pc=P(rm.paper);for(let x=1;x<RW;x+=3)fr(ox+x,oy,1,11,pc)}
   fr(ox,oy+11,RW,1,P(rm.floor));
-  furn(rm,R,u);
+  const eL=Math.floor(simMin/1440),era=u.era;
+  if(!u.vacant)furn(rm,R,u);
+  if(era&&!u.vacant&&((era.kind==='movein'&&eL===era.s)||(era.end.type==='moveout'&&eL===era.e-1))){
+    const bx=(x,y,w,h)=>{R(x,y,w,h,'#a87c48');R(x,y,w,1,'#c89a60');R(x+(w>>1),y,1,h,'#d8c8a0')};
+    bx(1,8,3,3);bx(4,9,3,2);bx(2,6,2,2);bx(11,8,4,3);bx(12,6,3,2)}
   const mode=u.light[i],meta=rm.meta;
   const occ=rm.occ;const fx=new Set();let tv=null,mons=[];
   for(const a of occ){const b=a.beat;if(!b||a.moving)continue;if(b.fx)fx.add(b.fx);if(b.tv&&meta.tv)tv=b.tv==='game'?'game':(b.tvc|0);if(b.mon)mons.push(a)}
@@ -1483,6 +1662,7 @@ function drawRoom(u,i,ox,oy,now,f8){
   if(fx.has('paper')){pp(lx(13),oy+10,P('#f4f4f4'));pp(lx(12),oy+10,P('#e8e8e8'))}
   if(fx.has('babycry')){const x=lx(12);pp(x+(f8%2),oy+5-(f8%2),P('#8fd0ff'))}
   if(rm.type==='kids'&&mode==='kidsnight')R(14,9,1,1,'#ffe08a');
+  if(u.vacant&&i===0){R(9,3,6,5,'#f4f0e6');R(9,3,6,1,'#c0302a');R(10,5,4,1,'#c0302a');R(10,6,3,1,'#9a9a9a')}
   if(mode==='disco'){R(8,1,1,1,'#ffffff');for(let k=0;k<5;k++){const h=hash(u.id,i,f8,k);pp(ox+(h%RW),oy+((h>>>8)%9),P(DISCO_O[(h>>>16)%4]))}}
   for(const [a,X,inf,face,pf] of fxEm){const b=a.beat;if(!b)continue;
     if(b.fx==='flash'){for(let dx=-1;dx<=3;dx++)for(let dy=-2;dy<=1;dy++)bl(X+dx,oy+inf.head+dy,255,230,150,.35)}
@@ -1782,7 +1962,8 @@ function renderPanel(){
     if(here.length>8)h+=`<div class="pet">…and ${here.length-8} more at their desks</div>`;
   }else{
     const rt=relText(u,L);
-    h+=`<div class="sub">${u.n===1?'Studio':u.n+' rooms'} · ${fmtTime(t)} ${day}${rt?' · '+esc(rt):''}</div>`;
+    h+=`<div class="sub">${u.n===1?'Studio':u.n+' rooms'} · ${fmtTime(t)} ${day}${u.vacant?' · For rent since '+fmtMonth(u.era.s):rt?' · '+esc(rt):''}</div>`;
+    if(u.vacant)h+=`<div class="who">Empty. A FOR RENT sign is taped in the window.</div>`;
     for(const e of u.evNow||[])h+=`<div class="chip">${esc(chipText(u,e))}</div> `;
     u.people.forEach(p=>h+=line(p));
     for(const e of u.evNow||[])for(const g of e.guests)if(g.on)h+=`<div class="pet">Over tonight: ${esc(g.first)} (${esc(g.rel)})</div>`;
@@ -1790,6 +1971,8 @@ function renderPanel(){
     for(const a of u.pets)h+=`<div class="pet">${esc(a.name)} the ${a.kind}, ${petLine(a)}</div>`;
     const j=journal(u,t);
     if(j.length)h+=`<fieldset class="grp"><legend>Lately</legend><div class="log">${j.map(([s,txt])=>`<span>${fmtTime(s)}</span><span>${esc(txt)}</span>`).join('')}</div></fieldset>`;
+    const hs=(u.hist||[]).filter(x=>x[0]<=L).slice(-7);
+    if(hs.length)h+=`<fieldset class="grp"><legend>Over the years</legend><div class="log">${hs.map(([d,txt])=>`<span>${fmtMonth(d)}</span><span>${esc(txt)}</span>`).join('')}</div></fieldset>`;
   }
   document.getElementById('pbody').innerHTML=h;
   document.getElementById('follow').checked=follow;
@@ -1967,7 +2150,7 @@ function updateCars(dt,tod){
     city.cars.push({x:dir>0?-40:city.W+40,dir,lane:dir>0?32:16,v:60+Math.random()*55,len:13+Math.floor(Math.random()*4),col,colD:shade(col,-.25)})}
 }
 function startCity(seed,born){
-  city=genCity(seed,born);makeSky(seed);sel=null;follow=false;computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
+  eraL=null;city=genCity(seed,born);makeSky(seed);sel=null;follow=false;computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
   for(let k=0;k<12;k++)updateCars(1,mod(simMin,1440));updateWorld(simMin);lastUpd=simMin;bufBox=null;bufF=-1;
   const co=document.getElementById('codeOut');if(co)co.value=cityCode();
 }
@@ -2047,7 +2230,7 @@ function boot(){
   addEventListener('keydown',e=>{wake();if(window.isDlgOpen&&isDlgOpen()){if(e.key==='Escape')closeDlg();return}
     if((e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')&&(e.key===' '||e.key==='Enter'))return;
     if(e.key===' '){e.preventDefault();togglePause()}
-    else if('1234'.includes(e.key)&&e.key.length===1)setSpeed([1,10,60,600][+e.key-1]);
+    else if('12345'.includes(e.key)&&e.key.length===1)setSpeed([1,60,600,6000,86400][+e.key-1]);
     else if(e.key==='Escape'){if(sel)select(null);else zoomOut()}
     else if(e.key==='p'||e.key==='P')peek();
     else if((e.key==='s'||e.key==='S')&&!AP.on&&rnow-(AP.stoppedAt||-9)>.5)apStart(false);
