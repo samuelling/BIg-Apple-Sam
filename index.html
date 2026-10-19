@@ -151,6 +151,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
         <button class="btn" id="when" hidden>Back to now</button>
         <button class="btn" id="new">New city&hellip;</button>
       </div>
+      <div class="row"><label class="chk"><input type="checkbox" id="nightLock" checked><span>Always night</span></label></div>
       <div id="hint">Scroll or pinch to zoom in, drag to look around, and click a window to meet who lives there. This city is yours; it keeps living while you're away.</div>
     </div>
   </div>
@@ -1448,7 +1449,7 @@ function drawRoom(u,i,ox,oy,now,f8){
   for(const a of u.pets){if(a.x<lo||a.x>=hi)continue;drawPet(a,u.x0+Math.round(a.x),oy,f8)}
   if(rm.type==='meet'){R(1,8,14,1,'#7a6a58');R(2,9,1,2,'#5a4a3a');R(13,9,1,2,'#5a4a3a')}
   if(rm.cur){R(0,0,2,11,rm.cur);R(14,0,2,11,rm.cur);R(1,0,1,11,rm.curD);R(14,0,1,11,rm.curD);R(0,0,16,1,rm.curD)}
-  const m=lightMult(u,i,mode,f8),dk=u.b.row==='back'?.84:1;lit(ox,oy,RW,RH,m[0]*dk,m[1]*dk,m[2]*dk);
+  let m=lightMult(u,i,mode,f8);if(DQ>0)m=[m[0]+(.8-m[0])*DQ,m[1]+(.82-m[1])*DQ,m[2]+(.9-m[2])*DQ];const dk=u.b.row==='back'?.84:1;lit(ox,oy,RW,RH,m[0]*dk,m[1]*dk,m[2]*dk);
   /* light sources, screens and effects stay bright: drawn after lighting */
   const M=(o,c)=>R(o.x,o.y,o.w,o.h||1,c);
   if(meta.lamp&&(mode==='on'||mode==='dim'))M(meta.lamp,'#ffe9a6');
@@ -1512,7 +1513,7 @@ function rShop(b,now,f8){
   const sc=parseInt(s.sign.slice(1),16);for(let x=gx;x<gx+gw;x++){bl(x,-24,(sc>>16)&255,(sc>>8)&255,sc&255,.3);bl(x,-20,(sc>>16)&255,(sc>>8)&255,sc&255,.25)}
 }
 function rBuilding(b,now,f8){
-  const fac=P(b.facade),mort=P(b.mortar),trim=P(b.trim),trimD=P(b.trimD);
+  const bk=b.row==='back',fac=DC(b.facade,bk),mort=DC(b.mortar,bk),trim=DC(b.trim,bk),trimD=DC(b.trimD,bk);
   for(const t of b.tiers){const x=b.x+t.c0*CW,w=(t.c1-t.c0)*CW+2*SIDE,yT=-(LOBBY+t.f1*CH),yB=t.f0===0?0:-(LOBBY+t.f0*CH);
     fr(x,yT,w,yB-yT,fac);
     if(b.brick){let y=yT+3;if(y<BY)y+=Math.ceil((BY-y)/4)*4;for(;y<Math.min(yB,BY+BH);y+=4)fr(x,y,w,1,mort)}
@@ -1524,27 +1525,27 @@ function rBuilding(b,now,f8){
     liveUnit(u,now);
     for(let i=0;i<u.n;i++){const wx=u.x0+i*CW+4,wy=u.wy;if(wx>BX+BW||wx+RW<BX)continue;
       fr(wx-1,wy-1,RW+2,1,trimD);fr(wx-1,wy+RH,RW+2,1,trim);fr(wx-1,wy,1,RH,trimD);fr(wx+RW,wy,1,RH,trimD);
-      if(u.rooms[i].ac){fr(wx+9,wy+RH+1,5,3,P('#4b4f56'));fr(wx+10,wy+RH+2,3,1,P('#33363c'))}
+      if(u.rooms[i].ac){fr(wx+9,wy+RH+1,5,3,DC('#4b4f56'));fr(wx+10,wy+RH+2,3,1,DC('#33363c'))}
       drawRoom(u,i,wx,wy,now,f8)}
   }
   if(b.shop)rShop(b,now,f8);
-  else if(b.office){fr(b.x+6,-20,b.w-12,20,P('#8fb0a6'));for(let x=b.x+6;x<b.x+b.w-6;x+=8)fr(x,-20,1,20,trimD);fr(b.x+4,-22,b.w-8,2,trim)}
-  else{const cx=b.x+Math.floor(b.w/2);fr(cx-9,-23,18,3,P(b.awning));fr(cx-9,-20,18,1,P(shade(b.awning,-.4)));fr(cx-5,-19,10,19,trimD);fr(cx-4,-18,8,18,P('#e8c27a'));fr(cx,-18,1,18,trimD);
-    for(let k=0;k<6;k++)bl(cx-3+k,-1,255,220,150,.25)}
+  else if(b.office){fr(b.x+6,-20,b.w-12,20,DC('#8fb0a6'));for(let x=b.x+6;x<b.x+b.w-6;x+=8)fr(x,-20,1,20,trimD);fr(b.x+4,-22,b.w-8,2,trim)}
+  else{const cx=b.x+Math.floor(b.w/2);fr(cx-9,-23,18,3,DC(b.awning));fr(cx-9,-20,18,1,DC(shade(b.awning,-.4)));fr(cx-5,-19,10,19,trimD);fr(cx-4,-18,8,18,DC('#e8c27a'));fr(cx,-18,1,18,trimD);
+    if(DAYK<.7)for(let k=0;k<6;k++)bl(cx-3+k,-1,255,220,150,.25)}
   for(const f of b.roof){
-    if(f.k==='tank'){const c=P('#3e3128'),d=P('#2a211b');fr(f.x+1,f.y-6,1,6,d);fr(f.x+12,f.y-6,1,6,d);fr(f.x+6,f.y-6,1,6,d);fr(f.x,f.y-6,14,1,d);
+    if(f.k==='tank'){const c=DC('#3e3128'),d=DC('#2a211b');fr(f.x+1,f.y-6,1,6,d);fr(f.x+12,f.y-6,1,6,d);fr(f.x+6,f.y-6,1,6,d);fr(f.x,f.y-6,14,1,d);
       fr(f.x,f.y-18,14,12,c);fr(f.x,f.y-14,14,1,d);fr(f.x,f.y-10,14,1,d);fr(f.x+1,f.y-19,12,1,c);fr(f.x+3,f.y-20,8,1,c);fr(f.x+5,f.y-21,4,1,d)}
-    else if(f.k==='ant'){fr(f.x,f.y-f.h,1,f.h,P('#4a4a56'));for(let y=f.y-f.h+8;y<f.y;y+=10)fr(f.x-2,y,5,1,P('#3a3a46'));
+    else if(f.k==='ant'){fr(f.x,f.y-f.h,1,f.h,DC('#4a4a56'));for(let y=f.y-f.h+8;y<f.y;y+=10)fr(f.x-2,y,5,1,DC('#3a3a46'));
       const on=((now+f.ph)%1.6)<.7;pp(f.x,f.y-f.h-1,P(on?'#ff3a2a':'#5a1a14'));if(on)for(let dx=-3;dx<=3;dx++)for(let dy=-3;dy<=3;dy++){const dd=dx*dx+dy*dy;if(dd&&dd<10)bl(f.x+dx,f.y-f.h-1+dy,255,60,40,.28*(1-dd/10))}}
-    else if(f.k==='box'){fr(f.x,f.y-f.h,f.w,f.h,trimD);fr(f.x+2,f.y-f.h+3,3,f.h-3,P(shade(b.facade,-.55)))}
+    else if(f.k==='box'){fr(f.x,f.y-f.h,f.w,f.h,trimD);fr(f.x+2,f.y-f.h+3,3,f.h-3,DC(shade(b.facade,-.55)))}
   }
 }
 function rStreet(now,f8){
-  fr(BX,0,BW,6,P('#34343c'));fr(BX,5,BW,1,P('#4c4c55'));fr(BX,6,BW,STREET-6,P('#18181e'));fr(BX,STREET,BW,Math.max(0,BY+BH-STREET),P('#0e0e13'));
-  for(let x=Math.floor(BX/12)*12;x<BX+BW;x+=12)fr(x,0,1,5,P('#2a2a31'));
-  for(let x=Math.floor(BX/24)*24;x<BX+BW;x+=24)fr(x,22,11,1,P('#5e5638'));
+  fr(BX,0,BW,6,DC('#34343c'));fr(BX,5,BW,1,DC('#4c4c55'));fr(BX,6,BW,STREET-6,DC('#18181e'));fr(BX,STREET,BW,Math.max(0,BY+BH-STREET),DC('#0e0e13'));
+  for(let x=Math.floor(BX/12)*12;x<BX+BW;x+=12)fr(x,0,1,5,DC('#2a2a31'));
+  for(let x=Math.floor(BX/24)*24;x<BX+BW;x+=24)fr(x,22,11,1,DC('#5e5638'));
   for(const lx of city.lamps){if(lx<BX-30||lx>BX+BW+30)continue;
-    fr(lx,-50,1,56,P('#2c2c36'));fr(lx,-50,5,1,P('#2c2c36'));fr(lx+3,-49,4,2,P('#ffc46a'));
+    fr(lx,-50,1,56,DC('#2c2c36'));fr(lx,-50,5,1,DC('#2c2c36'));fr(lx+3,-49,4,2,P(DAYK<.5?'#ffc46a':'#a8a698'));if(DAYK>=.5)continue;
     for(let dx=-12;dx<=14;dx++)for(let dy=-12;dy<=12;dy++){const dd=dx*dx+dy*dy;if(dd<144&&dd>2)bl(lx+5+dx,-48+dy,255,190,110,.13*(1-dd/144))}
     for(let dx=-14;dx<=22;dx++)for(let y=0;y<6;y++)bl(lx+4+dx,y,255,200,120,.2*(1-Math.abs(dx-4)/18))}
   for(const c of city.cars)rCar(c);
@@ -1553,7 +1554,7 @@ function rCar(c){
   const x=Math.round(c.x),y=c.lane,L=c.len,d=c.dir;if(x>BX+BW+30||x+L<BX-30)return;
   fr(x,y-5,L,3,P(c.col));fr(x+3,y-8,L-6,3,P(c.colD));fr(x+4,y-7,L-8,2,P('#26303a'));fr(x+2,y-2,3,2,P('#101012'));fr(x+L-5,y-2,3,2,P('#101012'));
   const front=d>0?x+L-1:x,back=d>0?x:x+L-1;pp(front,y-4,P('#fff4c8'));pp(back,y-4,P('#ff3030'));
-  for(let k=1;k<20;k++){const a=.24*(1-k/20),sp=Math.floor(k/7);for(let yy=-sp;yy<=sp;yy++)bl(front+d*k,y-4+yy,255,244,200,a)}
+  if(DAYK<.6)for(let k=1;k<20;k++){const a=.24*(1-k/20),sp=Math.floor(k/7);for(let yy=-sp;yy<=sp;yy++)bl(front+d*k,y-4+yy,255,244,200,a)}
 }
 function renderBuf(now,f8){
   liveFrame++;B32.fill(0);clipAll();
@@ -1583,24 +1584,57 @@ function project(ra,sd,cd,lst,half,k,cx,yh){
   const alt=Math.asin(sa)*57.2958,az=mod(Math.atan2(-cd*sH,sd*cLat-cd*cH*sLat)*57.2958,360),dx=az-180;if(Math.abs(dx)>half+3)return null;
   return[cx+dx*k,yh-alt*k,alt];
 }
-function drawSky(now){
-  const gy=(0-cam.y)*cam.s;
-  const g=ctx.createLinearGradient(0,0,0,Math.max(20,gy));
-  g.addColorStop(0,'#020309');g.addColorStop(.55,'#070a1c');g.addColorStop(1,'#171c40');
-  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-  const ut=simMin+new Date().getTimezoneOffset(),d=ut/1440-10957.5;
-  const lst=mod(100.46+.985647*d+15*mod(ut,1440)/60-71.06,360);
-  const half=clamp(W/DPR/20,30,75),k=W/(2*half),cx=W/2,yh=H*.97;
-  for(const s of skyCat){const q=project(s.ra,s.sd,s.cd,lst,half,k,cx,yh);if(!q||q[1]<-4)continue;
-    let a=s.a*(q[2]<12?q[2]/12:1);if(s.tw)a*=.7+.3*Math.sin(now*s.tw+s.ra);ctx.globalAlpha=a;ctx.fillStyle=s.c;const z=s.z*DPR;ctx.fillRect(Math.round(q[0]),Math.round(q[1]),z,z)}
-  ctx.globalAlpha=1;
-  const age=mod(d-5.26,29.530588),ls=mod(280.46+.9856474*d,360),lm=mod(ls+age*12.19075,360)*Math.PI/180,eps=23.44*Math.PI/180;
+/* sun & daylight (real solar position at the viewer's latitude; "Always night" pins it below the horizon) */
+let nightLock=true,SUNALT=-30,DAYK=0,DQ=0,STARK=1,LST=0,SUN=null,MOON=null;
+const smooth=x=>{x=clamp(x,0,1);return x*x*(3-2*x)};
+const LHC=new Map();
+function LH(a,b,t){if(t<=0)return a;if(t>=1)return b;const k=a+b+t;let v=LHC.get(k);if(v)return v;
+  const A=parseInt(a.slice(1),16),B=parseInt(b.slice(1),16),f=(sh)=>Math.round(((A>>sh)&255)+(((B>>sh)&255)-((A>>sh)&255))*t);
+  v='#'+((1<<24)|(f(16)<<16)|(f(8)<<8)|f(0)).toString(16).slice(1);LHC.set(k,v);return v}
+const DCC=new Map();
+function DC(hex,bk){if(DQ===0)return P(hex);const k=hex+(bk?'b':'f')+DQ;let v=DCC.get(k);
+  if(v===undefined){let c=LH(hex,shade(hex,.42),DQ);if(bk)c=LH(c,'#a8b6c6',.3*DQ);v=P(c);DCC.set(k,v)}return v}
+function updateSun(){
+  const ut=simMin+new Date().getTimezoneOffset(),d=ut/1440-10957.5,eps=23.44*Math.PI/180;
+  LST=mod(100.46+.985647*d+15*mod(ut,1440)/60-71.06,360);
+  const ls=mod(280.46+.9856474*d,360),g=mod(357.528+.9856003*d,360)*Math.PI/180;
+  const lam=(ls+1.915*Math.sin(g)+.02*Math.sin(2*g))*Math.PI/180;
+  const sra=mod(Math.atan2(Math.sin(lam)*Math.cos(eps),Math.cos(lam))*57.2958,360),sdec=Math.asin(Math.sin(eps)*Math.sin(lam));
+  SUN={ra:sra,sd:Math.sin(sdec),cd:Math.cos(sdec)};
+  const Hh=(LST-sra)*Math.PI/180,alt=Math.asin(SUN.sd*sLat+SUN.cd*cLat*Math.cos(Hh))*57.2958;
+  SUNALT=nightLock?-30:alt;
+  DAYK=smooth((SUNALT+8)/14);DQ=Math.round(DAYK*20)/20;STARK=clamp((-SUNALT-3)/9,0,1);
+  const age=mod(d-5.26,29.530588),lm=mod(ls+age*12.19075,360)*Math.PI/180;
   const mra=mod(Math.atan2(Math.sin(lm)*Math.cos(eps),Math.cos(lm))*57.2958,360),mdec=Math.asin(Math.sin(eps)*Math.sin(lm));
-  const mq=project(mra,Math.sin(mdec),Math.cos(mdec),lst,half,k,cx,yh);
-  if(mq){const ps=Math.max(2,Math.round(2.5*DPR)),R=7,f=age/29.530588,kk=Math.cos(2*Math.PI*f),mx=Math.round(mq[0]),my=Math.round(mq[1]);
+  MOON={ra:mra,sd:Math.sin(mdec),cd:Math.cos(mdec),age};
+}
+const SKYK=[[-90,'#020309','#070a1c','#171c40'],[-14,'#020309','#070a1c','#171c40'],[-7,'#0a0f2e','#232a5c','#5a4466'],
+  [-1,'#24306c','#6a5a98','#f09a5c'],[5,'#3a68bc','#7aa0d6','#f0c890'],[14,'#3a78d0','#6aa0e0','#bcd6ee'],[90,'#2f6cc8','#5e98dc','#b4d0ec']];
+function skyCols(alt){let i=0;while(i<SKYK.length-2&&alt>SKYK[i+1][0])i++;const a=SKYK[i],b=SKYK[i+1],t=clamp((alt-a[0])/(b[0]-a[0]),0,1),q=Math.round(t*24)/24;
+  return[LH(a[1],b[1],q),LH(a[2],b[2],q),LH(a[3],b[3],q)]}
+function drawSky(now){
+  const gy=(0-cam.y)*cam.s,[c0,c1,c2]=skyCols(SUNALT);
+  const g=ctx.createLinearGradient(0,0,0,Math.max(20,gy));
+  g.addColorStop(0,c0);g.addColorStop(.55,c1);g.addColorStop(1,c2);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const half=clamp(W/DPR/20,30,75),k=W/(2*half),cx=W/2,yh=H*.97,lst=LST;
+  if(STARK>0)for(const s of skyCat){const q=project(s.ra,s.sd,s.cd,lst,half,k,cx,yh);if(!q||q[1]<-4)continue;
+    let a=s.a*STARK*(q[2]<12?q[2]/12:1);if(s.tw)a*=.7+.3*Math.sin(now*s.tw+s.ra);ctx.globalAlpha=a;ctx.fillStyle=s.c;const z=s.z*DPR;ctx.fillRect(Math.round(q[0]),Math.round(q[1]),z,z)}
+  ctx.globalAlpha=1;
+  const ps=Math.max(2,Math.round(2.5*DPR));
+  if(!nightLock&&SUN){const sq=project(SUN.ra,SUN.sd,SUN.cd,lst,half,k,cx,yh);
+    if(sq){const sx=Math.round(sq[0]),sy=Math.round(sq[1]),low=clamp(1-sq[2]/12,0,1),R=6;
+      const gl=ctx.createRadialGradient(sx,sy,0,sx,sy,R*ps*5);gl.addColorStop(0,low>.3?'rgba(255,170,90,.55)':'rgba(255,250,215,.5)');gl.addColorStop(1,'rgba(255,240,200,0)');
+      ctx.fillStyle=gl;ctx.fillRect(sx-R*ps*5,sy-R*ps*5,R*ps*10,R*ps*10);
+      ctx.fillStyle=LH('#fff6c8','#ffb060',Math.round(low*10)/10);
+      for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++)if(x*x+y*y<=R*R+R*.6)ctx.fillRect(sx+x*ps,sy+y*ps,ps,ps)}}
+  const mq=MOON&&project(MOON.ra,MOON.sd,MOON.cd,lst,half,k,cx,yh);
+  if(mq){const R=7,f=MOON.age/29.530588,kk=Math.cos(2*Math.PI*f),mx=Math.round(mq[0]),my=Math.round(mq[1]);
+    ctx.globalAlpha=1-.55*DAYK;
     for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++){if(x*x+y*y>R*R+R*.6)continue;const s=Math.sqrt(Math.max(0,R*R-y*y));const lt=f<.5?x>kk*s:x<-kk*s;
-      ctx.fillStyle=lt?((x+y*2)%5===0?'#ddd2ab':'#f1e6c2'):'#161a2e';ctx.fillRect(mx+x*ps,my+y*ps,ps,ps)}}
-  if(!reduce){
+      if(!lt&&STARK<.9)continue;ctx.fillStyle=lt?((x+y*2)%5===0?'#ddd2ab':'#f1e6c2'):'#161a2e';ctx.fillRect(mx+x*ps,my+y*ps,ps,ps)}
+    ctx.globalAlpha=1}
+  if(!reduce&&STARK>.8){
     if(!shoot&&now>nextShoot){const r=Math.random();shoot={x:W*(.15+.6*r),y:H*(.05+.2*Math.random()),vx:(r<.5?1:-1)*W*.55,vy:H*.2,t0:now}}
     if(shoot){const t=now-shoot.t0;if(t>.9){shoot=null;nextShoot=now+12+Math.random()*25}else{
       const z=Math.max(1,Math.round(DPR*1.5));for(let i=0;i<16;i++){const tt=Math.max(0,t-i*.012);ctx.globalAlpha=(1-i/16)*(1-t/.9);ctx.fillStyle='#fff6dc';
@@ -1630,7 +1664,7 @@ function drawOverview(now){
   const rect=(x0,y0,x1,y1)=>{const a=X(x0),b=Y(y0);ctx.fillRect(a,b,Math.max(1,X(x1)-a),Math.max(1,Y(y1)-b))};
   const reds=[];
   for(const row of [city.back,city.front]){
-    ctx.fillStyle=row===city.back?'#0e1020':'#06070c';
+    const bkRow=row===city.back,silC=bkRow?LH('#0e1020','#6f7a8c',DQ):LH('#06070c','#4a505c',DQ),glass=bkRow?'#93a6bb':'#8197ad';ctx.fillStyle=silC;
     for(const b of row){if(b.x+b.w<vx0||b.x>vx1)continue;
       for(const t of b.tiers)rect(b.x+t.c0*CW,-(LOBBY+t.f1*CH),b.x+t.c1*CW+2*SIDE,t.f0===0?0:-(LOBBY+t.f0*CH));
       for(const f of b.roof){
@@ -1641,17 +1675,17 @@ function drawOverview(now){
     const buckets=new Map();const add=(col,x0,y0,x1,y1)=>{let p=buckets.get(col);if(!p){p=new Path2D();buckets.set(col,p)}const a=X(x0),b=Y(y0);p.rect(a,b,Math.max(1,X(x1)-a),Math.max(1,Y(y1)-b))};
     for(const b of row){if(b.x+b.w<vx0||b.x>vx1)continue;
       for(const u of b.units){if(u.wy>vy1||u.wy+RH<oy)continue;
-        for(let i=0;i<u.n;i++){const c=ovColor(u,i,u.light[i],now);if(!c)continue;const wx=u.x0+i*CW+4;if(wx>vx1||wx+RW<vx0)continue;add(c,wx,u.wy,wx+RW,u.wy+RH)}}
+        for(let i=0;i<u.n;i++){let c=ovColor(u,i,u.light[i],now);if(DQ>0)c=c?LH(c,glass,DQ*.75):(DQ>.04?LH(bkRow?'#0e1020':'#06070c',glass,DQ):null);if(!c)continue;const wx=u.x0+i*CW+4;if(wx>vx1||wx+RW<vx0)continue;add(c,wx,u.wy,wx+RW,u.wy+RH)}}
       if(b.shop){if(shopOpen(b.shop,mod(simMin,1440))){add(b.shop.wall,b.x+6,-19,b.x+b.w-6,-3);add(b.shop.sign,b.x+6,-23,b.x+b.w-6,-21)}}
       else if(b.office)add('#7f9e94',b.x+6,-20,b.x+b.w-6,0);
       else{const cx=b.x+Math.floor(b.w/2);add('#e0b870',cx-4,-18,cx+4,0)}
     }
     for(const [c,p] of buckets){ctx.fillStyle=c;ctx.fill(p)}
   }
-  const gy=Y(0);ctx.fillStyle='#16161d';ctx.fillRect(0,gy,W,Math.max(1,Y(6)-gy));ctx.fillStyle='#0c0c11';ctx.fillRect(0,Y(6),W,H-Y(6));
-  ctx.fillStyle='#ffc46a';for(const lx of city.lamps){if(lx<vx0||lx>vx1)continue;rect(lx+3,-49,lx+7,-47)}
+  const gy=Y(0);ctx.fillStyle=LH('#16161d','#5c5c62',DQ);ctx.fillRect(0,gy,W,Math.max(1,Y(6)-gy));ctx.fillStyle=LH('#0c0c11','#3c3c42',DQ);ctx.fillRect(0,Y(6),W,H-Y(6));
+  if(DAYK<.5){ctx.fillStyle='#ffc46a';for(const lx of city.lamps){if(lx<vx0||lx>vx1)continue;rect(lx+3,-49,lx+7,-47)}}
   ctx.fillStyle='#ff3a2a';for(const f of reds){const z=Math.max(1,Math.round(1.5*DPR));ctx.fillRect(X(f.x)-(z>>1),Y(f.y-f.h-1)-(z>>1),z,z)}
-  for(const c of city.cars){if(c.x+c.len<vx0||c.x>vx1)continue;const y=c.lane;ctx.fillStyle='#1b1b24';rect(c.x,y-8,c.x+c.len,y);
+  for(const c of city.cars){if(c.x+c.len<vx0||c.x>vx1)continue;const y=c.lane;ctx.fillStyle=DQ>0?LH('#1b1b24',c.col,DQ*.8):'#1b1b24';rect(c.x,y-8,c.x+c.len,y);if(DAYK>=.6)continue;
     const f=c.dir>0?c.x+c.len-2:c.x,bk=c.dir>0?c.x:c.x+c.len-2;ctx.fillStyle='#fff1c0';rect(f,y-5,f+2,y-3);ctx.fillStyle='#ff2a2a';rect(bk,y-5,bk+2,y-3)}
 }
 function computeLimits(){sMin=Math.max(W/city.W,H*.3/(-city.top));sMax=Math.max(DET1()*3,Math.min(W,H)*.5/RW)}
@@ -1781,7 +1815,7 @@ function peek(){
 const STORE='big-apple-sam/v1';
 const localNow=()=>(Date.now()-new Date().getTimezoneOffset()*60000)/60000;
 function loadState(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');return s&&typeof s.seed==='number'?s:null}catch(e){return null}}
-function saveState(){try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel?sel.id:null,follow}))}catch(e){}}
+function saveState(){try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,night:nightLock,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel?sel.id:null,follow}))}catch(e){}}
 
 /* ---------- main loop ---------- */
 let bufBox=null,bufF=-1;
@@ -1803,6 +1837,7 @@ function frame(ms){
   const wall=Date.now(),wd=(wall-lastWall)/1000;lastWall=wall;
   if(wd>2){if(!paused)simMin+=wd/60}else if(!paused)simMin+=wd*speed/60;
   if(Math.abs(simMin-lastUpd)>=.5){updateWorld(simMin);lastUpd=simMin}
+  updateSun();
   stepAnim(ms);
   if(follow&&sel&&!anim){const cx=sel.x0+sel.n*CW/2,cy=sel.wy+RH/2;cam.x+=(cx-W/2/cam.s-cam.x)*.08;cam.y+=(cy-H/2/cam.s-cam.y)*.08;clampCam()}
   const tod=mod(simMin,1440);
@@ -1847,7 +1882,7 @@ function boot(){
   clockEl=document.getElementById('clk');liveEl=document.getElementById('live');whenBtn=document.getElementById('when');hintEl=document.getElementById('hint');
   DPR=Math.min(2,window.devicePixelRatio||1);W=Math.round(innerWidth*DPR);H=Math.round(innerHeight*DPR);cv.width=W;cv.height=H;
   const st=loadState();
-  if(st){speed=st.speed||1;paused=!!st.paused;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
+  if(st){speed=st.speed||1;paused=!!st.paused;nightLock=st.night!==false;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
     if(st.cam){cam.s=st.cam.s*DPR;cam.x=st.cam.x;cam.y=st.cam.y;clampCam()}
     if(st.sel!=null&&city.units[st.sel]){sel=city.units[st.sel];follow=!!st.follow}
     if(cam.s>=DET0())hintEl.classList.add('gone')}
@@ -1904,6 +1939,8 @@ function boot(){
   dragWin(document.getElementById('panel'),document.getElementById('pTb'));
   dragWin(dlg,document.getElementById('dTb'));
   document.getElementById('close').addEventListener('click',()=>select(null));
+  const nl=document.getElementById('nightLock');nl.checked=nightLock;
+  nl.addEventListener('change',()=>{nightLock=nl.checked;updateSun();bufF=-1;saveState()});
   document.getElementById('follow').addEventListener('change',e=>{follow=e.target.checked;renderPanel()});
   addEventListener('keydown',e=>{wake();if(window.isDlgOpen&&isDlgOpen()){if(e.key==='Escape')closeDlg();return}
     if((e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')&&(e.key===' '||e.key==='Enter'))return;
