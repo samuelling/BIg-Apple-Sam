@@ -2043,8 +2043,9 @@ const COURIER={id:777,cS:'#cf9466',cH:'#2a2a2a',cT:'#c83a2a',cP:'#2a2a3a',cF:'#1
 function shopHaze(x,y,w,h,b,night){let m=night?[.62,.58,.52]:[.94,.86,.7];if(DQ>0)m=[m[0]+(.8-m[0])*DQ,m[1]+(.82-m[1])*DQ,m[2]+(.9-m[2])*DQ];const dk=b.row==='back'?.84:1;lit(x,y,w,h,m[0]*dk,m[1]*dk,m[2]*dk)}
 function rShop(b,now,f8){
   const s=b.shop,tod=mod(simMin,1440),open=shopOpen(s,tod);
-  const sp=shopSpan(b),gx=sp[0]+2,gw=sp[1]-sp[0]-4,gy=-19,gh=16;
-  fr(sp[0],-24,sp[1]-sp[0],24,P(b.trimD));
+  const sp=shopSpan(b),gx=sp[0]+2,gw=sp[1]-sp[0]-4,gy=-19,gh=16,bk=b.row==='back';
+  /* a thin frame like the apartment windows, instead of a heavy dark surround */
+  {const tD=DC(b.trimD,bk),tL=DC(b.trim,bk);fr(gx-1,-24,gw+2,1,tD);fr(gx-1,-21,gw+2,2,tD);fr(gx-1,gy,1,gh,tD);fr(gx+gw,gy,1,gh,tD);fr(gx-1,gy+gh,gw+2,1,tL)}
   fr(gx,-23,gw,2,P(open?s.sign:'#34343c'));
   if(!open){fr(gx,gy,gw,gh,P('#14151b'));for(let y=gy;y<gy+gh;y+=2)fr(gx,y,gw,1,P('#272830'));
     if(s.type==='bank'){const ax=gx+gw-9;fr(ax,gy+3,7,11,P('#d8d0c0'));fr(ax+1,gy+5,5,8,P('#3a3a44'));fr(ax+2,gy+6,3,2,P(f8%16<15?'#5ab0ff':'#9ad0ff'));fr(ax+2,gy+9,3,1,P('#8a8a92'));for(let k=-1;k<8;k++)bl(ax+k,gy+14,120,180,255,.2)}
