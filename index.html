@@ -2726,7 +2726,7 @@ let wasBusy=false,lastClock='',lastWall=0,panelT=0,lastWake=0,hudHover=false,sav
 let lastMs=0;
 /* ============================================================
    Cyberpunk mode: neon window light, a purple smog sky, mega towers,
-   flying cars, rooftop holo-billboards, rain, a holographic koi,
+   flying cars, rooftop holo-billboards and rain,
    and residents with neon hair, visors and the odd android.
    Everything is derived from hashes, so the city underneath is unchanged.
    ============================================================ */
@@ -2775,17 +2775,7 @@ function megaDeco(R2,now){
     const sx=b.x-26,f8=Math.floor(now*2);R2(sx+20,-300-16*30,6,16*30+20,'#1a1622',1);
     for(let k=0;k<16;k++){const by=-300-k*30,h=hash(b.id,k,f8);R2(sx,by-26,22,26,[b.acc,b.acc2,'#f4f4ff','#141020'][h%4],day?.35:.85)}}
 }
-function cyberBack(now){
-  const s=cam.s,X=wx=>Math.round((wx-cam.x)*s),Y=wy=>Math.round((wy-cam.y)*s),gy=Y(0);
-  // smog sky
-  // holographic koi
-  const KW=22,KH=9;for(let k=0;k<2;k++){const L=city.W+900,x=((now*(10+k*4)+k*1700)%L)-450,y=-(1050+k*300)+Math.sin(now*.35+k)*50,cs=13;
-    ctx.fillStyle=k?'#ff6ad8':'#5af0ff';
-    for(let r=0;r<KH;r++){if((r+Math.floor(now*6))%3===0)continue;for(let c=0;c<KW;c++){const ex=(c-12)/9,ey=(r-4)/3.6,inb=ex*ex+ey*ey<1,tail=c<5&&Math.abs(r-4)<=(5-c)*.9&&c<4;
-      if(!inb&&!tail)continue;ctx.globalAlpha=(inb&&ex*ex+ey*ey>.6?.42:.2)*(DQ>0?.5:1);ctx.fillRect(X(x+c*cs),Y(y+r*cs),Math.max(1,Math.round(cs*s)),Math.max(1,Math.round(cs*s)))}}
-    ctx.globalAlpha=.8;ctx.fillStyle='#ffffff';ctx.fillRect(X(x+17*cs),Y(y+3*cs),Math.max(1,Math.round(cs*s)),Math.max(1,Math.round(cs*s)))}
-  ctx.globalAlpha=1;
-}
+function cyberBack(now){}
 function cyberFront(now,dt){
   const s=cam.s,X=wx=>Math.round((wx-cam.x)*s),Y=wy=>Math.round((wy-cam.y)*s),vx0=cam.x-80,vx1=cam.x+W/s+80;
   const rect=(x0,y0,w,h)=>{const a=X(x0),b=Y(y0);ctx.fillRect(a,b,Math.max(1,Math.round(w*s)),Math.max(1,Math.round(h*s)))};
@@ -2809,7 +2799,9 @@ function cyberFront(now,dt){
   for(let k=0;k<240;k++){const h=hash(k,7,7),x=Math.round(((h%10000)/10000*W+now*90*DPR)%W),y=Math.round((((h>>>14)%10000)/10000*H+now*(520+(h%140))*DPR)%(H+L)-L);
     for(let j=0;j<4;j++)ctx.fillRect(x-j*z,y+j*seg,z,seg)}
 }
-function setCyber(on){CYBER=!!on;bufF=-1;bufBox=null;DCC.clear();const c=document.getElementById('cyber');if(c)c.checked=CYBER;saveState()}
+/* bring the mega towers' households up to date right away, not on the next half-minute tick */
+function cyberSync(){if(!CYBER||!city)return;eraL=null;updateWorld(simMin);lastUpd=simMin}
+function setCyber(on){CYBER=!!on;bufF=-1;bufBox=null;DCC.clear();cyberSync();const c=document.getElementById('cyber');if(c)c.checked=CYBER;saveState()}
 /* Display modes. VGA is the normal look. SVGA draws close-ups at three times the detail.
    EGA (16 colors) and CGA (4 colors) re-draw the screen in a period palette with ordered dithering. */
 let GFX='vga',CGAP=1,retCv=null,retCx=null;
@@ -2894,11 +2886,11 @@ function boot(){
   const q=new URLSearchParams(location.search),hm=/^#city-([0-9a-z]+-[0-9a-z]+)$/i.exec(location.hash);
   const want=parseCode((SAVER&&SAVER.code)||(hm&&hm[1])||q.get('city'));
   let st=loadState();if(want&&!(st&&st.seed===want.seed&&st.born===want.born))st=null;
-  if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;if(['cga','ega','vga','svga'].includes(SAVER.gfx))GFX=SAVER.gfx;if(typeof SAVER.cyber==='boolean')CYBER=SAVER.cyber;document.body.classList.add('saver')}
+  if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;if(['cga','ega','vga','svga'].includes(SAVER.gfx))GFX=SAVER.gfx;if(typeof SAVER.cyber==='boolean')CYBER=SAVER.cyber;cyberSync();document.body.classList.add('saver')}
   if(!st&&want){simMin=localNow();startCity(want.seed,want.born)}
   else if(st){speed=st.speed||1;paused=!!st.paused;nightPick=typeof st.nightPick==='boolean'?st.nightPick:null;nightLock=nightPick===true;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
     if(st.cam){cam.s=st.cam.s*DPR;cam.x=st.cam.x;cam.y=st.cam.y;clampCam()}
-    if(['cga','ega','vga','svga'].includes(st.gfx))GFX=st.gfx;CYBER=!!st.cyber;if(st.cgaPal===0||st.cgaPal===1)CGAP=st.cgaPal;
+    if(['cga','ega','vga','svga'].includes(st.gfx))GFX=st.gfx;CYBER=!!st.cyber;cyberSync();if(st.cgaPal===0||st.cgaPal===1)CGAP=st.cgaPal;
     if(Array.isArray(st.favs))favs=st.favs.filter(f=>city.units[f[0]]).map(([id,ids,seen])=>({id,ids,seen}));
     if(st.sel!=null&&city.units[st.sel]){sel=city.units[st.sel];follow=!!st.follow;if(follow&&!Array.isArray(st.favs))setFav(sel,true)}
     if(cam.s>=DET0())hintEl.classList.add('gone')}
