@@ -2730,7 +2730,7 @@ function parseCode(s){const m=/^\s*([0-9a-z]{1,8})-([0-9a-z]{1,6})\s*$/i.exec(s|
 const STORE='big-apple-sam/v1';
 const localNow=()=>(Date.now()-new Date().getTimezoneOffset()*60000)/60000;
 function loadState(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');return s&&typeof s.seed==='number'?s:null}catch(e){return null}}
-function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,nightPick,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel&&!sel.box?sel.id:null,follow,favs:favs.map(f=>[f.id,f.ids,f.seen]),gfx:GFX,cgaPal:CGAP,cyber:CYBER}))}catch(e){}}
+function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,nightPick,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel&&!sel.box?sel.id:null,follow,favs:favs.map(f=>[f.id,f.ids,f.seen]),gfx:GFX,cgaPal:CGAP}))}catch(e){}}
 
 /* ---------- main loop ---------- */
 let bufBox=null,bufF=-1;
@@ -3058,7 +3058,7 @@ function boot(){
   if(!st&&want){simMin=localNow();startCity(want.seed,want.born)}
   else if(st){speed=st.speed||1;paused=!!st.paused;nightPick=typeof st.nightPick==='boolean'?st.nightPick:null;nightLock=nightPick===true;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
     if(st.cam){cam.s=st.cam.s*DPR;cam.x=st.cam.x;cam.y=st.cam.y;clampCam()}
-    if(['cga','ega','vga','svga'].includes(st.gfx))GFX=st.gfx;CYBER=!!st.cyber;cyberSync();if(st.cgaPal===0||st.cgaPal===1)CGAP=st.cgaPal;
+    if(['cga','ega','vga','svga'].includes(st.gfx))GFX=st.gfx;if(st.cgaPal===0||st.cgaPal===1)CGAP=st.cgaPal;
     if(Array.isArray(st.favs))favs=st.favs.filter(f=>city.units[f[0]]).map(([id,ids,seen])=>({id,ids,seen}));
     if(st.sel!=null&&city.units[st.sel]){sel=city.units[st.sel];follow=!!st.follow;if(follow&&!Array.isArray(st.favs))setFav(sel,true)}
     if(cam.s>=DET0())hintEl.classList.add('gone')}
