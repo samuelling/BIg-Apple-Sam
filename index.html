@@ -175,7 +175,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
         <button class="btn" id="checkBtn" title="C">Following</button>
         <button class="btn" id="new">New city&hellip;</button>
       </div>
-      <div class="row"><label class="chk"><input type="checkbox" id="nightLock"><span>Always night</span></label><label class="chk" style="margin-left:14px"><input type="checkbox" id="cyber"><span>Cyberpunk</span></label></div>
+      <div class="row"><label class="chk"><input type="checkbox" id="nightLock"><span>Always night</span></label></div>
       <div class="row" role="group" aria-label="Display"><span class="lbl">Display:</span><button class="btn" data-gfx="cga" aria-pressed="false" title="4 colors (click again to switch palettes) &middot; G">CGA</button><button class="btn" data-gfx="ega" aria-pressed="false" title="16 colors &middot; G">EGA</button><button class="btn" data-gfx="vga" aria-pressed="true" title="G">VGA</button><button class="btn" data-gfx="svga" aria-pressed="false" title="Sharper close-ups &middot; G">SVGA</button></div>
       <div class="row"><label class="lbl" for="codeOut">City code:</label><input class="fld" id="codeOut" readonly spellcheck="false"><button class="btn" id="copyCode">Copy</button></div>
       <div id="hint">Scroll or pinch to zoom in, drag to look around, and click a window to meet who lives there. This city is yours; it keeps living while you're away.</div>
@@ -2263,6 +2263,16 @@ const SKYK=[[-90,'#020309','#070a1c','#171c40'],[-14,'#020309','#070a1c','#171c4
   [-1,'#24306c','#6a5a98','#f09a5c'],[5,'#3a68bc','#7aa0d6','#f0c890'],[14,'#3a78d0','#6aa0e0','#bcd6ee'],[90,'#2f6cc8','#5e98dc','#b4d0ec']];
 function skyCols(alt){let i=0;while(i<SKYK.length-2&&alt>SKYK[i+1][0])i++;const a=SKYK[i],b=SKYK[i+1],t=clamp((alt-a[0])/(b[0]-a[0]),0,1),q=Math.round(t*24)/24;
   return[LH(a[1],b[1],q),LH(a[2],b[2],q),LH(a[3],b[3],q)]}
+/* Cyberpunk mode is a secret: press and hold on the sun or the moon until the ring closes. */
+const SKYB={sun:null,moon:null};let SKYLOCK=null;
+function skyBodyAt(x,y){for(const k of ['moon','sun']){const b=SKYB[k];if(b&&Math.hypot(x-b.x,y-b.y)<b.r+12*DPR)return k}return null}
+function skyLockTick(now){
+  if(!SKYLOCK)return;const b=SKYB[SKYLOCK.body];if(!b){SKYLOCK=null;return}
+  const p=(now-SKYLOCK.t0)/1.1;if(SKYLOCK.done){const q=(now-SKYLOCK.done)/.6;if(q>=1){SKYLOCK=null;return}
+    ctx.globalAlpha=(1-q)*.5;ctx.fillStyle=CYBER?'#ff3ad8':'#fff6d8';ctx.beginPath();ctx.arc(b.x,b.y,b.r+q*80*DPR,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;return}
+  if(p<.12)return;ctx.lineWidth=2*DPR;ctx.strokeStyle=CYBER?'#fff6d8':'#ff3ad8';ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(b.x,b.y,b.r+8*DPR,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.min(1,p));ctx.stroke();ctx.globalAlpha=1;
+  if(p>=1){SKYLOCK.done=now;setCyber(!CYBER)}
+}
 function drawSky(now){
   const gy=(0-cam.y)*cam.s;let [c0,c1,c2]=skyCols(SUNALT);
   if(CYBER){const n=1-DAYK,q=v=>Math.round(v*20)/20;c0=LH(c0,'#14041f',q(.55*n));c1=LH(c1,'#3a0c48',q(.45*n+.12));c2=LH(c2,'#b8287e',q(.45*n+.22))}
@@ -2275,13 +2285,14 @@ function drawSky(now){
   ctx.globalAlpha=1;
   const ps=Math.max(2,Math.round(2.5*DPR));
   if(!nightLock&&SUN){const sq=project(SUN.ra,SUN.sd,SUN.cd,lst,half,k,cx,yh);
-    if(sq){const sx=Math.round(sq[0]),sy=Math.round(sq[1]),low=clamp(1-sq[2]/12,0,1),R=6;
+    if(sq){const sx=Math.round(sq[0]),sy=Math.round(sq[1]);SKYB.sun={x:sx,y:sy,r:6*ps};const low=clamp(1-sq[2]/12,0,1),R=6;
       const gl=ctx.createRadialGradient(sx,sy,0,sx,sy,R*ps*5);gl.addColorStop(0,low>.3?'rgba(255,170,90,.55)':'rgba(255,250,215,.5)');gl.addColorStop(1,'rgba(255,240,200,0)');
       ctx.fillStyle=gl;ctx.fillRect(sx-R*ps*5,sy-R*ps*5,R*ps*10,R*ps*10);
       ctx.fillStyle=LH('#fff6c8','#ffb060',Math.round(low*10)/10);
       for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++)if(x*x+y*y<=R*R+R*.6)ctx.fillRect(sx+x*ps,sy+y*ps,ps,ps)}}
+  SKYB.sun=null;SKYB.moon=null;
   const mq=MOON&&project(MOON.ra,MOON.sd,MOON.cd,lst,half,k,cx,yh);
-  if(mq){const R=7,f=MOON.age/29.530588,kk=Math.cos(2*Math.PI*f),mx=Math.round(mq[0]),my=Math.round(mq[1]);
+  if(mq){const R=7,f=MOON.age/29.530588,kk=Math.cos(2*Math.PI*f),mx=Math.round(mq[0]),my=Math.round(mq[1]);SKYB.moon={x:mx,y:my,r:7*ps};
     ctx.globalAlpha=1-.55*DAYK;
     for(let y=-R;y<=R;y++)for(let x=-R;x<=R;x++){if(x*x+y*y>R*R+R*.6)continue;const s=Math.sqrt(Math.max(0,R*R-y*y));const lt=f<.5?x>kk*s:x<-kk*s;
       if(!lt&&STARK<.9)continue;ctx.fillStyle=lt?((x+y*2)%5===0?'#ddd2ab':'#f1e6c2'):'#161a2e';ctx.fillRect(mx+x*ps,my+y*ps,ps,ps)}
@@ -2956,7 +2967,7 @@ function R2buf(x,y,w,h,c,a){
   for(let yy=y0;yy<y1;yy++)for(let xx=x0;xx<x1;xx++)bl(xx,yy,r,g,bb,a)}
 /* bring the mega towers' households up to date right away, not on the next half-minute tick */
 function cyberSync(){if(!CYBER||!city)return;eraL=null;updateWorld(simMin);lastUpd=simMin}
-function setCyber(on){CYBER=!!on;bufF=-1;bufBox=null;DCC.clear();for(const u of city.units){u.evc=null;for(const p of u.people)p.scm=null}cyberSync();const c=document.getElementById('cyber');if(c)c.checked=CYBER;saveState()}
+function setCyber(on){CYBER=!!on;bufF=-1;bufBox=null;DCC.clear();for(const u of city.units){u.evc=null;for(const p of u.people)p.scm=null}cyberSync();saveState()}
 /* Display modes. VGA is the normal look. SVGA draws close-ups at three times the detail.
    EGA (16 colors) and CGA (4 colors) re-draw the screen in a period palette with ordered dithering. */
 let GFX='vga',CGAP=1,retCv=null,retCx=null;
@@ -3005,6 +3016,7 @@ function frame(ms){
   if(sel){const bx=selBox(sel),x0=(bx.x-cam.x)*cam.s,y0=(bx.y-cam.y)*cam.s,w=bx.w*cam.s,h=bx.h*cam.s;
     ctx.lineWidth=Math.max(1,DPR);ctx.setLineDash([2*DPR,2*DPR]);ctx.lineDashOffset=0;ctx.strokeStyle='#ffffff';ctx.strokeRect(Math.round(x0)+.5,Math.round(y0)+.5,Math.round(w),Math.round(h));
     ctx.lineDashOffset=2*DPR;ctx.strokeStyle='#000000';ctx.strokeRect(Math.round(x0)+.5,Math.round(y0)+.5,Math.round(w),Math.round(h));ctx.setLineDash([])}
+  skyLockTick(now);
   if(GFX==='cga'||GFX==='ega')retroPass();
   const off=simMin-localNow();const synced=Math.abs(off)<2;
   const ck=DOWN[dowOf(Math.floor(simMin/1440))]+' '+fmtTime(simMin);if(ck!==lastClock){lastClock=ck;clockEl.textContent=ck}
@@ -3059,15 +3071,17 @@ function boot(){
   const ptrs=new Map();let drag=null,pinch=null;
   const pinchState=()=>{const [a,b]=[...ptrs.values()];return{d:Math.hypot(a.x-b.x,a.y-b.y)||1,m:{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}};
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const pt={x:e.clientX*DPR,y:e.clientY*DPR};ptrs.set(e.pointerId,pt);anim=null;wake();
+    {const bd=ptrs.size===1&&!AP.on?skyBodyAt(pt.x,pt.y):null;if(bd&&(!SKYLOCK||!SKYLOCK.done))SKYLOCK={body:bd,t0:rnow,x:pt.x,y:pt.y,id:e.pointerId}}
     if(ptrs.size===1){drag={x:pt.x,y:pt.y,sx:pt.x,sy:pt.y,t:performance.now(),moved:false};cv.classList.add('drag')}
     else if(ptrs.size===2){drag=null;pinch=pinchState()}});
   cv.addEventListener('pointermove',e=>{wake();const pt={x:e.clientX*DPR,y:e.clientY*DPR};
     if(!ptrs.has(e.pointerId)){const over=cam.s>=DET0()&&(hitUnit(cam.x+pt.x/cam.s,cam.y+pt.y/cam.s)||hitStreet(cam.x+pt.x/cam.s,cam.y+pt.y/cam.s));cv.classList.toggle('pt',!!over);return}
     ptrs.set(e.pointerId,pt);
     if(pinch&&ptrs.size===2){const ns=pinchState();zoomAt(ns.d/pinch.d,ns.m.x,ns.m.y);cam.x-=(ns.m.x-pinch.m.x)/cam.s;cam.y-=(ns.m.y-pinch.m.y)/cam.s;clampCam();pinch=ns}
-    else if(drag){const dx=pt.x-drag.x,dy=pt.y-drag.y;if(Math.hypot(pt.x-drag.sx,pt.y-drag.sy)>6*DPR){drag.moved=true;if(follow){follow=false;renderPanel()}}cam.x-=dx/cam.s;cam.y-=dy/cam.s;clampCam();drag.x=pt.x;drag.y=pt.y}});
+    else if(drag){const dx=pt.x-drag.x,dy=pt.y-drag.y;if(Math.hypot(pt.x-drag.sx,pt.y-drag.sy)>6*DPR){drag.moved=true;if(SKYLOCK&&!SKYLOCK.done)SKYLOCK=null;if(follow){follow=false;renderPanel()}}cam.x-=dx/cam.s;cam.y-=dy/cam.s;clampCam();drag.x=pt.x;drag.y=pt.y}});
   const up=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);
-    if(drag&&!drag.moved&&performance.now()-drag.t<500)clickAt(drag.sx,drag.sy);
+    const wasSky=SKYLOCK&&SKYLOCK.id===e.pointerId;if(wasSky&&!SKYLOCK.done)SKYLOCK=null;
+    if(drag&&!drag.moved&&performance.now()-drag.t<500&&!wasSky)clickAt(drag.sx,drag.sy);
     drag=null;cv.classList.remove('drag');
     if(ptrs.size===1){const [pt]=[...ptrs.values()];drag={x:pt.x,y:pt.y,sx:pt.x,sy:pt.y,t:0,moved:true}}
     if(ptrs.size<2)pinch=null};
@@ -3105,7 +3119,6 @@ function boot(){
   dragWin(dlg,document.getElementById('dTb'));
   document.getElementById('close').addEventListener('click',()=>select(null));
   for(const b of document.querySelectorAll('[data-gfx]')){b.setAttribute('aria-pressed',String(b.dataset.gfx===GFX));b.addEventListener('click',()=>setGfx(b.dataset.gfx))}
-  const cyb=document.getElementById('cyber');cyb.checked=CYBER;cyb.addEventListener('change',()=>setCyber(cyb.checked));
   const nl=document.getElementById('nightLock');nl.checked=nightLock;
   nl.addEventListener('change',()=>{nightLock=nightPick=nl.checked;updateSun();bufF=-1;saveState()});
   document.getElementById('follow').addEventListener('change',e=>{if(!sel||sel.box)return;follow=e.target.checked;setFav(sel,follow);renderPanel()});
@@ -3121,7 +3134,6 @@ function boot(){
     else if('12345'.includes(e.key)&&e.key.length===1)setSpeed([1,60,600,6000,86400][+e.key-1]);
     else if(e.key==='Escape'){if(flwOpen)toggleFollowing(false);else if(sel)select(null);else zoomOut()}
     else if(e.key==='p'||e.key==='P')peek();
-    else if(e.key==='y'||e.key==='Y')setCyber(!CYBER);
     else if(e.key==='g'||e.key==='G')setGfx({cga:'ega',ega:'vga',vga:'svga',svga:'cga'}[GFX]);
     else if((e.key==='s'||e.key==='S')&&!AP.on&&rnow-(AP.stoppedAt||-9)>.5)apStart(false);
     else if(e.key==='f'||e.key==='F'){if(sel&&!sel.box){follow=!favOf(sel);setFav(sel,follow);renderPanel()}}
