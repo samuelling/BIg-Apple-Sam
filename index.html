@@ -321,10 +321,10 @@ const ACT={
 const WHY={work:'At work',drinks:'Out for drinks after work',night:'Out for the night',errands:'Out running errands',shift:'On the night shift',
   bakery:'At the bakery',walk:'Out for a morning walk',visit:'Visiting friends',class:'In class',friends:'Out with friends',party:'At a party across town',
   gym:'At the gym',school:'At school',park:'At the park',commute:'Not in yet',lunch:'Out to lunch',home:'Gone home for the day',weekend:'Off for the weekend',
-  off:'Night off',trick:'Out trick-or-treating',drone:'Out flying the drone',date:'Out on a date',run:'Out for a run',race:'Running the marathon',interview:'At a job interview',sick:'Home sick'};
-const LEAVE={trick:'{n} went out trick-or-treating dressed as {c}.',drone:'{n} went out to fly the drone.',work:'{n} left for work.',shift:'{n} left for the night shift.',bakery:'{n} left for the bakery in the dark.',date:'{n} left for a date.',night:'{n} headed out for the night.',
+  off:'Night off',trick:'Out trick-or-treating',massage:'Out getting a massage',drone:'Out flying the drone',date:'Out on a date',run:'Out for a run',race:'Running the marathon',interview:'At a job interview',sick:'Home sick'};
+const LEAVE={massage:'{n} went out for a massage. Again.',trick:'{n} went out trick-or-treating dressed as {c}.',drone:'{n} went out to fly the drone.',work:'{n} left for work.',shift:'{n} left for the night shift.',bakery:'{n} left for the bakery in the dark.',date:'{n} left for a date.',night:'{n} headed out for the night.',
   run:'{n} went out for a run.',race:'{n} left to run the marathon.',interview:'{n} left for a job interview, nervous.',party:'{n} went out to a party.',school:'{n} left for school.',class:'{n} left for class.'};
-const ARRIVE={trick:'{n} got home with a pillowcase full of candy.',drone:'{n} got back with new drone footage.',work:'{n} got home from work.',shift:'{n} got home from the night shift.',bakery:'{n} got home smelling like bread.',date:'{n} got home from the date.',night:'{n} got home late.',
+const ARRIVE={massage:'{n} got home from the massage place, very relaxed.',trick:'{n} got home with a pillowcase full of candy.',drone:'{n} got back with new drone footage.',work:'{n} got home from work.',shift:'{n} got home from the night shift.',bakery:'{n} got home smelling like bread.',date:'{n} got home from the date.',night:'{n} got home late.',
   run:'{n} got back from a run.',race:'{n} came home with a marathon medal.',interview:'{n} got back from the interview.',party:'{n} stumbled home from the party.',school:'{n} got home from school.',errands:'{n} got home with groceries.'};
 const POSE={bed:'lie',sofaLie:'lieSofa',bedsit:'sitbed',table:'sitside',desk:'sitside',sofa:'sit',meet:'sit',tvfloor:'floorsit'};
 const FB={desk:['desk','table','sofa'],table:['table','sofa'],tvfloor:['tvfloor','center'],sofa:['sofa'],center:['center'],stove:['stove'],sink:['sink','stove'],
@@ -540,6 +540,31 @@ const SHOPS={
 function mkShop(C,r){const pk=a=>a[Math.floor(r()*a.length)];const type=pk(Object.keys(SHOPS));const S=SHOPS[type];
   const pat=[];for(let i=0;i<5;i++)pat.push(Object.assign({id:9000+C.nextId*10+i},mkLook(r,{age:20+Math.floor(r()*50)})));
   return{id:C.nextId++,type,sign:S.sign,wall:S.wall,open:S.open,max:S.max,name:pk(S.names),pat}}
+const PARLOR={type:'massage',sign:'#ff2a44',wall:'#7a1a26',open:[18,27],max:1,names:['Golden Touch Massage','Velvet Hands Spa','Red Lantern Massage','Paradise Spa','Midnight Massage','Lucky Hands Spa']};
+function markParlors(C){
+  const cands=C.front.filter(b=>b.shop).sort((a,b)=>hash(a.id,C.seed,71)-hash(b.id,C.seed,71));
+  const n=Math.min(cands.length,2+hash(C.seed,72)%2);C.parlors=[];
+  for(let k=0;k<n;k++){const sh=cands[k].shop;Object.assign(sh,{type:PARLOR.type,sign:PARLOR.sign,wall:PARLOR.wall,open:PARLOR.open,max:PARLOR.max,name:PARLOR.names[(hash(C.seed,73)+k)%PARLOR.names.length]});C.parlors.push(cands[k])}
+}
+/* Kevin: one grown-up who lives alone. Every so often he goes out for a massage. */
+function pickKevin(C,skip){
+  let best=null,bh=0;
+  for(const u of C.units){if(u.kind!=='res'||u.vacant||u.people.length!==1)continue;const p=u.people[0];if(p.kid||p.age<26||p.age>72||p===skip)continue;
+    const h=hash(p.id,C.seed,74);if(!best||h<bh){best=p;bh=h}}
+  if(!best)for(const u of C.units){if(u.kind!=='res')continue;const p=u.people.find(x=>!x.kid&&x!==skip);if(p){best=p;break}}
+  C.kev=best;if(best){best.first='Kevin';best.pc=null;best.scm=null}
+}
+function kevinCheck(){const k=city.kev;if(!k||!k.u||k.u.vacant||!k.u.people.includes(k)){pickKevin(city,k);return}if(k.first!=='Kevin'){k.first='Kevin';k.scm=null}}
+function kevinParlor(p){let best=null,bd=1e9;for(const b of city.parlors||[]){const d=Math.abs(b.x-p.u.b.x);if(d<bd){bd=d;best=b}}return best}
+function kevinNight(p,L,segs){
+  if(typeof city==='undefined'||!city||city.kev!==p||!city.parlors||!city.parlors.length)return segs;
+  if(hash(p.id,L,75)%100>=21)return segs;
+  const s0=L*1440+Math.round((20.8+(hash(p.id,L,76)%60)/60)*60),e0=s0+70+hash(p.id,L,77)%40;
+  for(const g of segs)if(g.act==='away'&&g.e>s0&&g.s<e0)return segs;
+  const out=[];for(const g of segs){if(g.e<=s0||g.s>=e0){out.push(g);continue}if(g.s<s0)out.push(Object.assign({},g,{e:s0}));if(g.e>e0)out.push(Object.assign({},g,{s:e0}))}
+  out.push({s:s0,e:e0,act:'away',why:'massage'});out.sort((a,b)=>a.s-b.s);return out;
+}
+function kevinAt(b,t){const k=city.kev;if(!k||kevinParlor(k)!==b)return null;const sg=segAt(k,t);if(sg.act!=='away'||sg.why!=='massage')return null;const m=t-sg.s-8;return m>=0&&t<sg.e-8?m:null}
 function shopOpen(s,tod){const h=tod/60,[a,b]=s.open;return b>24?(h>=a||h<b-24):(h>=a&&h<b)}
 function genCity(seed,born){
   const r=mulberry32(seed);const ri=(a,b)=>a+Math.floor(r()*(b-a+1));
@@ -884,7 +909,7 @@ function pickLeisure(p,r,hAbs,mood,L){
     tot+=x;return x});
   let q=r()*tot;for(let i=0;i<o.length;i++){q-=w[i];if(q<=0)return o[i]}return 'tv';
 }
-function planFor(p,L){let m=p.pc;if(!m)m=p.pc=new Map();let v=m.get(L);if(!v){v=trickOrTreat(p,L,buildPlan(p,L));m.set(L,v);if(m.size>4)m.delete(m.keys().next().value)}return v}
+function planFor(p,L){let m=p.pc;if(!m)m=p.pc=new Map();let v=m.get(L);if(!v){v=kevinNight(p,L,trickOrTreat(p,L,buildPlan(p,L)));m.set(L,v);if(m.size>4)m.delete(m.keys().next().value)}return v}
 function buildPlan(p,L){
   const r=mulberry32(hash(p.id,L,city.seed,7));const j=s=>(r()*2-1)*s,ch=q=>r()<q;
   const base=L*1440,start=base+p.anchor,end=start+1440;
@@ -1452,7 +1477,7 @@ function updateUnit(u,t,tod,day){
 let rnow=0;
 function updateWorld(t){
   const tod=mod(t,1440),day=Math.floor(t/1440);
-  if(day!==eraL){eraL=day;for(const u of city.units)if(u.eras)syncEra(u,day);refreshAges(day);for(const u of city.units)u.dec=decorFor(u,day)}
+  if(day!==eraL){eraL=day;for(const u of city.units)if(u.eras)syncEra(u,day);refreshAges(day);for(const u of city.units)u.dec=decorFor(u,day);kevinCheck()}
   const fast=speed>=20000&&!paused;
   for(const u of city.units){if(u.liveAt&&rnow-u.liveAt<1.2)continue;if(fast)fastLights(u,t);else updateUnit(u,t,tod,day)}
 }
@@ -2004,11 +2029,22 @@ function rShop(b,now,f8){
     case 'video':for(let y=oy;y<oy+9;y+=3){for(let x=gx+1;x<gx+gw-1;x++)pp(x,y+1,P(['#3a5ab8','#c83a3a','#e8c84a','#2a2a2a','#4aa86a'][hash(x,y,s.id)%5]));fr(gx,y+2,gw,1,P('#5a5a6a'))}
       people('stand',8,8);break;
     case 'pizza':fr(gx+2,oy+2,9,5,P('#6a4030'));fr(gx+4,oy+4,5,2,P(f8%2?'#ff8a2a':'#ffb84a'));people('stand',8,8);fr(gx,oy+8,gw,3,P('#d8d0c0'));break;
+    case 'massage':{const red=P('#ff3a50'),pink=P('#ff8aa0');
+      const cx=gx+(gw>>1)-3;fr(cx-1,gy+2,8,oy+9-gy-2,P('#3a0c14'));for(let x=cx;x<cx+6;x++)for(let y=gy+3;y<oy+8;y++)if((x+y)%2===0)pp(x,y,(x>>1)%2?red:P('#b82038'));
+      for(let lx=gx+3;lx<gx+gw-10;lx+=14){if(Math.abs(lx-cx)<6)continue;fr(lx,gy+1,3,3,P('#ff2a2a'));pp(lx+1,gy,P('#2a1010'));pp(lx+1,gy+4,P('#ffd040'))}
+      fr(gx+5,oy+1,4,3,P('#c89050'));fr(gx+6,oy+2,2,1,P('#3a5a7a'));
+      fr(gx+gw-8,gy+1,6,3,P(f8%8<6?'#ff2a44':'#5a1020'));fr(gx+gw-7,gy+2,4,1,P(f8%8<6?'#ffd0d8':'#5a1020'));
+      fr(gx+gw-10,oy+6,7,1,P('#3a1410'));pp(gx+gw-10,oy+7,P('#2a0e0a'));pp(gx+gw-4,oy+7,P('#2a0e0a'));
+      fr(gx+1,oy+5,2,3,P('#2a6a3a'));fr(gx+1,oy+8,2,3,P('#5a2a1a'));
+      const m=kevinAt(b,simMin);if(m!==null&&m<22)drawPerson(city.kev,gx+gw-7,oy,'sit',-1,f8,7);
+      fr(gx,gy+11,gw,5,P('#4a0e18'));for(let x=gx;x<gx+gw;x+=3)pp(x,gy+11,pink);
+      break}
     case 'bar':for(let x=gx+1;x<gx+gw-1;x+=2)fr(x,oy+1+(x%3),1,3,P(['#3a8a4a','#c8a040','#8a2a2a','#e8e8e8'][hash(x,s.id)%4]));
       fr(gx,oy+4,gw,1,P('#5a3a20'));people('sit',8,6);fr(gx,oy+7,gw,4,P('#4a2a18'));fr(gx,oy+7,gw,1,P('#8a5a30'));break;
   }
   clipAll();
   const sc=parseInt(s.sign.slice(1),16);for(let x=gx;x<gx+gw;x++){bl(x,-24,(sc>>16)&255,(sc>>8)&255,sc&255,.3);bl(x,-20,(sc>>16)&255,(sc>>8)&255,sc&255,.25)}
+  if(s.type==='massage')for(let x=gx-3;x<gx+gw+3;x++)for(let y=-3;y<3;y++)bl(x,y,255,30,60,.22-Math.abs(y)*.05);
 }
 function crownColor(b,f8){if(SEASON==='halloween')return(b.id+(f8>>4))%2?'#ff7a1a':'#9a3aff';if(SEASON==='xmas')return(b.id+(f8>>4))%2?'#e83a3a':'#3ae86a';return b.crown}
 function rBuilding(b,now,f8){
@@ -2593,7 +2629,7 @@ function updateCars(dt,tod){
     city.cars.push({x:dir>0?-40:city.W+40,dir,lane:dir>0?32:16,v:60+Math.random()*55,len:13+Math.floor(Math.random()*4),col,colD:shade(col,-.25)})}
 }
 function startCity(seed,born){
-  eraL=null;city=genCity(seed,born);makeSky(seed);sel=null;follow=false;favs=[];favI=-1;syncFavBtn();renderFollow();computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
+  eraL=null;city=genCity(seed,born);markParlors(city);pickKevin(city);makeSky(seed);sel=null;follow=false;favs=[];favI=-1;syncFavBtn();renderFollow();computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
   for(let k=0;k<12;k++)updateCars(1,mod(simMin,1440));updateWorld(simMin);lastUpd=simMin;bufBox=null;bufF=-1;
   const co=document.getElementById('codeOut');if(co)co.value=cityCode();
 }
