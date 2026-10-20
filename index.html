@@ -546,6 +546,32 @@ function markParlors(C){
   const n=Math.min(cands.length,2+hash(C.seed,72)%2);C.parlors=[];
   for(let k=0;k<n;k++){const sh=cands[k].shop;Object.assign(sh,{type:PARLOR.type,sign:PARLOR.sign,wall:PARLOR.wall,open:PARLOR.open,max:PARLOR.max,name:PARLOR.names[(hash(C.seed,73)+k)%PARLOR.names.length]});C.parlors.push(cands[k])}
 }
+/* More ground-floor frontage, assigned after the city is built so existing shops never change.
+   Day businesses pull their grates down at night; restaurants, takeout and clubs run late. */
+const NEWSHOPS={
+  restaurant:{w:3,sign:'#ffb84a',wall:'#8a4a32',open:[11,23],max:6,names:['Trattoria Luna','The Copper Pot','Bistro Margot','Casa Verde','The Oak Room','Saffron House']},
+  cafe:{w:3,sign:'#d89050',wall:'#e8d4b0',open:[6,18],max:4,names:['Daily Grind','Bean There','Morning Glory Cafe','The Steam Room','Cup & Saucer']},
+  takeout:{w:2,sign:'#ff5a2a',wall:'#f0e0b0',open:[11,25],max:3,names:['Golden Wok','Taco Loco','Falafel King','Noodle Bar','Wing Stop Inn']},
+  nightclub:{w:1.2,sign:'#ff3ad8',wall:'#140a24',open:[22,28],max:7,names:['Club Neon','The Velvet Rope','Studio 99','Pulse','Electric Avenue']},
+  bakery:{w:1,sign:'#f0c060',wall:'#f0d8b0',open:[5,15],max:3,names:['Rise & Shine Bakery','The Flour Pot','Sweet Crumbs','Golden Crust']},
+  florist:{w:1,sign:'#6ad06a',wall:'#e0ecd8',open:[8,19],max:2,names:['Petal Pushers','Bloom Room','Stems & Co.','Fern Gully Flowers']},
+  bookstore:{w:1,sign:'#d8b070',wall:'#d8c8a8',open:[10,21],max:3,names:['Dog-Eared Books','Chapter Two','The Paper Lantern','Spine & Story']},
+  hardware:{w:1,sign:'#e84a2a',wall:'#d8c8a0',open:[8,18],max:2,names:['Nuts & Bolts Hardware','Ace of Spades Hardware','Handy Andy']},
+  boutique:{w:1.5,sign:'#ff9ac8',wall:'#f4e8ec',open:[10,20],max:3,names:['Thread Count','Mod Squad','The Closet','Rag & Bone Vintage']},
+  barber:{w:1.2,sign:'#4a8aff',wall:'#e8eef4',open:[9,19],max:3,names:["Sal's Barbershop",'Clean Cuts','The Chop Shop','Fade Away']},
+  pharmacy:{w:1,sign:'#3ad06a',wall:'#f4f8f8',open:[8,22],max:3,names:['Neighborhood Pharmacy','Corner Drug','Rx Express']},
+  bank:{w:1,sign:'#5a8aff',wall:'#d8d0c0',open:[9,17],max:3,names:['First City Savings','Metro Trust','Union Bank']},
+  cleaners:{w:1,sign:'#7ad0e8',wall:'#eef0f4',open:[7,19],max:2,names:['Spotless Cleaners','Press Here','One Hour Martinizing']}
+};
+const OFFICE_SHOPS=['bank','cafe','restaurant','pharmacy','boutique','bookstore'];
+function addFrontage(C){
+  for(const b of C.front){if(b.shop)continue;const h=hash(b.id,C.seed,81);if(h%100>=(b.office?35:62))continue;
+    const keys=b.office?OFFICE_SHOPS:Object.keys(NEWSHOPS),tot=keys.reduce((a,k)=>a+NEWSHOPS[k].w,0);let x=(hash(b.id,C.seed,84)%10000)/10000*tot,type=keys[0];
+    for(const k of keys){x-=NEWSHOPS[k].w;if(x<0){type=k;break}}
+    const S=NEWSHOPS[type],r=mulberry32(hash(b.id,C.seed,82)),pat=[];for(let i=0;i<5;i++)pat.push(Object.assign({id:800000+b.id*10+i},mkLook(r,{age:20+Math.floor(r()*50)})));
+    b.shop={id:700000+b.id,type,sign:S.sign,wall:S.wall,open:S.open,max:S.max,name:S.names[hash(b.id,C.seed,83)%S.names.length],pat}}
+}
+const GUARD={id:777001,cS:'#8a5a3a',cH:'#1e1a18',cT:'#2a3450',cP:'#1e2230',cF:'#141414',kid:false};
 /* Kevin: one grown-up who lives alone. Every so often he goes out for a massage. */
 function pickKevin(C,skip){
   let best=null,bh=0;
@@ -565,6 +591,10 @@ function kevinNight(p,L,segs){
   out.push({s:s0,e:e0,act:'away',why:'massage'});out.sort((a,b)=>a.s-b.s);return out;
 }
 function kevinAt(b,t){const k=city.kev;if(!k||kevinParlor(k)!==b)return null;const sg=segAt(k,t);if(sg.act!=='away'||sg.why!=='massage')return null;const m=t-sg.s-8;return m>=0&&t<sg.e-8?m:null}
+/* a shop takes the whole ground floor of a narrow building, or one end of a wide one */
+function shopSpan(b){const s=b.shop;if(s.span)return s.span;const full=b.w-8;
+  if(full<=56)return s.span=[b.x+4,b.x+b.w-4];const w=36+hash(b.id,7)%14;return s.span=hash(b.id,8)%2?[b.x+4,b.x+4+w]:[b.x+b.w-4-w,b.x+b.w-4]}
+function lobbySpan(b){if(!b.shop)return[b.x,b.x+b.w];const sp=shopSpan(b);return sp[0]-b.x>b.x+b.w-sp[1]?[b.x,sp[0]]:[sp[1],b.x+b.w]}
 function shopOpen(s,tod){const h=tod/60,[a,b]=s.open;return b>24?(h>=a||h<b-24):(h>=a&&h<b)}
 function genCity(seed,born){
   const r=mulberry32(seed);const ri=(a,b)=>a+Math.floor(r()*(b-a+1));
@@ -2011,13 +2041,15 @@ const COURIER={id:777,cS:'#cf9466',cH:'#2a2a2a',cT:'#c83a2a',cP:'#2a2a3a',cF:'#1
 /* ---------- buildings, shops, street ---------- */
 function rShop(b,now,f8){
   const s=b.shop,tod=mod(simMin,1440),open=shopOpen(s,tod);
-  const gx=b.x+6,gw=b.w-12,gy=-19,gh=16;
-  fr(b.x+4,-24,b.w-8,24,P(b.trimD));
+  const sp=shopSpan(b),gx=sp[0]+2,gw=sp[1]-sp[0]-4,gy=-19,gh=16;
+  fr(sp[0],-24,sp[1]-sp[0],24,P(b.trimD));
   fr(gx,-23,gw,2,P(open?s.sign:'#34343c'));
-  if(!open){fr(gx,gy,gw,gh,P('#14151b'));for(let y=gy;y<gy+gh;y+=2)fr(gx,y,gw,1,P('#272830'));return}
+  if(!open){fr(gx,gy,gw,gh,P('#14151b'));for(let y=gy;y<gy+gh;y+=2)fr(gx,y,gw,1,P('#272830'));
+    if(s.type==='bank'){const ax=gx+gw-9;fr(ax,gy+3,7,11,P('#d8d0c0'));fr(ax+1,gy+5,5,8,P('#3a3a44'));fr(ax+2,gy+6,3,2,P(f8%16<15?'#5ab0ff':'#9ad0ff'));fr(ax+2,gy+9,3,1,P('#8a8a92'));for(let k=-1;k<8;k++)bl(ax+k,gy+14,120,180,255,.2)}
+    return}
   clipTo(gx,gy,gw,gh);
   fr(gx,gy,gw,gh,P(s.wall));fr(gx,-4,gw,1,P(shade(s.wall,-.35)));
-  const oy=gy+4;const n=Math.floor(hr(s.id,Math.floor(simMin/25))*(s.max+1));
+  const oy=gy+4;let n=Math.floor(hr(s.id,Math.floor(simMin/25))*(s.max+1));if(s.type==='nightclub')n=Math.max(n,4);if(s.type==='restaurant'&&tod>=1080)n=Math.max(n,2);
   const people=(pose,row,step)=>{for(let k=0;k<n;k++){const X=gx+4+k*step;if(X>gx+gw-3)break;const pt=s.pat[k%s.pat.length];drawPerson(pt,X,oy,pose,k%2?1:-1,(f8+k)%8,row)}};
   switch(s.type){
     case 'diner':people('sit',8,7);fr(gx,oy+7,gw,4,P('#c8c0b0'));fr(gx,oy+7,gw,1,P('#e04a5a'));
@@ -2029,6 +2061,47 @@ function rShop(b,now,f8){
     case 'video':for(let y=oy;y<oy+9;y+=3){for(let x=gx+1;x<gx+gw-1;x++)pp(x,y+1,P(['#3a5ab8','#c83a3a','#e8c84a','#2a2a2a','#4aa86a'][hash(x,y,s.id)%5]));fr(gx,y+2,gw,1,P('#5a5a6a'))}
       people('stand',8,8);break;
     case 'pizza':fr(gx+2,oy+2,9,5,P('#6a4030'));fr(gx+4,oy+4,5,2,P(f8%2?'#ff8a2a':'#ffb84a'));people('stand',8,8);fr(gx,oy+8,gw,3,P('#d8d0c0'));break;
+    case 'restaurant':{const tb=[];for(let x=gx+3;x<gx+gw-7;x+=11)tb.push(x);
+      for(const x of tb){pp(x+3,gy,P('#2a2020'));pp(x+3,gy+1,P('#ffd27a'));for(let k=-2;k<=2;k++)bl(x+3+k,gy+2,255,210,140,.25)}
+      let k=0;for(const x of tb){if(k<n)drawPerson(s.pat[k%5],x,oy,'sit',1,(f8+k)%8,8);k++;if(k<n)drawPerson(s.pat[k%5],x+7,oy,'sit',-1,(f8+k)%8,8);k++}
+      for(const x of tb){fr(x,oy+6,7,1,P('#f4f0e8'));fr(x+1,oy+7,5,1,P('#d8d4cc'));fr(x+3,oy+8,1,3,P('#3a2a20'));pp(x+3,oy+5,P(f8%3?'#ffd060':'#ffa030'))}
+      break}
+    case 'cafe':{const cw=Math.min(16,gw>>1);fr(gx+1,oy+5,cw,6,P('#6a4a30'));fr(gx+1,oy+5,cw,1,P('#8a6a48'));fr(gx+3,oy+2,4,3,P('#b8b8c0'));pp(gx+4,oy+1,P('#e8e8e8'));
+      fr(gx+9,oy+3,6,2,P('#f0e8d8'));pp(gx+10,oy+3,P('#c88a40'));pp(gx+12,oy+3,P('#e8b0c0'));pp(gx+14,oy+3,P('#8a5a2a'));
+      fr(gx+gw-12,gy+1,9,5,P('#2a3a2a'));for(let y=gy+2;y<gy+5;y++)for(let x=gx+gw-11;x<gx+gw-4;x+=2)if(hash(x,y,s.id)%3)pp(x,y,P('#e8e8e0'));
+      for(let k=0;k<n;k++){const X=gx+cw+5+k*7;if(X>gx+gw-3)break;drawPerson(s.pat[k],X,oy,'sit',k%2?1:-1,(f8+k)%8,8);fr(X+(k%2?2:-3),oy+7,2,1,P('#5a3a20'));pp(X+(k%2?2:-2),oy+6,P('#f0ece0'))}
+      break}
+    case 'takeout':{fr(gx+2,gy+1,gw-4,4,P('#1a1a1a'));for(let x=gx+3;x<gx+gw-3;x+=4){fr(x,gy+2,3,2,P(['#e8a040','#c84a2a','#6ab04a','#e8d070'][hash(x,s.id)%4]))}
+      fr(gx+2,oy+6,gw-4,5,P('#c83a2a'));fr(gx+2,oy+6,gw-4,1,P('#e86a4a'));for(let k=0;k<n;k++){const X=gx+gw-6-k*6;if(X<gx+3)break;drawPerson(s.pat[k],X,oy,'stand',1,(f8+k)%8,8)}
+      pp(gx+5,oy+5,P('#f4f4f4'));pp(gx+6,oy+5,P('#f4f4f4'));break}
+    case 'nightclub':{const C4=['#ff3ad8','#3ad8ff','#ffe03a','#7a3aff','#3aff8a'];
+      for(let k=0;k<Math.max(14,gw>>1);k++){const h2=hash(s.id,k,f8>>1,9);pp(gx+(h2%gw),gy+((h2>>>8)%9),P(C4[(h2>>>16)%5]))}
+      fr(gx+(gw>>1)-1,gy,2,2,P('#e8e8f0'));
+      people('dance',8,5);fr(gx,oy+10,gw,1,P(C4[(f8>>2)%5]));
+      if(f8%16===0)for(let x=gx;x<gx+gw;x++)for(let y=gy;y<gy+gh;y++)bl(x,y,255,255,255,.18);
+      break}
+    case 'bakery':for(let y=oy;y<oy+8;y+=3){fr(gx+2,y+2,gw-4,1,P('#8a6a4a'));for(let x=gx+3;x<gx+gw-3;x+=3){const c=['#c88a40','#a8682a','#e8c070','#8a4a1a'][hash(x,y,s.id)%4];fr(x,y+1,2,1,P(c))}}
+      fr(gx+2,oy+8,gw-4,3,P('#f4f0e8'));people('stand',8,9);break;
+    case 'florist':for(let x=gx+2;x<gx+gw-3;x+=4){fr(x,oy+8,3,3,P('#5a6a7a'));fr(x+1,oy+5,1,3,P('#3a8a3a'));const c=['#ff4a6a','#ffd040','#d06aff','#ff8a3a','#f4f4f4'];
+        pp(x,oy+5,P(c[hash(x,s.id)%5]));pp(x+1,oy+4,P(c[hash(x,s.id,1)%5]));pp(x+2,oy+5,P(c[hash(x,s.id,2)%5]))}
+      for(let x=gx+5;x<gx+gw-5;x+=9){pp(x,gy+1,P('#5a4a3a'));fr(x-1,gy+2,3,2,P('#3a8a3a'))}people('stand',8,11);break;
+    case 'bookstore':for(let y=oy-2;y<oy+9;y+=3){for(let x=gx+1;x<gx+gw-1;x++)if(hash(x,y,s.id)%5)pp(x,y+1,P(SPINE[hash(x,y,s.id,3)%SPINE.length]));fr(gx,y+2,gw,1,P('#6a4a2a'))}
+      people('stand',8,10);break;
+    case 'hardware':fr(gx+1,gy+1,gw-2,6,P('#c8a878'));for(let x=gx+2;x<gx+gw-2;x+=2)for(let y=gy+2;y<gy+7;y+=2)if(hash(x,y,s.id)%3===0)pp(x,y,P(['#8a8a92','#c83a2a','#3a6ab8','#e8c84a'][hash(x,y)%4]));
+      for(let x=gx+2;x<gx+gw-3;x+=3){fr(x,oy+8,2,3,P(['#c83a2a','#3a6ab8','#e8e8e8','#3a8a4a'][hash(x,s.id)%4]))}people('stand',8,9);break;
+    case 'boutique':fr(gx+2,gy+2,gw-4,1,P('#8a8a92'));for(let x=gx+3;x<gx+gw-4;x+=3)fr(x,gy+3,2,5,P(SHIRT[hash(x,s.id)%SHIRT.length]));
+      {const mx=[gx+5,gx+gw-6];for(let k=0;k<2;k++){const m=Object.assign({},s.pat[k],{cS:'#e8e4dc',cH:'#e8e4dc',id:s.pat[k].id+50});drawPerson(m,mx[k],oy,'stand',k?-1:1,0,8)}}
+      people('stand',8,13);break;
+    case 'barber':{fr(gx+4,gy+2,gw-8,4,P('#a8c8d8'));fr(gx+4,gy+2,gw-8,1,P('#d8e8f0'));
+      for(let y=gy;y<gy+gh;y++)pp(gx+1,y,P(['#e83a3a','#f4f4f4','#3a5ae8'][((y+(f8>>1))%3+3)%3]));
+      for(let x=gx+6;x<gx+gw-6;x+=10){fr(x,oy+7,4,2,P('#c83a3a'));fr(x+1,oy+9,2,2,P('#8a8a92'))}people('sit',8,10);break}
+    case 'pharmacy':for(let y=oy-1;y<oy+9;y+=3){fr(gx+1,y+2,gw-2,1,P('#c8ccd0'));for(let x=gx+2;x<gx+gw-2;x+=2)pp(x,y+1,P(['#e84a4a','#4a8ae8','#f4f4f4','#e8c84a','#4ab06a'][hash(x,y,s.id)%5]))}
+      {const cx=gx+gw-6;fr(cx-2,gy+2,5,1,P('#3ad06a'));fr(cx,gy,1,5,P('#3ad06a'))}people('stand',8,10);break;
+    case 'bank':{fr(gx,gy,gw,gh,P('#d8d0c0'));for(let x=gx+4;x<gx+gw;x+=8)fr(x,gy,1,gh,P('#c8c0b0'));fr(gx+2,oy+5,gw-12,6,P('#6a5a4a'));fr(gx+2,oy+5,gw-12,1,P('#8a7a68'));
+      for(let k=0;k<Math.min(2,n);k++)drawPerson(GUARD,gx+6+k*9,oy,'stand',1,0,8);
+      const ax=gx+gw-8;fr(ax,oy-1,5,10,P('#3a3a44'));fr(ax+1,oy,3,2,P('#5ab0ff'));break}
+    case 'cleaners':fr(gx+1,gy+1,gw-2,1,P('#8a8a92'));for(let x=gx+2;x<gx+gw-2;x+=3){fr(x,gy+2,2,7,P(SHIRT[hash(x,s.id)%SHIRT.length]));for(let y=gy+2;y<gy+9;y++)bl(x,y,240,244,250,.4)}
+      fr(gx+2,oy+7,gw-4,4,P('#9aa0a8'));fr(gx+2,oy+7,gw-4,1,P('#c8ccd0'));people('stand',8,9);break;
     case 'massage':{const red=P('#ff3a50'),pink=P('#ff8aa0');
       const cx=gx+(gw>>1)-3;fr(cx-1,gy+2,8,oy+9-gy-2,P('#3a0c14'));for(let x=cx;x<cx+6;x++)for(let y=gy+3;y<oy+8;y++)if((x+y)%2===0)pp(x,y,(x>>1)%2?red:P('#b82038'));
       for(let lx=gx+3;lx<gx+gw-10;lx+=14){if(Math.abs(lx-cx)<6)continue;fr(lx,gy+1,3,3,P('#ff2a2a'));pp(lx+1,gy,P('#2a1010'));pp(lx+1,gy+4,P('#ffd040'))}
@@ -2047,6 +2120,19 @@ function rShop(b,now,f8){
   if(s.type==='massage')for(let x=gx-3;x<gx+gw+3;x++)for(let y=-3;y<3;y++)bl(x,y,255,30,60,.22-Math.abs(y)*.05);
 }
 function crownColor(b,f8){if(SEASON==='halloween')return(b.id+(f8>>4))%2?'#ff7a1a':'#9a3aff';if(SEASON==='xmas')return(b.id+(f8>>4))%2?'#e83a3a':'#3ae86a';return b.crown}
+function drawLobby(b,x0,x1,f8,trim,trimD){
+  if(b.office){const gx=x0+6,gw=x1-x0-12,tod=mod(simMin,1440)/60,busy=tod>=7.5&&tod<19;
+    fr(x0+4,-23,x1-x0-8,3,trim);fr(gx,-20,gw,20,P('#cfc8b8'));for(let x=gx+3;x<gx+gw;x+=6)fr(x,-20,1,17,P('#bdb6a6'));
+    const ne=Math.max(1,Math.min(3,Math.floor(gw/14)));for(let k=0;k<ne;k++){const ex=gx+Math.floor(gw*(k+1)/(ne+1))-3;fr(ex,-15,6,12,P('#9aa0a8'));fr(ex+3,-15,1,12,P('#7a8088'));pp(ex+2,-17,P(hash(b.id,k,Math.floor(simMin/3))%3?'#ffb43a':'#5a3a20'))}
+    const dx=gx+3;fr(dx,-7,10,4,P('#3a3a40'));fr(dx,-7,10,1,P('#5a5a62'));drawPerson(GUARD,dx+5,-15,'sit',1,f8,8);fr(dx,-6,10,3,P('#3a3a40'));
+    fr(gx+gw-4,-9,3,6,P('#2a6a3a'));fr(gx+gw-4,-3,3,3,P('#6a5a4a'));
+    if(busy){const wk=b.walkers||(b.walkers=[0,1,2].map(k=>({id:777100+b.id*3+k,cS:SKIN[(b.id+k)%SKIN.length],cH:HAIR[(b.id*3+k)%HAIR.length],cT:['#e8e8e8','#3a4a6a','#c8d8ec'][k],cP:'#2a2a34',cF:'#1c1c1c',kid:false})));
+      for(let k=0;k<3;k++){if(hr(b.id,k,Math.floor(simMin/7))<.5)continue;const X=gx+12+Math.floor(hr(b.id,k,9)*Math.max(1,gw-20));drawPerson(wk[k],X,-15,'walk',k%2?1:-1,(f8+k)%8,8)}}
+    const nl=DQ>0?1:busy?1:.55;if(nl<1)lit(gx,-20,gw,20,.62,.58,.52);
+    for(let x=gx;x<gx+gw;x+=8)fr(x,-20,1,20,trimD);fr(gx,-20,gw,1,trimD);for(let x=gx;x<gx+gw;x++)bl(x,-19,200,230,240,.12)}
+  else{const cx=x0+Math.floor((x1-x0)/2);fr(cx-9,-23,18,3,DC(b.awning));fr(cx-9,-20,18,1,DC(shade(b.awning,-.4)));fr(cx-5,-19,10,19,trimD);fr(cx-4,-18,8,18,DC('#e8c27a'));fr(cx,-18,1,18,trimD);
+    if(DAYK<.7)for(let k=0;k<6;k++)bl(cx-3+k,-1,255,220,150,.25)}
+}
 function rBuilding(b,now,f8){
   const bk=b.row==='back',fac=DC(b.facade,bk),mort=DC(b.mortar,bk),trim=DC(b.trim,bk),trimD=DC(b.trimD,bk);
   for(const t of b.tiers){const x=b.x+t.c0*CW,w=(t.c1-t.c0)*CW+2*SIDE,yT=-(LOBBY+t.f1*CH),yB=t.f0===0?0:-(LOBBY+t.f0*CH);
@@ -2068,10 +2154,8 @@ function rBuilding(b,now,f8){
       if(u.rooms[i].ac){fr(wx+9,wy+RH+1,5,3,DC('#4b4f56'));fr(wx+10,wy+RH+2,3,1,DC('#33363c'))}
       drawRoom(u,i,wx,wy,now,f8)}
   }
+  {const ls=lobbySpan(b);if(ls[1]-ls[0]>=24)drawLobby(b,ls[0],ls[1],f8,trim,trimD)}
   if(b.shop)rShop(b,now,f8);
-  else if(b.office){fr(b.x+6,-20,b.w-12,20,DC('#8fb0a6'));for(let x=b.x+6;x<b.x+b.w-6;x+=8)fr(x,-20,1,20,trimD);fr(b.x+4,-22,b.w-8,2,trim)}
-  else{const cx=b.x+Math.floor(b.w/2);fr(cx-9,-23,18,3,DC(b.awning));fr(cx-9,-20,18,1,DC(shade(b.awning,-.4)));fr(cx-5,-19,10,19,trimD);fr(cx-4,-18,8,18,DC('#e8c27a'));fr(cx,-18,1,18,trimD);
-    if(DAYK<.7)for(let k=0;k<6;k++)bl(cx-3+k,-1,255,220,150,.25)}
   if(b.crown&&DAYK<.7){const tt=b.tiers[b.tiers.length-1],cx0=b.x+tt.c0*CW,cw=(tt.c1-tt.c0)*CW+2*SIDE,cy=-(LOBBY+tt.f1*CH),cc=crownColor(b,f8),n=parseInt(cc.slice(1),16);
     fr(cx0,cy,cw,2,P(cc));for(let y=1;y<7;y++)for(let xx=cx0;xx<cx0+cw;xx+=1)bl(xx,cy-y,(n>>16)&255,(n>>8)&255,n&255,.22*(1-y/7))}
   for(const f of b.roof){
@@ -2223,7 +2307,7 @@ function drawOverview(now){
     for(const b of row){if(b.x+b.w<vx0||b.x>vx1)continue;
       for(const u of b.units){if(u.wy>vy1||u.wy+RH<oy)continue;
         for(let i=0;i<u.n;i++){if(u.dec&&(u.dec.h||u.dec.lights)&&STARK>.3){const wx=u.x0+i*CW+4;add(u.dec.h?'#ff3a24':['#ff4a3a','#4ae070','#ffd040'][(i+u.id)%3],wx,u.wy,wx+RW,u.wy+3)}let c=ovColor(u,i,u.light[i],now);if(DQ>0)c=c?LH(c,glass,DQ*.75):(DQ>.04?LH(bkRow?'#0e1020':'#06070c',glass,DQ):null);if(!c)continue;const wx=u.x0+i*CW+4;if(wx>vx1||wx+RW<vx0)continue;add(c,wx,u.wy,wx+RW,u.wy+RH)}}
-      if(b.shop){if(shopOpen(b.shop,mod(simMin,1440))){add(b.shop.wall,b.x+6,-19,b.x+b.w-6,-3);add(b.shop.sign,b.x+6,-23,b.x+b.w-6,-21)}}
+      if(b.shop){if(shopOpen(b.shop,mod(simMin,1440))){const sp=shopSpan(b);add(b.shop.wall,sp[0]+2,-19,sp[1]-2,-3);add(b.shop.sign,sp[0]+2,-23,sp[1]-2,-21)}}
       else if(b.office)add('#7f9e94',b.x+6,-20,b.x+b.w-6,0);
       else{const cx=b.x+Math.floor(b.w/2);add('#e0b870',cx-4,-18,cx+4,0)}
     }
@@ -2253,14 +2337,13 @@ function stepAnim(ms){if(!anim)return;const e=Math.min(1,(ms-anim.t0)/anim.dur),
   cam.s=s;cam.x=anim.c0.x+(anim.c1.x-anim.c0.x)*k-W/2/s;cam.y=anim.c0.y+(anim.c1.y-anim.c0.y)*k-H/2/s;clampCam();if(e>=1)anim=null}
 function zoomAt(f,sx,sy){const wx=cam.x+sx/cam.s,wy=cam.y+sy/cam.s;cam.s=clamp(cam.s*f,sMin,sMax);cam.x=wx-sx/cam.s;cam.y=wy-sy/cam.s;clampCam()}
 /* the ground floor: a shop front or a building lobby */
-function streetSel(b){
-  if(b.ssel)return b.ssel;
-  const shop=!!b.shop,x=shop?b.x+4:b.x,w=shop?b.w-8:b.w;
-  return b.ssel={kind:shop?'shop':'lobby',id:(shop?'shop':'lobby')+b.id,b,s:b.shop,box:{x,y:-LOBBY-1,w,h:LOBBY+1}};
+function streetSel(b,wx){
+  if(b.shop){const sp=shopSpan(b);if(wx===undefined||(wx>=sp[0]&&wx<sp[1]))return b.ssel||(b.ssel={kind:'shop',id:'shop'+b.id,b,s:b.shop,box:{x:sp[0],y:-LOBBY-1,w:sp[1]-sp[0],h:LOBBY+1}})}
+  const ls=lobbySpan(b);return b.lsel||(b.lsel={kind:'lobby',id:'lobby'+b.id,b,box:{x:ls[0],y:-LOBBY-1,w:ls[1]-ls[0],h:LOBBY+1}});
 }
 function hitStreet(wx,wy){
   if(wy<-LOBBY||wy>=0)return null;
-  for(const row of [city.front,city.back])for(const b of row)if(wx>=b.x&&wx<b.x+b.w)return streetSel(b);
+  for(const row of [city.front,city.back])for(const b of row)if(wx>=b.x&&wx<b.x+b.w)return streetSel(b,wx);
   return null;
 }
 const selBox=u=>u.box||{x:u.x0+2,y:u.wy-3,w:(u.n-1)*CW+RW+4,h:RH+6};
@@ -2310,7 +2393,14 @@ function journal(u,t){
 const SHOPLINE={diner:['at the counter','Bottomless coffee, eggs any style, pie under a glass dome.'],laundromat:['waiting on a load','Rows of washers, a change machine, a TV nobody watches.'],
   bodega:['in the aisles','Lottery tickets, sandwiches, and a cat asleep on the bread.'],video:['browsing the shelves','New releases on the wall, horror in the back, be kind and rewind.'],
   pizza:['waiting on a slice','Slices by the window, a pizza oven that never really cools down.'],bar:['at the bar','Dim lights, a jukebox, and a bartender who remembers your order.'],
-  massage:['in the waiting area','Red lanterns, a beaded curtain, a bell on the door.']};
+  massage:['in the waiting area','Red lanterns, a beaded curtain, a bell on the door.'],
+  restaurant:['at the tables','White tablecloths, candles, a waiter who calls everyone "folks."'],cafe:['nursing a coffee','An espresso machine hissing, a chalkboard menu, laptops everywhere.'],
+  takeout:['waiting on an order','A lit-up menu with pictures of every dish and a bell on the counter.'],nightclub:['on the dance floor','A line around the corner, a velvet rope, bass you feel in your teeth.'],
+  bakery:['picking out bread','The smell reaches halfway down the block.'],florist:['browsing the buckets','Buckets of tulips and roses, ferns hanging from the ceiling.'],
+  bookstore:['lost in the stacks','Creaky floors, a reading chair, a shop cat named after a poet.'],hardware:['looking for one specific screw','Paint, pegboard, keys cut while you wait.'],
+  boutique:['trying things on','Two mannequins in the window and a rack of things nobody needs.'],barber:['in the chairs','Red leather chairs, hot towels, sports on the radio.'],
+  pharmacy:['in line at the counter','Cough drops, greeting cards, and a long line at the back counter.'],bank:['in line for a teller','Marble floors and pens on little chains.'],
+  cleaners:['picking up shirts','A conveyor of shirts in plastic bags, ready Tuesday.']};
 function hhmm(h){h=((h%24)+24)%24;const hr12=h%12===0?12:h%12;return `${hr12} ${h<12?'AM':'PM'}`}
 function streetPanel(u){
   const t=simMin,tod=mod(t,1440),L=Math.floor(t/1440),day=DOWL[dowOf(L)];let h='';const b=u.b;
@@ -2326,8 +2416,9 @@ function streetPanel(u){
         else h+=`<div class="who">No sign of Kevin tonight. Yet.</div>`}
       else h+=`<div class="who">Kevin hasn't found this one.</div>`;
       if(mine&&k)h+=`<div class="pet">Regular: Kevin ${esc(k.last)}, ${k.age}, ${esc(k.job||'')}${k.job?', ':''}lives at ${esc(k.u.b.name)}, Apt ${k.u.f+2}${k.u.letter}</div>`;
-    }else if(open){const n=Math.floor(hr(s.id,Math.floor(t/25))*(s.max+1));h+=`<div class="who">${n?`${n} ${n===1?'customer':'customers'} ${ln[0]}.`:'No customers right now.'}</div>`}
-    else h+=`<div class="who">The grate is down for the night.</div>`;
+    }else if(open&&s.type==='bank'){const n=Math.floor(hr(s.id,Math.floor(t/25))*(s.max+1));h+=`<div class="who">${n?`${n} ${n===1?'customer':'customers'} in line for a teller.`:'No line right now.'} The ATM is always on.</div>`}
+    else if(open){const n=Math.floor(hr(s.id,Math.floor(t/25))*(s.max+1));h+=`<div class="who">${n?`${n} ${n===1?'customer':'customers'} ${ln[0]}.`:'No customers right now.'}</div>`}
+    else h+=`<div class="who">${s.type==='bank'?'The grate is down. The ATM in the vestibule is still lit.':mod(t,1440)<s.open[0]*60&&mod(t,1440)>=240?'The grate is still down.':'The grate is down for the night.'}</div>`;
   }else{
     document.getElementById('ptitle').textContent=b.name;
     const us=b.units||[],res=us.filter(x=>x.kind==='res'),off=us.filter(x=>x.kind==='office');
@@ -2679,7 +2770,7 @@ function updateCars(dt,tod){
     city.cars.push({x:dir>0?-40:city.W+40,dir,lane:dir>0?32:16,v:60+Math.random()*55,len:13+Math.floor(Math.random()*4),col,colD:shade(col,-.25)})}
 }
 function startCity(seed,born){
-  eraL=null;city=genCity(seed,born);markParlors(city);pickKevin(city);makeSky(seed);sel=null;follow=false;favs=[];favI=-1;syncFavBtn();renderFollow();computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
+  eraL=null;city=genCity(seed,born);markParlors(city);addFrontage(city);pickKevin(city);makeSky(seed);sel=null;follow=false;favs=[];favI=-1;syncFavBtn();renderFollow();computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
   for(let k=0;k<12;k++)updateCars(1,mod(simMin,1440));updateWorld(simMin);lastUpd=simMin;bufBox=null;bufF=-1;
   const co=document.getElementById('codeOut');if(co)co.value=cityCode();
 }
