@@ -575,9 +575,9 @@ const GUARD={id:777001,cS:'#8a5a3a',cH:'#1e1a18',cT:'#2a3450',cP:'#1e2230',cF:'#
 /* Kevin: one grown-up who lives alone. Every so often he goes out for a massage. */
 function pickKevin(C,skip){
   let best=null,bh=0;
-  for(const u of C.units){if(u.kind!=='res'||u.vacant||u.people.length!==1)continue;const p=u.people[0];if(p.kid||p.age<26||p.age>72||p===skip)continue;
+  for(const u of C.units){if(u.kind!=='res'||u.mega||u.vacant||u.people.length!==1)continue;const p=u.people[0];if(p.kid||p.age<26||p.age>72||p===skip)continue;
     const h=hash(p.id,C.seed,74);if(!best||h<bh){best=p;bh=h}}
-  if(!best)for(const u of C.units){if(u.kind!=='res')continue;const p=u.people.find(x=>!x.kid&&x!==skip);if(p){best=p;break}}
+  if(!best)for(const u of C.units){if(u.kind!=='res'||u.mega)continue;const p=u.people.find(x=>!x.kid&&x!==skip);if(p){best=p;break}}
   C.kev=best;if(best){best.first='Kevin';best.pc=null;best.scm=null}
 }
 function kevinCheck(){const k=city.kev;if(!k||!k.u||k.u.vacant||!k.u.people.includes(k)){pickKevin(city,k);return}if(k.first!=='Kevin'){k.first='Kevin';k.scm=null}}
@@ -1507,9 +1507,9 @@ function updateUnit(u,t,tod,day){
 let rnow=0;
 function updateWorld(t){
   const tod=mod(t,1440),day=Math.floor(t/1440);
-  if(day!==eraL){eraL=day;for(const u of city.units)if(u.eras)syncEra(u,day);refreshAges(day);for(const u of city.units)u.dec=decorFor(u,day);kevinCheck()}
+  if(day!==eraL){eraL=day;for(const u of city.units)if(u.eras&&(CYBER||!u.mega))syncEra(u,day);refreshAges(day);for(const u of city.units)u.dec=decorFor(u,day);kevinCheck()}
   const fast=speed>=20000&&!paused;
-  for(const u of city.units){if(u.liveAt&&rnow-u.liveAt<1.2)continue;if(fast)fastLights(u,t);else updateUnit(u,t,tod,day)}
+  for(const u of city.units){if(u.mega&&!CYBER)continue;if(u.liveAt&&rnow-u.liveAt<1.2)continue;if(fast)fastLights(u,t);else updateUnit(u,t,tod,day)}
 }
 function beatRoom(u,a,b){
   const sp=b.sp||'center';
@@ -2148,7 +2148,7 @@ function drawLobby(b,x0,x1,f8,trim,trimD){
     if(DAYK<.7)for(let k=0;k<6;k++)bl(cx-3+k,-1,255,220,150,.25)}
 }
 function rBuilding(b,now,f8){
-  const bk=b.row==='back',fac=DC(b.facade,bk),mort=DC(b.mortar,bk),trim=DC(b.trim,bk),trimD=DC(b.trimD,bk);
+  const bk=b.row!=='front',fac=DC(b.facade,bk),mort=DC(b.mortar,bk),trim=DC(b.trim,bk),trimD=DC(b.trimD,bk);
   for(const t of b.tiers){const x=b.x+t.c0*CW,w=(t.c1-t.c0)*CW+2*SIDE,yT=-(LOBBY+t.f1*CH),yB=t.f0===0?0:-(LOBBY+t.f0*CH);
     fr(x,yT,w,yB-yT,fac);
     if(b.brick){let y=yT+3;if(y<BY)y+=Math.ceil((BY-y)/4)*4;for(;y<Math.min(yB,BY+BH);y+=4)fr(x,y,w,1,mort)}
@@ -2198,7 +2198,8 @@ function rCar(c){
 }
 function renderBuf(now,f8){
   liveFrame++;B32.fill(0);clipAll();
-  for(const row of [city.back,city.front])for(const b of row){if(b.x+b.w<BX||b.x>BX+BW)continue;rBuilding(b,now,f8)}
+  for(const row of [megaRow(),city.back,city.front]){for(const b of row){if(b.x+b.w<BX||b.x>BX+BW)continue;rBuilding(b,now,f8)}
+    if(row.length&&row===city.mega)megaDeco((x,y,w,h,c,a)=>{if(a>=.6)fr(x,y,w,h,P(c));else if(a>=.3&&w*h<4000){const n=parseInt(c.slice(1),16);for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++)bl(xx,yy,(n>>16)&255,(n>>8)&255,n&255,a)}},now)}
   rStreet(now,f8);
   if(bctx)bctx.putImageData(bufImg,0,0);
 }
@@ -2308,8 +2309,8 @@ function drawOverview(now){
   const vx0=ox-60,vx1=ox+W/s+60,vy1=oy+H/s;
   const rect=(x0,y0,x1,y1)=>{const a=X(x0),b=Y(y0);ctx.fillRect(a,b,Math.max(1,X(x1)-a),Math.max(1,Y(y1)-b))};
   const reds=[];
-  for(const row of [city.back,city.front]){
-    const bkRow=row===city.back,silC=bkRow?LH('#0e1020','#6f7a8c',DQ):LH('#06070c','#4a505c',DQ),glass=bkRow?'#93a6bb':'#8197ad';ctx.fillStyle=silC;
+  for(const row of [megaRow(),city.back,city.front]){
+    const bkRow=row!==city.front,silC=bkRow?LH('#0e1020','#6f7a8c',DQ):LH('#06070c','#4a505c',DQ),glass=bkRow?'#93a6bb':'#8197ad';ctx.fillStyle=silC;
     for(const b of row){if(b.x+b.w<vx0||b.x>vx1)continue;
       for(const t of b.tiers)rect(b.x+t.c0*CW,-(LOBBY+t.f1*CH),b.x+t.c1*CW+2*SIDE,t.f0===0?0:-(LOBBY+t.f0*CH));
       if(b.office&&DAYK<.7&&(b.crown||b.ostyle==='deco')){const tt=b.tiers[b.tiers.length-1],x0=b.x+tt.c0*CW,x1=b.x+tt.c1*CW+2*SIDE,y0=-(LOBBY+tt.f1*CH);
@@ -2332,6 +2333,7 @@ function drawOverview(now){
       {const ls=lobbySpan(b);if(ls[1]-ls[0]>=24){if(b.office)add(gl('#bca97a'),ls[0]+6,-17,ls[1]-6,-3);else{const cx=ls[0]+Math.floor((ls[1]-ls[0])/2);add('#e0b870',cx-4,-18,cx+4,0)}}}
     }
     for(const [c,p] of buckets){ctx.fillStyle=c;ctx.fill(p)}
+    if(row.length&&row===city.mega){megaDeco((x,y,w,h,c,a)=>{ctx.globalAlpha=a;ctx.fillStyle=c;rect(x,y,x+w,y+h)},now);ctx.globalAlpha=1}
   }
   const gy=Y(0);ctx.fillStyle=LH('#16161d','#5c5c62',DQ);ctx.fillRect(0,gy,W,Math.max(1,Y(6)-gy));ctx.fillStyle=LH('#0c0c11','#3c3c42',DQ);ctx.fillRect(0,Y(6),W,H-Y(6));
   if(DAYK<.5){ctx.fillStyle='#ffc46a';for(const lx of city.lamps){if(lx<vx0||lx>vx1)continue;rect(lx+3,-49,lx+7,-47)}}
@@ -2368,7 +2370,7 @@ function hitStreet(wx,wy){
 }
 const selBox=u=>u.box||{x:u.x0+2,y:u.wy-3,w:(u.n-1)*CW+RW+4,h:RH+6};
 function hitUnit(wx,wy){
-  for(const row of [city.front,city.back])for(const b of row){
+  for(const row of [city.front,city.back,megaRow()])for(const b of row){
     if(wx<b.x||wx>=b.x+b.w||wy<b.top||wy>=0)continue;
     let inT=null;for(const t of b.tiers){const x0=b.x+t.c0*CW,x1=x0+(t.c1-t.c0)*CW+2*SIDE,y0=-(LOBBY+t.f1*CH),y1=t.f0===0?0:-(LOBBY+t.f0*CH);
       if(wx>=x0&&wx<x1&&wy>=y0&&wy<y1){inT=t;break}}
@@ -2553,7 +2555,7 @@ function dragWin(win,handle){
 }
 function peek(){if(AP.on)apStop();
   let best=null;
-  for(let k=0;k<800&&!best;k++){const u=city.units[Math.floor(Math.random()*city.units.length)];if(u.kind!=='res')continue;
+  for(let k=0;k<800&&!best;k++){const u=city.units[Math.floor(Math.random()*city.units.length)];if(u.kind!=='res'||(u.mega&&!CYBER))continue;
     if(u.people.some(p=>!p.away&&p.act!=='sleep')&&u.light.some(m=>m!=='off')){const L=Math.floor(simMin/1440);if(k<300&&!eventsFor(u,L).some(e=>simMin>=e.s&&simMin<e.e)&&Math.random()<.6)continue;best=u}}
   if(!best)best=city.units.find(u=>u.light.some(m=>m!=='off'))||city.units[0];
   select(best);follow=true;const s=clamp(W*.55/(Math.max(3,best.n)*CW),DET1()*1.4,Math.min(sMax,H*.3/RH));flyTo(best.x0+best.n*CW/2,best.wy+RH/2,s,1400);renderPanel();
@@ -2583,7 +2585,7 @@ function apScore(u,t){
 }
 function apPick(){
   const t=simMin,cx=cam.x+W/2/cam.s,best=[];
-  for(let k=0;k<500;k++){const u=city.units[Math.floor(Math.random()*city.units.length)];const sc=apScore(u,t);if(sc<2)continue;
+  for(let k=0;k<500;k++){const u=city.units[Math.floor(Math.random()*city.units.length)];if(u.mega&&!CYBER)continue;const sc=apScore(u,t);if(sc<2)continue;
     const w=sc/(1+Math.abs(ux(u)-cx)/1800);best.push([w,u])}
   if(!best.length)return null;best.sort((a,b)=>b[0]-a[0]);return best[Math.floor(Math.random()*Math.min(5,best.length))][1];
 }
@@ -2742,35 +2744,40 @@ const CYSUB=[[/\bwatching TV\b/gi,'watching the holo-feeds'],[/\bTV\b/g,'holo-fe
   [/\bcomputer\b/g,'cyberdeck'],[/\bmovie\b/g,'braindance'],[/\bpizza\b/g,'synth-pizza'],[/\bPizza\b/g,'Synth-pizza'],[/\bnewspaper\b/g,'newsfeed'],[/\bradio\b/g,'pirate radio'],[/\bgroceries\b/g,'protein bricks'],
   [/\bReading\b/g,'Reading a datapad'],[/\bWorking out\b/g,'Tuning cybernetics'],[/\bDoing yoga\b/g,'Defragmenting'],[/\bAsleep\b/g,'In sleep mode'],[/\basleep\b/g,'in sleep mode']];
 function cyText(t){for(const [re,r] of CYSUB)t=t.replace(re,r);return t}
-function megaTowers(){
-  if(city.mega)return city.mega;const C=city,n=2+hash(C.seed,91)%2,T=[];let mt=0;
-  for(let k=0;k<n;k++){const h=i=>hash(C.seed,92,k,i);const w=240+h(1)%120,cx=Math.floor((k+.5+((h(2)%100)/100-.5)*.45)*C.W/n),x=cx-(w>>1),top=-(1500+h(3)%650),sp=140+h(6)%120;
-    const fr2=[.46,.3,.24],tiers=[];let y=0,tw=w;for(let t=0;t<3;t++){const th=Math.round(-top*fr2[t]);tiers.push({x:cx-(tw>>1),w:tw,y0:y-th,y1:y});y-=th;tw=Math.round(tw*.78)}
-    T.push({k,x,w,cx,top,sp,tiers,acc:ACC[h(5)%ACC.length],acc2:ACC[(h(5)+2)%ACC.length],cv:null,key:''});mt=Math.min(mt,top-sp)}
-  city.megaTop=mt;return city.mega=T}
-function renderMega(t){
-  const W0=t.w+40,H0=-t.top+t.sp,key=Math.floor(rnow/4)+'_'+Math.round(DQ*8);if(t.cv&&t.key===key)return;t.key=key;
-  if(!t.cv){t.cv=document.createElement('canvas');t.cv.width=W0;t.cv.height=H0}
-  const g=t.cv.getContext('2d'),ox=t.x-20,oy=t.top-t.sp;g.clearRect(0,0,W0,H0);
-  const body=LH('#0b0914','#5a6478',DQ),edge=t.acc;
-  for(const ti of t.tiers){g.fillStyle=body;g.fillRect(ti.x-ox,ti.y0-oy,ti.w,ti.y1-ti.y0);
-    const cols=Math.floor((ti.w-6)/6),rows=Math.floor((ti.y1-ti.y0-6)/8),wc=['#a8e8ff','#ff8ae8','#ffd890','#b8a8ff'];
-    for(let c=0;c<cols;c++)for(let r=0;r<rows;r++){const hh=hash(t.k,c,r+ti.y0,77),fl=hh%10===0?hash(t.k,c,r,Math.floor(rnow/4)):hh;if(fl%100>=(DQ>0?12:34))continue;
-      g.fillStyle=DQ>0?'#8a98b0':wc[(hh>>>8)%(hh%7?2:4)];g.fillRect(ti.x-ox+4+c*6,ti.y0-oy+5+r*8,3,3)}
-    g.globalAlpha=DQ>0?.35:1;g.fillStyle=edge;g.fillRect(ti.x-ox,ti.y0-oy,1,ti.y1-ti.y0);g.fillRect(ti.x-ox+ti.w-1,ti.y0-oy,1,ti.y1-ti.y0);g.fillRect(ti.x-ox,ti.y0-oy,ti.w,1);g.globalAlpha=1}
-  const top=t.tiers[2];g.fillStyle=body;g.fillRect(t.cx-ox-1,top.y0-oy-t.sp,3,t.sp);
-  g.fillStyle=t.acc2;g.globalAlpha=DQ>0?.4:.9;g.fillRect(top.x-ox-14,top.y0-oy-8,top.w+28,3);g.globalAlpha=1;
+/* Mega towers are real buildings: built once per city (after everything else, from their own
+   random stream, so nobody else changes), simulated and drawn only in cyberpunk mode. */
+const MEGANAMES=['Helix Arcology','Nova Spire','Tower Zero','The Hive','Meridian Stack','Apex Arcology','Halcyon Block','Lumen Spire'];
+function addMega(C){
+  const r=mulberry32(hash(C.seed,4040,7)>>>0),n=2+hash(C.seed,91)%2;C.mega=[];
+  for(let k=0;k<n;k++){
+    const cols=12+Math.floor(r()*4),floors=90+Math.floor(r()*28),w=SIDE*2+cols*CW,cx=Math.floor((k+.5+(r()-.5)*.45)*C.W/n),x=cx-(w>>1);
+    const b={id:C.nextId++,x,cols,floors,row:'mega',mega:true,w,office:false,tiers:[],roof:[],units:[],top:-(LOBBY+floors*CH)};
+    b.facade=['#17111f','#130f1d','#1a1226'][k%3];b.brick=false;b.mortar=shade(b.facade,-.28);b.trim=shade(b.facade,.14);b.trimD=shade(b.facade,-.4);b.awning='#3a1a4a';
+    const k1=Math.floor(floors*.46),k2=Math.floor(floors*.76),i1=Math.max(1,Math.round(cols*.12)),i2=Math.max(i1+1,Math.round(cols*.24));
+    b.tiers=[{f0:0,f1:k1,c0:0,c1:cols},{f0:k1,f1:k2,c0:i1,c1:cols-i1},{f0:k2,f1:floors,c0:i2,c1:cols-i2}];
+    const tt=b.tiers[2],topY=-(LOBBY+floors*CH),tx0=b.x+tt.c0*CW,tw=(tt.c1-tt.c0)*CW+SIDE*2;
+    b.spire={x:tx0+(tw>>1),y:topY,h:150+Math.floor(r()*130)};b.antTop=topY-b.spire.h-6;
+    b.cellU=new Int32Array(floors*cols).fill(-1);b.name=MEGANAMES[(hash(C.seed,k,4041)+k)%MEGANAMES.length];
+    b.acc=ACC[hash(C.seed,k,4042)%ACC.length];b.acc2=ACC[(hash(C.seed,k,4042)+2)%ACC.length];
+    for(let f=0;f<floors;f++){const t=b.tiers.find(t=>f>=t.f0&&f<t.f1);let c=t.c0;while(c<t.c1){const rem=t.c1-c;const q=r();let m=q<.12?1:q<.5?2:q<.85?3:4;if(m>rem)m=rem;mkUnit(C,b,f,c,m,'res',r);c+=m}}
+    for(const u of b.units)u.mega=true;C.mega.push(b)}
+  C.megaTop=Math.min(...C.mega.map(b=>b.antTop));
+}
+const megaRow=()=>CYBER&&city.mega?city.mega:[];
+/* spire, beacon, crown ring, neon edges and a hanging holo-sign; R2(x,y,w,h,color,alpha) in world units */
+function megaDeco(R2,now){
+  for(const b of city.mega||[]){const tt=b.tiers[2],tx0=b.x+tt.c0*CW,tw=(tt.c1-tt.c0)*CW+SIDE*2,topY=-(LOBBY+b.floors*CH),day=DQ>0;
+    R2(b.spire.x-1,topY-b.spire.h,3,b.spire.h,shade(b.facade,.1),1);
+    if((now+b.id*.7)%1.4<.6)R2(b.spire.x-1,topY-b.spire.h-3,3,3,'#ff2a3a',1);
+    R2(tx0-14,topY-6,tw+28,3,b.acc2,day?.45:.95);R2(tx0-18,topY-9,tw+36,9,b.acc2,day?.05:.14);
+    for(const t of b.tiers){const x0=b.x+t.c0*CW,x1=b.x+t.c1*CW+2*SIDE,yT=-(LOBBY+t.f1*CH),yB=t.f0===0?-LOBBY:-(LOBBY+t.f0*CH);
+      R2(x0,yT,1,yB-yT,b.acc,day?.35:.9);R2(x1-1,yT,1,yB-yT,b.acc,day?.35:.9);R2(x0,yT,x1-x0,1,b.acc,day?.35:.9)}
+    const sx=b.x-26,f8=Math.floor(now*2);R2(sx+20,-300-16*30,6,16*30+20,'#1a1622',1);
+    for(let k=0;k<16;k++){const by=-300-k*30,h=hash(b.id,k,f8);R2(sx,by-26,22,26,[b.acc,b.acc2,'#f4f4ff','#141020'][h%4],day?.35:.85)}}
 }
 function cyberBack(now){
   const s=cam.s,X=wx=>Math.round((wx-cam.x)*s),Y=wy=>Math.round((wy-cam.y)*s),gy=Y(0);
   // smog sky
-  // mega towers
-  ctx.imageSmoothingEnabled=false;
-  for(const t of megaTowers()){if(X(t.x+t.w+20)<0||X(t.x-20)>W)continue;renderMega(t);ctx.drawImage(t.cv,X(t.x-20),Y(t.top-t.sp),t.cv.width*s,t.cv.height*s);
-    const tt=t.tiers[0],sx=tt.x+Math.floor(tt.w*.12),blocks=16;
-    for(let k=0;k<blocks;k++){const by=-300-k*30;const h=hash(t.k,k,Math.floor(now*2));ctx.globalAlpha=DQ>0?.3:.75;ctx.fillStyle=[t.acc,t.acc2,'#f4f4ff','#141020'][h%4];
-      ctx.fillRect(X(sx),Y(by-26),Math.max(1,Math.round(22*s)),Math.max(1,Math.round(26*s)))}
-    ctx.globalAlpha=1;if((now+t.k*.7)%1.4<.6){const z=Math.max(2,Math.round(3*s));ctx.fillStyle='#ff2a3a';ctx.fillRect(X(t.cx)-(z>>1),Y(t.tiers[2].y0-t.sp)-z,z,z)}}
   // holographic koi
   const KW=22,KH=9;for(let k=0;k<2;k++){const L=city.W+900,x=((now*(10+k*4)+k*1700)%L)-450,y=-(1050+k*300)+Math.sin(now*.35+k)*50,cs=13;
     ctx.fillStyle=k?'#ff6ad8':'#5af0ff';
@@ -2874,7 +2881,7 @@ function updateCars(dt,tod){
     city.cars.push({x:dir>0?-40:city.W+40,dir,lane:dir>0?32:16,v:60+Math.random()*55,len:13+Math.floor(Math.random()*4),col,colD:shade(col,-.25)})}
 }
 function startCity(seed,born){
-  eraL=null;city=genCity(seed,born);markParlors(city);addFrontage(city);pickKevin(city);makeSky(seed);sel=null;follow=false;favs=[];favI=-1;syncFavBtn();renderFollow();computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
+  eraL=null;city=genCity(seed,born);markParlors(city);addFrontage(city);pickKevin(city);addMega(city);makeSky(seed);sel=null;follow=false;favs=[];favI=-1;syncFavBtn();renderFollow();computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
   for(let k=0;k<12;k++)updateCars(1,mod(simMin,1440));updateWorld(simMin);lastUpd=simMin;bufBox=null;bufF=-1;
   const co=document.getElementById('codeOut');if(co)co.value=cityCode();
 }
