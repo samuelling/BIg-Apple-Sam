@@ -2265,7 +2265,7 @@ function skyCols(alt){let i=0;while(i<SKYK.length-2&&alt>SKYK[i+1][0])i++;const 
   return[LH(a[1],b[1],q),LH(a[2],b[2],q),LH(a[3],b[3],q)]}
 /* Cyberpunk mode is a secret: press and hold on the sun or the moon until the ring closes. */
 const SKYB={sun:null,moon:null};let SKYLOCK=null,lastSkyTap=null;
-function skyBodyAt(x,y,touch){for(const k of ['moon','sun']){const b=SKYB[k];if(b&&Math.hypot(x-b.x,y-b.y)<b.r+(touch?32:16)*DPR)return k}return null}
+function skyBodyAt(x,y,touch){for(const k of ['moon','sun']){const b=SKYB[k];if(b&&Math.hypot(x-b.x,y-b.y)<b.r+(touch?34:22)*DPR)return k}return null}
 function skyFlip(body){const b=SKYB[body];if(!b)return;SKYLOCK={body,t0:rnow-2,done:rnow};setCyber(!CYBER)}
 function skyLockTick(now){
   if(!SKYLOCK)return;const b=SKYB[SKYLOCK.body];if(!b){SKYLOCK=null;return}
@@ -3072,12 +3072,15 @@ function boot(){
   const ptrs=new Map();let drag=null,pinch=null;
   const pinchState=()=>{const [a,b]=[...ptrs.values()];return{d:Math.hypot(a.x-b.x,a.y-b.y)||1,m:{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}};
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const pt={x:e.clientX*DPR,y:e.clientY*DPR};ptrs.set(e.pointerId,pt);anim=null;wake();
-    {const bd=ptrs.size===1&&!AP.on?skyBodyAt(pt.x,pt.y,e.pointerType==='touch'):null;if(bd&&(!SKYLOCK||!SKYLOCK.done))SKYLOCK={body:bd,t0:rnow,x:pt.x,y:pt.y,id:e.pointerId}}
+    {const bd=ptrs.size===1&&!AP.on?skyBodyAt(pt.x,pt.y,e.pointerType==='touch'):null;
+      /* pressing on the sun or moon never grabs the city, so a wobbly hold on a trackpad or a finger can't turn into a pan */
+      if(bd){if(!SKYLOCK||!SKYLOCK.done)SKYLOCK={body:bd,t0:rnow,x:pt.x,y:pt.y,id:e.pointerId};drag=null;return}}
     if(ptrs.size===1){drag={x:pt.x,y:pt.y,sx:pt.x,sy:pt.y,t:performance.now(),moved:false};cv.classList.add('drag')}
     else if(ptrs.size===2){drag=null;pinch=pinchState()}});
   cv.addEventListener('pointermove',e=>{wake();const pt={x:e.clientX*DPR,y:e.clientY*DPR};
     if(!ptrs.has(e.pointerId)){const over=cam.s>=DET0()&&(hitUnit(cam.x+pt.x/cam.s,cam.y+pt.y/cam.s)||hitStreet(cam.x+pt.x/cam.s,cam.y+pt.y/cam.s));cv.classList.toggle('pt',!!over);return}
     ptrs.set(e.pointerId,pt);
+    if(SKYLOCK&&SKYLOCK.id===e.pointerId&&!SKYLOCK.done){const b=SKYB[SKYLOCK.body];if(!b||Math.hypot(pt.x-b.x,pt.y-b.y)>b.r+56*DPR){SKYLOCK=null;drag={x:pt.x,y:pt.y,sx:pt.x,sy:pt.y,t:0,moved:true};cv.classList.add('drag')}return}
     if(pinch&&ptrs.size===2){const ns=pinchState();zoomAt(ns.d/pinch.d,ns.m.x,ns.m.y);cam.x-=(ns.m.x-pinch.m.x)/cam.s;cam.y-=(ns.m.y-pinch.m.y)/cam.s;clampCam();pinch=ns}
     else if(drag){const dx=pt.x-drag.x,dy=pt.y-drag.y;if(Math.hypot(pt.x-drag.sx,pt.y-drag.sy)>6*DPR){drag.moved=true;if(SKYLOCK&&!SKYLOCK.done)SKYLOCK=null;if(follow){follow=false;renderPanel()}}cam.x-=dx/cam.s;cam.y-=dy/cam.s;clampCam();drag.x=pt.x;drag.y=pt.y}});
   const up=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);
