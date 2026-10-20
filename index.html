@@ -2039,6 +2039,8 @@ function detail3(u,rm,i,ox,oy){
 const COURIER={id:777,cS:'#cf9466',cH:'#2a2a2a',cT:'#c83a2a',cP:'#2a2a3a',cF:'#1c1c1c',hat:'#c83a2a',kid:false};
 
 /* ---------- buildings, shops, street ---------- */
+/* storefront glass gets the same warm, slightly hazy light as the apartment windows above */
+function shopHaze(x,y,w,h,b,night){let m=night?[.62,.58,.52]:[.94,.86,.7];if(DQ>0)m=[m[0]+(.8-m[0])*DQ,m[1]+(.82-m[1])*DQ,m[2]+(.9-m[2])*DQ];const dk=b.row==='back'?.84:1;lit(x,y,w,h,m[0]*dk,m[1]*dk,m[2]*dk)}
 function rShop(b,now,f8){
   const s=b.shop,tod=mod(simMin,1440),open=shopOpen(s,tod);
   const sp=shopSpan(b),gx=sp[0]+2,gw=sp[1]-sp[0]-4,gy=-19,gh=16;
@@ -2115,9 +2117,9 @@ function rShop(b,now,f8){
     case 'bar':for(let x=gx+1;x<gx+gw-1;x+=2)fr(x,oy+1+(x%3),1,3,P(['#3a8a4a','#c8a040','#8a2a2a','#e8e8e8'][hash(x,s.id)%4]));
       fr(gx,oy+4,gw,1,P('#5a3a20'));people('sit',8,6);fr(gx,oy+7,gw,4,P('#4a2a18'));fr(gx,oy+7,gw,1,P('#8a5a30'));break;
   }
-  clipAll();
-  const sc=parseInt(s.sign.slice(1),16);for(let x=gx;x<gx+gw;x++){bl(x,-24,(sc>>16)&255,(sc>>8)&255,sc&255,.3);bl(x,-20,(sc>>16)&255,(sc>>8)&255,sc&255,.25)}
-  if(s.type==='massage')for(let x=gx-3;x<gx+gw+3;x++)for(let y=-3;y<3;y++)bl(x,y,255,30,60,.22-Math.abs(y)*.05);
+  clipAll();shopHaze(gx,-23,gw,gh+4,b);
+  const sc=parseInt(s.sign.slice(1),16);for(let x=gx;x<gx+gw;x++){bl(x,-24,(sc>>16)&255,(sc>>8)&255,sc&255,.14);bl(x,-20,(sc>>16)&255,(sc>>8)&255,sc&255,.1)}
+  if(s.type==='massage')for(let x=gx-3;x<gx+gw+3;x++)for(let y=-3;y<3;y++)bl(x,y,255,30,60,.14-Math.abs(y)*.035);
 }
 function crownColor(b,f8){if(SEASON==='halloween')return(b.id+(f8>>4))%2?'#ff7a1a':'#9a3aff';if(SEASON==='xmas')return(b.id+(f8>>4))%2?'#e83a3a':'#3ae86a';return b.crown}
 function drawLobby(b,x0,x1,f8,trim,trimD){
@@ -2128,7 +2130,7 @@ function drawLobby(b,x0,x1,f8,trim,trimD){
     fr(gx+gw-4,-9,3,6,P('#2a6a3a'));fr(gx+gw-4,-3,3,3,P('#6a5a4a'));
     if(busy){const wk=b.walkers||(b.walkers=[0,1,2].map(k=>({id:777100+b.id*3+k,cS:SKIN[(b.id+k)%SKIN.length],cH:HAIR[(b.id*3+k)%HAIR.length],cT:['#e8e8e8','#3a4a6a','#c8d8ec'][k],cP:'#2a2a34',cF:'#1c1c1c',kid:false})));
       for(let k=0;k<3;k++){if(hr(b.id,k,Math.floor(simMin/7))<.5)continue;const X=gx+12+Math.floor(hr(b.id,k,9)*Math.max(1,gw-20));drawPerson(wk[k],X,-15,'walk',k%2?1:-1,(f8+k)%8,8)}}
-    const nl=DQ>0?1:busy?1:.55;if(nl<1)lit(gx,-20,gw,20,.62,.58,.52);
+    clipTo(gx,-20,gw,20);shopHaze(gx,-20,gw,20,b,DQ<=0&&!busy);clipAll();
     for(let x=gx;x<gx+gw;x+=8)fr(x,-20,1,20,trimD);fr(gx,-20,gw,1,trimD);for(let x=gx;x<gx+gw;x++)bl(x,-19,200,230,240,.12)}
   else{const cx=x0+Math.floor((x1-x0)/2);fr(cx-9,-23,18,3,DC(b.awning));fr(cx-9,-20,18,1,DC(shade(b.awning,-.4)));fr(cx-5,-19,10,19,trimD);fr(cx-4,-18,8,18,DC('#e8c27a'));fr(cx,-18,1,18,trimD);
     if(DAYK<.7)for(let k=0;k<6;k++)bl(cx-3+k,-1,255,220,150,.25)}
