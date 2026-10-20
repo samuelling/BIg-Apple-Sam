@@ -84,7 +84,7 @@ final class BigAppleSamView: ScreenSaverView {
             "night": defaults?.bool(forKey: "alwaysNight") ?? false,
             "captions": isPreview ? false : (defaults?.bool(forKey: "captions") ?? true),
             "speed": defaults?.integer(forKey: "speed") ?? 1,
-            "gfx": ["cga", "vga", "svga"][max(0, min(2, defaults?.integer(forKey: "display") ?? 1))],
+            "gfx": ["cga", "vga", "svga", "ega"][max(0, min(3, defaults?.integer(forKey: "display") ?? 1))],
             "display": screenIndex,
             "preview": isPreview,
         ]
@@ -119,7 +119,7 @@ final class BigAppleSamView: ScreenSaverView {
         captionBox.state = (defaults?.bool(forKey: "captions") ?? true) ? .on : .off
         let speed = defaults?.integer(forKey: "speed") ?? 1
         speedPopup.selectItem(withTag: [1, 10, 60].contains(speed) ? speed : 1)
-        displayPopup.selectItem(withTag: max(0, min(2, defaults?.integer(forKey: "display") ?? 1)))
+        displayPopup.selectItem(withTag: max(0, min(3, defaults?.integer(forKey: "display") ?? 1)))
         return sheet
     }
 
@@ -160,7 +160,7 @@ final class BigAppleSamView: ScreenSaverView {
         v.addSubview(displayLabel)
 
         displayPopup = NSPopUpButton(frame: NSRect(x: 112, y: 111, width: 230, height: 28), pullsDown: false)
-        for (title, tag) in [("CGA (4 colors)", 0), ("VGA", 1), ("SVGA (sharper close-ups)", 2)] {
+        for (title, tag) in [("CGA (4 colors)", 0), ("EGA (16 colors)", 3), ("VGA", 1), ("SVGA (sharper close-ups)", 2)] {
             displayPopup.addItem(withTitle: title)
             displayPopup.lastItem?.tag = tag
         }

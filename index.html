@@ -176,7 +176,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
         <button class="btn" id="new">New city&hellip;</button>
       </div>
       <div class="row"><label class="chk"><input type="checkbox" id="nightLock"><span>Always night</span></label></div>
-      <div class="row" role="group" aria-label="Display"><span class="lbl">Display:</span><button class="btn" data-gfx="cga" aria-pressed="false" title="4 colors (click again to switch palettes) &middot; G">CGA</button><button class="btn" data-gfx="vga" aria-pressed="true" title="G">VGA</button><button class="btn" data-gfx="svga" aria-pressed="false" title="Sharper close-ups &middot; G">SVGA</button></div>
+      <div class="row" role="group" aria-label="Display"><span class="lbl">Display:</span><button class="btn" data-gfx="cga" aria-pressed="false" title="4 colors (click again to switch palettes) &middot; G">CGA</button><button class="btn" data-gfx="ega" aria-pressed="false" title="16 colors &middot; G">EGA</button><button class="btn" data-gfx="vga" aria-pressed="true" title="G">VGA</button><button class="btn" data-gfx="svga" aria-pressed="false" title="Sharper close-ups &middot; G">SVGA</button></div>
       <div class="row"><label class="lbl" for="codeOut">City code:</label><input class="fld" id="codeOut" readonly spellcheck="false"><button class="btn" id="copyCode">Copy</button></div>
       <div id="hint">Scroll or pinch to zoom in, drag to look around, and click a window to meet who lives there. This city is yours; it keeps living while you're away.</div>
     </div>
@@ -2525,21 +2525,27 @@ function ensureBuf(now,f8){
 let wasBusy=false,lastClock='',lastWall=0,panelT=0,lastWake=0,hudHover=false,saveT=0,clockEl,liveEl,whenBtn,hintEl;
 let lastMs=0;
 /* Display modes. VGA is the normal look. SVGA draws close-ups at three times the detail.
-   CGA squeezes the whole screen into four colors with ordered dithering. */
-let GFX='vga',CGAP=1,cgaCv=null,cgaCx=null;
+   EGA (16 colors) and CGA (4 colors) re-draw the screen in a period palette with ordered dithering. */
+let GFX='vga',CGAP=1,retCv=null,retCx=null;
 const CGAPAL=[[[0,0,0],[85,255,85],[255,85,85],[255,255,85]],[[0,0,0],[85,255,255],[255,85,255],[255,255,255]]];
-const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5],CGAG=new Float32Array(256).map((_,i)=>255*Math.pow(i/255,1.45));
-function cgaPass(){
-  const px=Math.max(2,Math.round(2*DPR)),w=Math.ceil(W/px),h=Math.ceil(H/px);
-  if(!cgaCv){cgaCv=document.createElement('canvas');cgaCx=cgaCv.getContext('2d',{willReadFrequently:true})}
-  if(cgaCv.width!==w||cgaCv.height!==h){cgaCv.width=w;cgaCv.height=h}
-  cgaCx.imageSmoothingEnabled=true;cgaCx.drawImage(cv,0,0,W,H,0,0,w,h);
-  const im=cgaCx.getImageData(0,0,w,h),d=im.data,pal=CGAPAL[CGAP];
-  for(let y=0,i=0;y<h;y++)for(let x=0;x<w;x++,i+=4){const t=(BAYER[(y&3)*4+(x&3)]/16-.5)*84;
-    const r=CGAG[d[i]]+t,g=CGAG[d[i+1]]+t,b=CGAG[d[i+2]]+t;let bi=0,bd=1e9;
-    for(let k=0;k<4;k++){const c=pal[k],dr=r-c[0],dg=g-c[1],db=b-c[2],dd=dr*dr*.3+dg*dg*.59+db*db*.11;if(dd<bd){bd=dd;bi=k}}
-    const c=pal[bi];d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2]}
-  cgaCx.putImageData(im,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(cgaCv,0,0,w,h,0,0,w*px,h*px);
+const EGAPAL=['000000','0000aa','00aa00','00aaaa','aa0000','aa00aa','aa5500','aaaaaa','555555','5555ff','55ff55','55ffff','ff5555','ff55ff','ffff55','ffffff'].map(h=>[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4),16)]);
+const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+const RETRO={cga:{px:2,gam:1.45,amp:84},ega:{px:1.5,gam:1.12,amp:46}},LUTS=new Map();
+function retroLut(pal,key){let L=LUTS.get(key);if(L)return L;L=new Uint8Array(32768);
+  for(let r=0;r<32;r++)for(let g=0;g<32;g++)for(let b=0;b<32;b++){const R=r*8.2,G=g*8.2,B=b*8.2;let bi=0,bd=1e9;
+    for(let k=0;k<pal.length;k++){const c=pal[k],dr=R-c[0],dg=G-c[1],db=B-c[2],dd=dr*dr*.3+dg*dg*.59+db*db*.11;if(dd<bd){bd=dd;bi=k}}L[(r<<10)|(g<<5)|b]=bi}
+  LUTS.set(key,L);return L}
+function retroPass(){
+  const m=RETRO[GFX],pal=GFX==='cga'?CGAPAL[CGAP]:EGAPAL,lut=retroLut(pal,GFX+CGAP);
+  if(!m.g){m.g=new Float32Array(256).map((_,i)=>255*Math.pow(i/255,m.gam))}const gm=m.g;
+  const px=Math.max(2,Math.round(m.px*DPR)),w=Math.ceil(W/px),h=Math.ceil(H/px);
+  if(!retCv){retCv=document.createElement('canvas');retCx=retCv.getContext('2d',{willReadFrequently:true})}
+  if(retCv.width!==w||retCv.height!==h){retCv.width=w;retCv.height=h}
+  retCx.imageSmoothingEnabled=true;retCx.drawImage(cv,0,0,W,H,0,0,w,h);
+  const im=retCx.getImageData(0,0,w,h),d=im.data,q=v=>v<0?0:v>255?31:(v/8.2)|0;
+  for(let y=0,i=0;y<h;y++)for(let x=0;x<w;x++,i+=4){const t=(BAYER[(y&3)*4+(x&3)]/16-.5)*m.amp;
+    const c=pal[lut[(q(gm[d[i]]+t)<<10)|(q(gm[d[i+1]]+t)<<5)|q(gm[d[i+2]]+t)]];d[i]=c[0];d[i+1]=c[1];d[i+2]=c[2]}
+  retCx.putImageData(im,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(retCv,0,0,w,h,0,0,w*px,h*px);
 }
 function setGfx(g){if(g==='cga'&&GFX==='cga')CGAP^=1;GFX=g;
   for(const b of document.querySelectorAll('[data-gfx]'))b.setAttribute('aria-pressed',String(b.dataset.gfx===GFX));saveState()}
@@ -2564,7 +2570,7 @@ function frame(ms){
   if(sel){const x0=(sel.x0+2-cam.x)*cam.s,y0=(sel.wy-3-cam.y)*cam.s,w=((sel.n-1)*CW+RW+4)*cam.s,h=(RH+6)*cam.s;
     ctx.lineWidth=Math.max(1,DPR);ctx.setLineDash([2*DPR,2*DPR]);ctx.lineDashOffset=0;ctx.strokeStyle='#ffffff';ctx.strokeRect(Math.round(x0)+.5,Math.round(y0)+.5,Math.round(w),Math.round(h));
     ctx.lineDashOffset=2*DPR;ctx.strokeStyle='#000000';ctx.strokeRect(Math.round(x0)+.5,Math.round(y0)+.5,Math.round(w),Math.round(h));ctx.setLineDash([])}
-  if(GFX==='cga')cgaPass();
+  if(GFX==='cga'||GFX==='ega')retroPass();
   const off=simMin-localNow();const synced=Math.abs(off)<2;
   const ck=DOWN[dowOf(Math.floor(simMin/1440))]+' '+fmtTime(simMin);if(ck!==lastClock){lastClock=ck;clockEl.textContent=ck}
   liveEl.hidden=!(synced&&speed===1&&!paused);
@@ -2600,11 +2606,11 @@ function boot(){
   const q=new URLSearchParams(location.search),hm=/^#city-([0-9a-z]+-[0-9a-z]+)$/i.exec(location.hash);
   const want=parseCode((SAVER&&SAVER.code)||(hm&&hm[1])||q.get('city'));
   let st=loadState();if(want&&!(st&&st.seed===want.seed&&st.born===want.born))st=null;
-  if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;if(['cga','vga','svga'].includes(SAVER.gfx))GFX=SAVER.gfx;document.body.classList.add('saver')}
+  if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;if(['cga','ega','vga','svga'].includes(SAVER.gfx))GFX=SAVER.gfx;document.body.classList.add('saver')}
   if(!st&&want){simMin=localNow();startCity(want.seed,want.born)}
   else if(st){speed=st.speed||1;paused=!!st.paused;nightPick=typeof st.nightPick==='boolean'?st.nightPick:null;nightLock=nightPick===true;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
     if(st.cam){cam.s=st.cam.s*DPR;cam.x=st.cam.x;cam.y=st.cam.y;clampCam()}
-    if(['cga','vga','svga'].includes(st.gfx))GFX=st.gfx;if(st.cgaPal===0||st.cgaPal===1)CGAP=st.cgaPal;
+    if(['cga','ega','vga','svga'].includes(st.gfx))GFX=st.gfx;if(st.cgaPal===0||st.cgaPal===1)CGAP=st.cgaPal;
     if(Array.isArray(st.favs))favs=st.favs.filter(f=>city.units[f[0]]).map(([id,ids,seen])=>({id,ids,seen}));
     if(st.sel!=null&&city.units[st.sel]){sel=city.units[st.sel];follow=!!st.follow;if(follow&&!Array.isArray(st.favs))setFav(sel,true)}
     if(cam.s>=DET0())hintEl.classList.add('gone')}
@@ -2679,7 +2685,7 @@ function boot(){
     else if('12345'.includes(e.key)&&e.key.length===1)setSpeed([1,60,600,6000,86400][+e.key-1]);
     else if(e.key==='Escape'){if(flwOpen)toggleFollowing(false);else if(sel)select(null);else zoomOut()}
     else if(e.key==='p'||e.key==='P')peek();
-    else if(e.key==='g'||e.key==='G')setGfx({cga:'vga',vga:'svga',svga:'cga'}[GFX]);
+    else if(e.key==='g'||e.key==='G')setGfx({cga:'ega',ega:'vga',vga:'svga',svga:'cga'}[GFX]);
     else if((e.key==='s'||e.key==='S')&&!AP.on&&rnow-(AP.stoppedAt||-9)>.5)apStart(false);
     else if(e.key==='f'||e.key==='F'){if(sel){follow=!favOf(sel);setFav(sel,follow);renderPanel()}}
     else if(e.key==='c'||e.key==='C')toggleFollowing();
