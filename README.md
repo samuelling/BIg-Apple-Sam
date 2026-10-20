@@ -24,7 +24,7 @@ Open `index.html` in a browser (or the GitHub Pages site). No build step and no 
 
 ## Controls
 
-Scroll or pinch to zoom, drag to pan, click a window. Keys: `Space` pause, `1`–`5` speed, `P` peek into a random window, `S` screensaver (autopilot), `F` follow, `C` following list, `N` visit next followed, `G` display mode, `Esc` close / zoom out, `+`/`-` zoom.
+Scroll or pinch to zoom, drag to pan, click a window. On the ground floor, click a shop to see who's inside and when it closes, or a lobby for the building's residents, recent move-ins and move-outs, or an office tower's directory. Keys: `Space` pause, `1`–`5` speed, `P` peek into a random window, `S` screensaver (autopilot), `F` follow, `C` following list, `N` visit next followed, `G` display mode, `Esc` close / zoom out, `+`/`-` zoom.
 
 **Screensaver button.** Hands the camera to an autopilot. About half the time it holds the classic full skyline, still, the way the old screensaver looked. The rest of the time it takes shots of lively apartments (a party, a date night, someone up at 3 AM): a quick approach and a lingering close-up with a caption, a long slow push-in from the skyline, a drift across facades at mid distance, a crane shot up a building to the water tower, or a tracking shot gliding along a floor from apartment to apartment. Then it slowly pulls back out. Move the mouse or press a key to take over again.
 

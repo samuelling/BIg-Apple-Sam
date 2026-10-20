@@ -2252,6 +2252,18 @@ function stepAnim(ms){if(!anim)return;const e=Math.min(1,(ms-anim.t0)/anim.dur),
   const s=Math.exp(Math.log(anim.s0)+(Math.log(anim.s1)-Math.log(anim.s0))*k);
   cam.s=s;cam.x=anim.c0.x+(anim.c1.x-anim.c0.x)*k-W/2/s;cam.y=anim.c0.y+(anim.c1.y-anim.c0.y)*k-H/2/s;clampCam();if(e>=1)anim=null}
 function zoomAt(f,sx,sy){const wx=cam.x+sx/cam.s,wy=cam.y+sy/cam.s;cam.s=clamp(cam.s*f,sMin,sMax);cam.x=wx-sx/cam.s;cam.y=wy-sy/cam.s;clampCam()}
+/* the ground floor: a shop front or a building lobby */
+function streetSel(b){
+  if(b.ssel)return b.ssel;
+  const shop=!!b.shop,x=shop?b.x+4:b.x,w=shop?b.w-8:b.w;
+  return b.ssel={kind:shop?'shop':'lobby',id:(shop?'shop':'lobby')+b.id,b,s:b.shop,box:{x,y:-LOBBY-1,w,h:LOBBY+1}};
+}
+function hitStreet(wx,wy){
+  if(wy<-LOBBY||wy>=0)return null;
+  for(const row of [city.front,city.back])for(const b of row)if(wx>=b.x&&wx<b.x+b.w)return streetSel(b);
+  return null;
+}
+const selBox=u=>u.box||{x:u.x0+2,y:u.wy-3,w:(u.n-1)*CW+RW+4,h:RH+6};
 function hitUnit(wx,wy){
   for(const row of [city.front,city.back])for(const b of row){
     if(wx<b.x||wx>=b.x+b.w||wy<b.top||wy>=0)continue;
@@ -2295,8 +2307,46 @@ function journal(u,t){
   out.sort((a,b)=>a[0]-b[0]);const res=[];for(const x of out)if(!res.length||res[res.length-1][1]!==x[1])res.push(x);
   return res.slice(-8);
 }
+const SHOPLINE={diner:['at the counter','Bottomless coffee, eggs any style, pie under a glass dome.'],laundromat:['waiting on a load','Rows of washers, a change machine, a TV nobody watches.'],
+  bodega:['in the aisles','Lottery tickets, sandwiches, and a cat asleep on the bread.'],video:['browsing the shelves','New releases on the wall, horror in the back, be kind and rewind.'],
+  pizza:['waiting on a slice','Slices by the window, a pizza oven that never really cools down.'],bar:['at the bar','Dim lights, a jukebox, and a bartender who remembers your order.'],
+  massage:['in the waiting area','Red lanterns, a beaded curtain, a bell on the door.']};
+function hhmm(h){h=((h%24)+24)%24;const hr12=h%12===0?12:h%12;return `${hr12} ${h<12?'AM':'PM'}`}
+function streetPanel(u){
+  const t=simMin,tod=mod(t,1440),L=Math.floor(t/1440),day=DOWL[dowOf(L)];let h='';const b=u.b;
+  document.getElementById('panel').querySelector('.ft').style.display='none';
+  if(u.kind==='shop'){const s=u.s,open=shopOpen(s,tod),ln=SHOPLINE[s.type]||['inside',''];
+    document.getElementById('ptitle').textContent=s.name;
+    h+=`<div class="sub">${open?(s.open[1]>=24&&s.open[0]===0?'Open 24 hours':`Open until ${hhmm(s.open[1])}`):`Closed. Opens at ${hhmm(s.open[0])}`} · ${fmtTime(t)} ${day}</div>`;
+    if(ln[1])h+=`<div class="who">${esc(ln[1])}</div>`;
+    if(s.type==='massage'){const k=city.kev,mine=k&&kevinParlor(k)===b;
+      if(!open)h+=`<div class="who">The lanterns are off and the curtain is still.</div>`;
+      else if(mine){const m=kevinAt(b,t);
+        if(m!==null)h+=`<div class="who"><div class="nm">Kevin is here.</div><div class="now">${m<22?'Waiting on the bench':m<24?'Just went behind the curtain':`Behind the curtain for ${Math.round(m-22)} minutes now`}</div></div>`;
+        else h+=`<div class="who">No sign of Kevin tonight. Yet.</div>`}
+      else h+=`<div class="who">Kevin hasn't found this one.</div>`;
+      if(mine&&k)h+=`<div class="pet">Regular: Kevin ${esc(k.last)}, ${k.age}, ${esc(k.job||'')}${k.job?', ':''}lives at ${esc(k.u.b.name)}, Apt ${k.u.f+2}${k.u.letter}</div>`;
+    }else if(open){const n=Math.floor(hr(s.id,Math.floor(t/25))*(s.max+1));h+=`<div class="who">${n?`${n} ${n===1?'customer':'customers'} ${ln[0]}.`:'No customers right now.'}</div>`}
+    else h+=`<div class="who">The grate is down for the night.</div>`;
+  }else{
+    document.getElementById('ptitle').textContent=b.name;
+    const us=b.units||[],res=us.filter(x=>x.kind==='res'),off=us.filter(x=>x.kind==='office');
+    h+=`<div class="sub">${b.floors} floors · ${fmtTime(t)} ${day}</div>`;
+    if(res.length){const ppl=res.reduce((a,x)=>a+x.people.length,0),home=res.reduce((a,x)=>a+x.people.filter(p=>!p.away).length,0),vac=res.filter(x=>x.vacant).length;
+      h+=`<div class="who"><div class="nm">Lobby</div><div class="bio">${res.length} apartments, ${ppl} people. ${home} of them are home right now.</div>${vac?`<div class="md">${vac} ${vac===1?'apartment is':'apartments are'} for rent.</div>`:''}</div>`;
+      const mv=[];for(const x of res)for(const e of (x.hist||[]))if(e[0]<=L&&e[0]>L-60&&/moved in|moved out/.test(e[1]))mv.push([e[0],e[1],x]);mv.sort((a,c)=>c[0]-a[0]);
+      if(mv.length)h+=`<fieldset class="grp"><legend>Comings and goings</legend><div class="log">${mv.slice(0,5).map(([d,txt,x])=>`<span>${fmtMonth(d)}</span><span>Apt ${x.f+2}${x.letter}: ${esc(txt)}</span>`).join('')}</div></fieldset>`;
+    }
+    if(off.length){const at=off.reduce((a,x)=>a+x.people.filter(p=>!p.away).length,0);
+      h+=`<div class="who"><div class="nm">Lobby</div><div class="bio">${at?`${at} ${at===1?'person is':'people are'} still upstairs at work.`:'Everyone has gone home. The security guard is reading a paperback.'}</div></div>`;
+      if(b.tenants)h+=`<fieldset class="grp"><legend>Directory</legend><div class="log">${b.tenants.map(tn=>`<span>${tn.f0+2===tn.f1+1?`Floor ${tn.f0+2}`:`Floors ${tn.f0+2}-${tn.f1+1}`}</span><span>${esc(tn.name)}</span>`).join('')}</div></fieldset>`}
+  }
+  document.getElementById('pbody').innerHTML=h;
+}
 function renderPanel(){
   const pn=document.getElementById('panel');if(!sel||mini.panel){pn.hidden=true;return}
+  if(sel.box){pn.hidden=false;streetPanel(sel);return}
+  pn.querySelector('.ft').style.display='';
   pn.hidden=false;const u=sel,t=simMin,L=Math.floor(t/1440),flo=u.f+2;
   if(!u.liveAt||rnow-u.liveAt>1.2)liveUnit(u,rnow);
   document.getElementById('ptitle').textContent=u.kind==='office'?`${u.tenant} - Floor ${flo}`:`${u.b.name} - Apt ${flo}${u.letter}`;
@@ -2376,7 +2426,7 @@ function aptShort(u){return u.kind==='office'?`${u.tenant} ${u.f+2}`:`Apt ${u.f+
 function renderIcons(){
   const el=document.getElementById('icons');if(!el)return;let h='';
   if(mini.hud)h+=`<button class="ico" data-w="hud" title="Restore">${ICON_CITY}<span>Big Apple Sam</span></button>`;
-  if(mini.panel&&sel)h+=`<button class="ico" data-w="panel" title="Restore">${ICON_APT}<span>${esc(aptShort(sel))}</span></button>`;
+  if(mini.panel&&sel)h+=`<button class="ico" data-w="panel" title="Restore">${ICON_APT}<span>${esc(sel.box?(sel.s?sel.s.name:sel.b.name):aptShort(sel))}</span></button>`;
   el.innerHTML=h;document.getElementById('hud').hidden=mini.hud;
 }
 function dragWin(win,handle){
@@ -2542,7 +2592,7 @@ function parseCode(s){const m=/^\s*([0-9a-z]{1,8})-([0-9a-z]{1,6})\s*$/i.exec(s|
 const STORE='big-apple-sam/v1';
 const localNow=()=>(Date.now()-new Date().getTimezoneOffset()*60000)/60000;
 function loadState(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');return s&&typeof s.seed==='number'?s:null}catch(e){return null}}
-function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,nightPick,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel?sel.id:null,follow,favs:favs.map(f=>[f.id,f.ids,f.seen]),gfx:GFX,cgaPal:CGAP}))}catch(e){}}
+function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,nightPick,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel&&!sel.box?sel.id:null,follow,favs:favs.map(f=>[f.id,f.ids,f.seen]),gfx:GFX,cgaPal:CGAP}))}catch(e){}}
 
 /* ---------- main loop ---------- */
 let bufBox=null,bufF=-1;
@@ -2594,7 +2644,7 @@ function frame(ms){
   updateSun();
   stepAnim(ms);
   if(AP.on)apTick(Math.min(.1,Math.max(0,wd)));
-  if(follow&&sel&&!anim){const cx=sel.x0+sel.n*CW/2,cy=sel.wy+RH/2;cam.x+=(cx-W/2/cam.s-cam.x)*.08;cam.y+=(cy-H/2/cam.s-cam.y)*.08;clampCam()}
+  if(follow&&sel&&!anim){const bx=selBox(sel),cx=bx.x+bx.w/2,cy=bx.y+bx.h/2;cam.x+=(cx-W/2/cam.s-cam.x)*.08;cam.y+=(cy-H/2/cam.s-cam.y)*.08;clampCam()}
   const tod=mod(simMin,1440);
   if(!paused)updateCars(Math.min(.1,Math.max(0,wd)),tod);
   ctx.imageSmoothingEnabled=false;
@@ -2603,7 +2653,7 @@ function frame(ms){
   if(tD<1)drawOverview(now);
   if(tD>0){const f8=Math.floor(now*8);ensureBuf(now,f8);ctx.globalAlpha=tD;
     ctx.drawImage(bufCv,0,0,BW*S,BH*S,(BX-cam.x)*cam.s,(BY-cam.y)*cam.s,BW*cam.s,BH*cam.s);ctx.globalAlpha=1}
-  if(sel){const x0=(sel.x0+2-cam.x)*cam.s,y0=(sel.wy-3-cam.y)*cam.s,w=((sel.n-1)*CW+RW+4)*cam.s,h=(RH+6)*cam.s;
+  if(sel){const bx=selBox(sel),x0=(bx.x-cam.x)*cam.s,y0=(bx.y-cam.y)*cam.s,w=bx.w*cam.s,h=bx.h*cam.s;
     ctx.lineWidth=Math.max(1,DPR);ctx.setLineDash([2*DPR,2*DPR]);ctx.lineDashOffset=0;ctx.strokeStyle='#ffffff';ctx.strokeRect(Math.round(x0)+.5,Math.round(y0)+.5,Math.round(w),Math.round(h));
     ctx.lineDashOffset=2*DPR;ctx.strokeStyle='#000000';ctx.strokeRect(Math.round(x0)+.5,Math.round(y0)+.5,Math.round(w),Math.round(h));ctx.setLineDash([])}
   if(GFX==='cga'||GFX==='ega')retroPass();
@@ -2663,7 +2713,7 @@ function boot(){
     if(ptrs.size===1){drag={x:pt.x,y:pt.y,sx:pt.x,sy:pt.y,t:performance.now(),moved:false};cv.classList.add('drag')}
     else if(ptrs.size===2){drag=null;pinch=pinchState()}});
   cv.addEventListener('pointermove',e=>{wake();const pt={x:e.clientX*DPR,y:e.clientY*DPR};
-    if(!ptrs.has(e.pointerId)){const over=cam.s>=DET0()&&hitUnit(cam.x+pt.x/cam.s,cam.y+pt.y/cam.s);cv.classList.toggle('pt',!!over);return}
+    if(!ptrs.has(e.pointerId)){const over=cam.s>=DET0()&&(hitUnit(cam.x+pt.x/cam.s,cam.y+pt.y/cam.s)||hitStreet(cam.x+pt.x/cam.s,cam.y+pt.y/cam.s));cv.classList.toggle('pt',!!over);return}
     ptrs.set(e.pointerId,pt);
     if(pinch&&ptrs.size===2){const ns=pinchState();zoomAt(ns.d/pinch.d,ns.m.x,ns.m.y);cam.x-=(ns.m.x-pinch.m.x)/cam.s;cam.y-=(ns.m.y-pinch.m.y)/cam.s;clampCam();pinch=ns}
     else if(drag){const dx=pt.x-drag.x,dy=pt.y-drag.y;if(Math.hypot(pt.x-drag.sx,pt.y-drag.sy)>6*DPR){drag.moved=true;if(follow){follow=false;renderPanel()}}cam.x-=dx/cam.s;cam.y-=dy/cam.s;clampCam();drag.x=pt.x;drag.y=pt.y}});
@@ -2676,7 +2726,7 @@ function boot(){
   cv.addEventListener('dblclick',e=>{const wx=cam.x+e.clientX*DPR/cam.s,wy=cam.y+e.clientY*DPR/cam.s;flyTo(wx,wy,cam.s*2.4,600)});
   function clickAt(sx,sy){const wx=cam.x+sx/cam.s,wy=cam.y+sy/cam.s;
     if(cam.s<DET0()){flyTo(wx,wy,DET1()*1.7);return}
-    const u=hitUnit(wx,wy);if(u!==sel)follow=false;select(u)}
+    const u=hitUnit(wx,wy)||hitStreet(wx,wy);if(u!==sel)follow=false;select(u)}
   const hud=document.getElementById('hud');hud.addEventListener('pointerenter',()=>{hudHover=true;wake()});hud.addEventListener('pointerleave',()=>{hudHover=false});
   const spBtns=[...document.querySelectorAll('[data-sp]')],pauseBtn=document.getElementById('pause');
   const syncBtns=()=>{pauseBtn.setAttribute('aria-pressed',String(paused));spBtns.forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.sp===speed)))};
@@ -2708,7 +2758,7 @@ function boot(){
   for(const b of document.querySelectorAll('[data-gfx]')){b.setAttribute('aria-pressed',String(b.dataset.gfx===GFX));b.addEventListener('click',()=>setGfx(b.dataset.gfx))}
   const nl=document.getElementById('nightLock');nl.checked=nightLock;
   nl.addEventListener('change',()=>{nightLock=nightPick=nl.checked;updateSun();bufF=-1;saveState()});
-  document.getElementById('follow').addEventListener('change',e=>{if(!sel)return;follow=e.target.checked;setFav(sel,follow);renderPanel()});
+  document.getElementById('follow').addEventListener('change',e=>{if(!sel||sel.box)return;follow=e.target.checked;setFav(sel,follow);renderPanel()});
   document.getElementById('checkBtn').addEventListener('click',()=>toggleFollowing());
   document.getElementById('fClose').addEventListener('click',()=>toggleFollowing(false));
   document.getElementById('fDone').addEventListener('click',()=>toggleFollowing(false));
@@ -2723,7 +2773,7 @@ function boot(){
     else if(e.key==='p'||e.key==='P')peek();
     else if(e.key==='g'||e.key==='G')setGfx({cga:'ega',ega:'vga',vga:'svga',svga:'cga'}[GFX]);
     else if((e.key==='s'||e.key==='S')&&!AP.on&&rnow-(AP.stoppedAt||-9)>.5)apStart(false);
-    else if(e.key==='f'||e.key==='F'){if(sel){follow=!favOf(sel);setFav(sel,follow);renderPanel()}}
+    else if(e.key==='f'||e.key==='F'){if(sel&&!sel.box){follow=!favOf(sel);setFav(sel,follow);renderPanel()}}
     else if(e.key==='c'||e.key==='C')toggleFollowing();
     else if(e.key==='n'||e.key==='N')nextFav();
     else if(e.key==='+'||e.key==='=')flyTo(cam.x+W/2/cam.s,cam.y+H/2/cam.s,cam.s*1.8,400);
