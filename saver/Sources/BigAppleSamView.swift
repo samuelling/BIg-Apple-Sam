@@ -21,11 +21,12 @@ final class BigAppleSamView: ScreenSaverView {
     private var displayPopup: NSPopUpButton!
     private var nightBox: NSButton!
     private var captionBox: NSButton!
+    private var cyberBox: NSButton!
 
     private lazy var defaults: ScreenSaverDefaults? = {
         let id = Bundle(for: BigAppleSamView.self).bundleIdentifier ?? "com.samuelling.BigAppleSam"
         let d = ScreenSaverDefaults(forModuleWithName: id)
-        d?.register(defaults: ["cityCode": "", "alwaysNight": false, "captions": true, "speed": 1, "display": 1])
+        d?.register(defaults: ["cityCode": "", "alwaysNight": false, "captions": true, "speed": 1, "display": 1, "cyber": false])
         return d
     }()
 
@@ -85,6 +86,7 @@ final class BigAppleSamView: ScreenSaverView {
             "captions": isPreview ? false : (defaults?.bool(forKey: "captions") ?? true),
             "speed": defaults?.integer(forKey: "speed") ?? 1,
             "gfx": ["cga", "vga", "svga", "ega"][max(0, min(3, defaults?.integer(forKey: "display") ?? 1))],
+            "cyber": defaults?.bool(forKey: "cyber") ?? false,
             "display": screenIndex,
             "preview": isPreview,
         ]
@@ -117,6 +119,7 @@ final class BigAppleSamView: ScreenSaverView {
         codeField.stringValue = defaults?.string(forKey: "cityCode") ?? ""
         nightBox.state = (defaults?.bool(forKey: "alwaysNight") ?? false) ? .on : .off
         captionBox.state = (defaults?.bool(forKey: "captions") ?? true) ? .on : .off
+        cyberBox.state = (defaults?.bool(forKey: "cyber") ?? false) ? .on : .off
         let speed = defaults?.integer(forKey: "speed") ?? 1
         speedPopup.selectItem(withTag: [1, 10, 60].contains(speed) ? speed : 1)
         displayPopup.selectItem(withTag: max(0, min(3, defaults?.integer(forKey: "display") ?? 1)))
@@ -167,8 +170,12 @@ final class BigAppleSamView: ScreenSaverView {
         v.addSubview(displayPopup)
 
         nightBox = NSButton(checkboxWithTitle: "Always night", target: nil, action: nil)
-        nightBox.frame = NSRect(x: 113, y: 84, width: 260, height: 20)
+        nightBox.frame = NSRect(x: 113, y: 84, width: 120, height: 20)
         v.addSubview(nightBox)
+
+        cyberBox = NSButton(checkboxWithTitle: "Cyberpunk mode", target: nil, action: nil)
+        cyberBox.frame = NSRect(x: 240, y: 84, width: 150, height: 20)
+        v.addSubview(cyberBox)
 
         captionBox = NSButton(checkboxWithTitle: "Show what's happening in each apartment", target: nil, action: nil)
         captionBox.frame = NSRect(x: 113, y: 60, width: 280, height: 20)
@@ -194,6 +201,7 @@ final class BigAppleSamView: ScreenSaverView {
         defaults?.set(code, forKey: "cityCode")
         defaults?.set(nightBox.state == .on, forKey: "alwaysNight")
         defaults?.set(captionBox.state == .on, forKey: "captions")
+        defaults?.set(cyberBox.state == .on, forKey: "cyber")
         defaults?.set(speedPopup.selectedTag(), forKey: "speed")
         defaults?.set(displayPopup.selectedTag(), forKey: "display")
         defaults?.synchronize()

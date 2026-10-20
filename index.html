@@ -175,7 +175,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
         <button class="btn" id="checkBtn" title="C">Following</button>
         <button class="btn" id="new">New city&hellip;</button>
       </div>
-      <div class="row"><label class="chk"><input type="checkbox" id="nightLock"><span>Always night</span></label></div>
+      <div class="row"><label class="chk"><input type="checkbox" id="nightLock"><span>Always night</span></label><label class="chk" style="margin-left:14px"><input type="checkbox" id="cyber"><span>Cyberpunk</span></label></div>
       <div class="row" role="group" aria-label="Display"><span class="lbl">Display:</span><button class="btn" data-gfx="cga" aria-pressed="false" title="4 colors (click again to switch palettes) &middot; G">CGA</button><button class="btn" data-gfx="ega" aria-pressed="false" title="16 colors &middot; G">EGA</button><button class="btn" data-gfx="vga" aria-pressed="true" title="G">VGA</button><button class="btn" data-gfx="svga" aria-pressed="false" title="Sharper close-ups &middot; G">SVGA</button></div>
       <div class="row"><label class="lbl" for="codeOut">City code:</label><input class="fld" id="codeOut" readonly spellcheck="false"><button class="btn" id="copyCode">Copy</button></div>
       <div id="hint">Scroll or pinch to zoom in, drag to look around, and click a window to meet who lives there. This city is yours; it keeps living while you're away.</div>
@@ -1627,6 +1627,13 @@ function lit(x,y,w,h,mr,mg,mb){const x0=Math.max(x,KX0),y0=Math.max(y,KY0),x1=Ma
 /* ---------- people ---------- */
 let HIACC=null;
 function drawPerson(p,X,oy,pose,face,f8,row,o){
+  if(!CYBER||p.id===undefined)return drawPerson0(p,X,oy,pose,face,f8,row,o);
+  const q=cyLook(p),inf=drawPerson0(q,X,oy,pose,face,f8,row,o);
+  if((q.visor||q.android)&&inf&&inf.hxw!==undefined&&!SIL){const c=P('#3af0ff'),ey=inf.hy+1;if(q.visor){pp(inf.hxw,ey,c);pp(inf.hxw+1,ey,c)}else pp(face>0?inf.hxw+1:inf.hxw,ey,c);
+    for(let k=-1;k<=2;k++)bl(inf.hxw+k,ey,58,240,255,.18)}
+  return inf;
+}
+function drawPerson0(p,X,oy,pose,face,f8,row,o){
   if(S===3){HIACC=[];const inf=drawPersonCore(p,X,oy,pose,face,f8,row,o);const acc=HIACC;HIACC=null;renderHi3(p,acc,inf,face,pose,o);return inf}
   if(S!==2)return drawPersonCore(p,X,oy,pose,face,f8,row,o);
   HIACC=[];const inf=drawPersonCore(p,X,oy,pose,face,f8,row,o);const acc=HIACC;HIACC=null;renderHi(p,acc,inf,face,pose);return inf;
@@ -1890,7 +1897,8 @@ function furn(rm,R,u){
       break;
   }
 }
-function lightMult(u,i,mode,f8){
+function lightMult(u,i,mode,f8){if(CYBER){if(mode==='on'){const h=hash(u.id,i,31);if(h%100>=30)return NEON_M[h%NEON_M.length]}if(mode==='office')return[.72,.95,1.12]}return lightMult0(u,i,mode,f8)}
+function lightMult0(u,i,mode,f8){
   switch(mode){
     case 'on':return u.bulb;case 'office':return u.otint?u.otint.m:[.95,1,.96];case 'odim':return[.3,.36,.42];case 'lamp':return[.5,.42,.3];case 'server':return[.16,.26,.3];case 'dim':return[.62,.48,.32];
     case 'tv':{const k=.8+.45*hr(u.id,i,f8);return[.2*k,.27*k,.5*k]}
@@ -1942,7 +1950,7 @@ function drawRoom(u,i,ox,oy,now,f8){
   for(const a of actors){if(a.x<lo||a.x>=hi)continue;drawA(a,false)}
   let courier=false;for(const a of actors)if(a.beat&&a.beat.courier&&!a.moving&&a.room===i&&i===0)courier=true;
   if(courier){const g=COURIER;drawPerson(g,u.x0+DOOR,oy,'stand',1,Math.floor(now*8)%8,8);pp(u.x0+DOOR+1,oy+6,P('#d8a050'));pp(u.x0+DOOR+2,oy+6,P('#d8a050'))}
-  for(const a of u.pets){if(a.x<lo||a.x>=hi)continue;const X=u.x0+Math.round(a.x);drawPet(a,X,oy,f8);
+  for(const a of u.pets){if(a.x<lo||a.x>=hi)continue;const X=u.x0+Math.round(a.x);drawPet(CYBER?cyPet(a):a,X,oy,f8);
     if(S===3&&(a.mv||a.state!=='sleep')){const fc=a.face>=0?1:-1,hx=a.kind==='cat'?(a.state==='sit'&&!a.mv?1:2):3,hy=a.kind==='cat'?(a.state==='sit'&&!a.mv?7:7):7;ps((X+hx*fc)*3+1,(oy+hy+(a.yo||0))*3+1,P('#141010'))}}
   if(rm.type==='meet'){R(1,8,14,1,'#7a6a58');R(2,9,1,2,'#5a4a3a');R(13,9,1,2,'#5a4a3a')}
   if(rm.cur){R(0,0,2,11,rm.cur);R(14,0,2,11,rm.cur);R(1,0,1,11,rm.curD);R(14,0,1,11,rm.curD);R(0,0,16,1,rm.curD)}
@@ -1950,6 +1958,9 @@ function drawRoom(u,i,ox,oy,now,f8){
   /* light sources, screens and effects stay bright: drawn after lighting */
   const M=(o,c)=>R(o.x,o.y,o.w,o.h||1,c);
   if(meta.lamp&&(mode==='on'||mode==='dim'))M(meta.lamp,'#ffe9a6');
+  if(CYBER&&u.kind==='res'&&!u.vacant){const h=hash(u.id,i,97);
+    if(mode!=='off'&&h%100<45){const nc=NEON_O[h%NEON_O.length];R(1,0,14,1,nc);const n=parseInt(nc.slice(1),16);for(let x=1;x<15;x++)bl(lx(x),oy+1,(n>>16)&255,(n>>8)&255,n&255,.22)}
+    if(h%100>=88){const dx=3+Math.floor((now*1.3+u.id)%10),dy=3+Math.round(Math.sin(now*2+u.id));R(dx,dy,2,1,'#3a3a44');R(dx+(fl?1:0),dy+1,1,1,(Math.floor(now*4)%2)?'#ff3a3a':'#3aff6a')}}
   if(u.tank&&!u.vacant&&i===u.tankRoom){const t=TANKXY[rm.type]||[1,2],dark=mode==='off'||mode==='aqua'||mode==='tv'||mode==='kidsnight'||mode==='dim';
     if(dark){R(t[0],t[1],5,3,'#3a8ad0');R(t[0],t[1],5,1,'#8ad0ff');R(t[0]+4,t[1]+1,1,2,'#4ab05a')}
     if(u.tank==='shrimp'){for(let k=0;k<3;k++)R(t[0]+((f8+k*3+(hash(u.id,k)&3))%4),t[1]+2,1,1,'#e03a2a')}
@@ -2047,7 +2058,7 @@ function rShop(b,now,f8){
   /* a thin frame like the apartment windows, instead of a heavy dark surround */
   {const tD=DC(b.trimD,bk),tL=DC(b.trim,bk);fr(gx-1,-24,gw+2,1,tD);fr(gx-1,-21,gw+2,2,tD);fr(gx-1,gy,1,gh,tD);fr(gx+gw,gy,1,gh,tD);fr(gx-1,gy+gh,gw+2,1,tL)}
   fr(gx,-23,gw,2,P(open?s.sign:'#34343c'));
-  if(!open){fr(gx,gy,gw,gh,P('#14151b'));for(let y=gy;y<gy+gh;y+=2)fr(gx,y,gw,1,P('#272830'));
+  if(!open){fr(gx,gy,gw,gh,DC('#4a4a52',bk));for(let y=gy;y<gy+gh;y+=2)fr(gx,y,gw,1,DC('#585862',bk));fr(gx,gy,gw,1,DC('#3a3a42',bk));fr(gx,gy+gh-1,gw,1,DC('#3a3a42',bk));
     if(s.type==='bank'){const ax=gx+gw-9;fr(ax,gy+3,7,11,P('#d8d0c0'));fr(ax+1,gy+5,5,8,P('#3a3a44'));fr(ax+2,gy+6,3,2,P(f8%16<15?'#5ab0ff':'#9ad0ff'));fr(ax+2,gy+9,3,1,P('#8a8a92'));for(let k=-1;k<8;k++)bl(ax+k,gy+14,120,180,255,.2)}
     return}
   clipTo(gx,gy,gw,gh);
@@ -2221,7 +2232,7 @@ function LH(a,b,t){if(t<=0)return a;if(t>=1)return b;const k=a+b+t;let v=LHC.get
   const A=parseInt(a.slice(1),16),B=parseInt(b.slice(1),16),f=(sh)=>Math.round(((A>>sh)&255)+(((B>>sh)&255)-((A>>sh)&255))*t);
   v='#'+((1<<24)|(f(16)<<16)|(f(8)<<8)|f(0)).toString(16).slice(1);LHC.set(k,v);return v}
 const DCC=new Map();
-function DC(hex,bk){if(DQ===0)return P(hex);const k=hex+(bk?'b':'f')+DQ;let v=DCC.get(k);
+function DC(hex,bk){if(CYBER)hex=cyHex(hex);if(DQ===0)return P(hex);const k=hex+(bk?'b':'f')+DQ;let v=DCC.get(k);
   if(v===undefined){let c=LH(hex,shade(hex,.42),DQ);if(bk)c=LH(c,'#a8b6c6',.3*DQ);v=P(c);DCC.set(k,v)}return v}
 function updateSun(){
   const ut=simMin+new Date().getTimezoneOffset(),d=ut/1440-10957.5,eps=23.44*Math.PI/180;
@@ -2243,7 +2254,8 @@ const SKYK=[[-90,'#020309','#070a1c','#171c40'],[-14,'#020309','#070a1c','#171c4
 function skyCols(alt){let i=0;while(i<SKYK.length-2&&alt>SKYK[i+1][0])i++;const a=SKYK[i],b=SKYK[i+1],t=clamp((alt-a[0])/(b[0]-a[0]),0,1),q=Math.round(t*24)/24;
   return[LH(a[1],b[1],q),LH(a[2],b[2],q),LH(a[3],b[3],q)]}
 function drawSky(now){
-  const gy=(0-cam.y)*cam.s,[c0,c1,c2]=skyCols(SUNALT);
+  const gy=(0-cam.y)*cam.s;let [c0,c1,c2]=skyCols(SUNALT);
+  if(CYBER){const n=1-DAYK,q=v=>Math.round(v*20)/20;c0=LH(c0,'#14041f',q(.55*n));c1=LH(c1,'#3a0c48',q(.45*n+.12));c2=LH(c2,'#b8287e',q(.45*n+.22))}
   const g=ctx.createLinearGradient(0,0,0,Math.max(20,gy));
   g.addColorStop(0,c0);g.addColorStop(.55,c1);g.addColorStop(1,c2);
   ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
@@ -2281,7 +2293,10 @@ let simMin=0,speed=1,paused=false,lastUpd=-1e9;
 let sel=null,follow=false,shoot=null,nextShoot=10;
 const reduce=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 const DET0=()=>24/RW*DPR,DET1=()=>40/RW*DPR;
-function ovColor(u,i,mode,now){
+function ovColor(u,i,mode,now){const c=ovColor0(u,i,mode,now);if(!CYBER||!c)return c;
+  if(mode==='on'||mode==='dim'||mode==='lamp'){const h=hash(u.id,i,31);return h%100<30?c:NEON_O[h%NEON_O.length]}
+  if(mode==='office'||mode==='odim')return mode==='office'?'#9adcf0':'#5a6aa8';return c}
+function ovColor0(u,i,mode,now){
   switch(mode){
     case 'on':return u.bulbO;case 'office':return u.otint?u.otint.o:'#d6e3c8';case 'odim':return'#b89a5a';case 'lamp':return'#e0b058';case 'server':return'#5a7aa8';case 'dim':return'#a87a3c';
     case 'tv':return TVO[hash(u.id,i,Math.floor(now*5))%3];case 'screen':return'#3c7f86';case 'fridge':return'#8399a8';
@@ -2328,7 +2343,7 @@ function computeLimits(){sMin=Math.max(W/city.W,H*.3/(-city.top));sMax=Math.max(
 function clampCam(){
   cam.s=clamp(cam.s,sMin,sMax);const vw=W/cam.s,vh=H/cam.s;
   cam.x=clamp(cam.x,0,Math.max(0,city.W-vw));
-  const maxY=STREET+10-vh,minY=Math.min(maxY,city.top-60);cam.y=clamp(cam.y,minY,maxY);
+  const maxY=STREET+10-vh,minY=Math.min(maxY,(CYBER&&city.mega?Math.min(city.top,city.megaTop):city.top)-60);cam.y=clamp(cam.y,minY,maxY);
 }
 function resize(){
   DPR=Math.min(2,window.devicePixelRatio||1);W=Math.round(innerWidth*DPR);H=Math.round(innerHeight*DPR);cv.width=W;cv.height=H;
@@ -2378,7 +2393,8 @@ function label(p,act,seg){
   }
 }
 const lc=s=>/^TV/.test(s)?s:s.charAt(0).toLowerCase()+s.slice(1);
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>esc0(CYBER?cyText(String(s)):s);
+const esc0=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function petLine(a){return a.state==='sleep'?'curled up asleep':a.mv?'padding from room to room':'sitting and watching'}
 function chipText(u,e){const g=e.guests[0];switch(e.type){
   case 'party':return'Party tonight';case 'birthday':{const p=u.people.find(x=>x.id===e.data.pid);return`${p.first}'s birthday`}
@@ -2688,7 +2704,7 @@ function parseCode(s){const m=/^\s*([0-9a-z]{1,8})-([0-9a-z]{1,6})\s*$/i.exec(s|
 const STORE='big-apple-sam/v1';
 const localNow=()=>(Date.now()-new Date().getTimezoneOffset()*60000)/60000;
 function loadState(){try{const s=JSON.parse(localStorage.getItem(STORE)||'null');return s&&typeof s.seed==='number'?s:null}catch(e){return null}}
-function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,nightPick,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel&&!sel.box?sel.id:null,follow,favs:favs.map(f=>[f.id,f.ids,f.seen]),gfx:GFX,cgaPal:CGAP}))}catch(e){}}
+function saveState(){if(SAVER&&SAVER.code)return;try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed,paused,nightPick,cam:{x:cam.x,y:cam.y,s:cam.s/DPR},sel:sel&&!sel.box?sel.id:null,follow,favs:favs.map(f=>[f.id,f.ids,f.seen]),gfx:GFX,cgaPal:CGAP,cyber:CYBER}))}catch(e){}}
 
 /* ---------- main loop ---------- */
 let bufBox=null,bufF=-1;
@@ -2706,6 +2722,87 @@ function ensureBuf(now,f8){
 }
 let wasBusy=false,lastClock='',lastWall=0,panelT=0,lastWake=0,hudHover=false,saveT=0,clockEl,liveEl,whenBtn,hintEl;
 let lastMs=0;
+/* ============================================================
+   Cyberpunk mode: neon window light, a purple smog sky, mega towers,
+   flying cars, rooftop holo-billboards, rain, a holographic koi,
+   and residents with neon hair, visors and the odd android.
+   Everything is derived from hashes, so the city underneath is unchanged.
+   ============================================================ */
+let CYBER=false;
+const NEON_O=['#3ae0ff','#ff4ad0','#b06aff','#ff6ab0','#4affc8'],NEON_M=[[.55,.95,1.15],[1.1,.55,1.05],[.8,.6,1.15],[1.1,.65,.9],[.55,1.05,.95]];
+const NEONHAIR=['#ff3ad8','#3af0ff','#b4ff3a','#f4f4ff','#ff8a2a','#8a5aff'],ACC=['#ff3ad8','#3af0ff','#b04aff','#ff6a3a','#4affb0'];
+const CYH=new Map();function cyHex(h){let v=CYH.get(h);if(!v){v=LH(h,'#140a22',.5);CYH.set(h,v)}return v}
+function cyLook(p){let q=p._cy;if(q)return q;const h=hash((p.id|0)+7,556);q=Object.create(p);
+  if(!p.kid&&h%100<8){q.cS='#b8c4d4';q.cH='#7a8696';q.hat=null;q.longHair=false;q.android=true}
+  else{if(h%10<4)q.cH=NEONHAIR[(h>>>4)%NEONHAIR.length];if(h%9===0)q.visor=true}
+  if((h>>>8)%3===0)q.cT=['#16141c','#24123a','#0c2a30','#3a0c24'][(h>>>10)%4];
+  return p._cy=q}
+function cyPet(a){let q=a._cy;if(q)return q;q=Object.create(a);q.col=a.kind==='cat'?(hash(a.id|0,5)%2?'#7ae8ff':a.col):(hash(a.id|0,6)%2?'#a8b0bc':a.col);return a._cy=q}
+const CYSUB=[[/\bwatching TV\b/gi,'watching the holo-feeds'],[/\bTV\b/g,'holo-feed'],[/\bvideo games?\b/gi,'the net'],[/\bon the phone\b/gi,'on a neural call'],[/\bphone\b/g,'neural link'],
+  [/\bcomputer\b/g,'cyberdeck'],[/\bmovie\b/g,'braindance'],[/\bpizza\b/g,'synth-pizza'],[/\bPizza\b/g,'Synth-pizza'],[/\bnewspaper\b/g,'newsfeed'],[/\bradio\b/g,'pirate radio'],[/\bgroceries\b/g,'protein bricks'],
+  [/\bReading\b/g,'Reading a datapad'],[/\bWorking out\b/g,'Tuning cybernetics'],[/\bDoing yoga\b/g,'Defragmenting'],[/\bAsleep\b/g,'In sleep mode'],[/\basleep\b/g,'in sleep mode']];
+function cyText(t){for(const [re,r] of CYSUB)t=t.replace(re,r);return t}
+function megaTowers(){
+  if(city.mega)return city.mega;const C=city,n=2+hash(C.seed,91)%2,T=[];let mt=0;
+  for(let k=0;k<n;k++){const h=i=>hash(C.seed,92,k,i);const w=240+h(1)%120,cx=Math.floor((k+.5+((h(2)%100)/100-.5)*.45)*C.W/n),x=cx-(w>>1),top=-(1500+h(3)%650),sp=140+h(6)%120;
+    const fr2=[.46,.3,.24],tiers=[];let y=0,tw=w;for(let t=0;t<3;t++){const th=Math.round(-top*fr2[t]);tiers.push({x:cx-(tw>>1),w:tw,y0:y-th,y1:y});y-=th;tw=Math.round(tw*.78)}
+    T.push({k,x,w,cx,top,sp,tiers,acc:ACC[h(5)%ACC.length],acc2:ACC[(h(5)+2)%ACC.length],cv:null,key:''});mt=Math.min(mt,top-sp)}
+  city.megaTop=mt;return city.mega=T}
+function renderMega(t){
+  const W0=t.w+40,H0=-t.top+t.sp,key=Math.floor(rnow/4)+'_'+Math.round(DQ*8);if(t.cv&&t.key===key)return;t.key=key;
+  if(!t.cv){t.cv=document.createElement('canvas');t.cv.width=W0;t.cv.height=H0}
+  const g=t.cv.getContext('2d'),ox=t.x-20,oy=t.top-t.sp;g.clearRect(0,0,W0,H0);
+  const body=LH('#0b0914','#5a6478',DQ),edge=t.acc;
+  for(const ti of t.tiers){g.fillStyle=body;g.fillRect(ti.x-ox,ti.y0-oy,ti.w,ti.y1-ti.y0);
+    const cols=Math.floor((ti.w-6)/6),rows=Math.floor((ti.y1-ti.y0-6)/8),wc=['#a8e8ff','#ff8ae8','#ffd890','#b8a8ff'];
+    for(let c=0;c<cols;c++)for(let r=0;r<rows;r++){const hh=hash(t.k,c,r+ti.y0,77),fl=hh%10===0?hash(t.k,c,r,Math.floor(rnow/4)):hh;if(fl%100>=(DQ>0?12:34))continue;
+      g.fillStyle=DQ>0?'#8a98b0':wc[(hh>>>8)%(hh%7?2:4)];g.fillRect(ti.x-ox+4+c*6,ti.y0-oy+5+r*8,3,3)}
+    g.globalAlpha=DQ>0?.35:1;g.fillStyle=edge;g.fillRect(ti.x-ox,ti.y0-oy,1,ti.y1-ti.y0);g.fillRect(ti.x-ox+ti.w-1,ti.y0-oy,1,ti.y1-ti.y0);g.fillRect(ti.x-ox,ti.y0-oy,ti.w,1);g.globalAlpha=1}
+  const top=t.tiers[2];g.fillStyle=body;g.fillRect(t.cx-ox-1,top.y0-oy-t.sp,3,t.sp);
+  g.fillStyle=t.acc2;g.globalAlpha=DQ>0?.4:.9;g.fillRect(top.x-ox-14,top.y0-oy-8,top.w+28,3);g.globalAlpha=1;
+}
+function cyberBack(now){
+  const s=cam.s,X=wx=>Math.round((wx-cam.x)*s),Y=wy=>Math.round((wy-cam.y)*s),gy=Y(0);
+  // smog sky
+  // mega towers
+  ctx.imageSmoothingEnabled=false;
+  for(const t of megaTowers()){if(X(t.x+t.w+20)<0||X(t.x-20)>W)continue;renderMega(t);ctx.drawImage(t.cv,X(t.x-20),Y(t.top-t.sp),t.cv.width*s,t.cv.height*s);
+    const tt=t.tiers[0],sx=tt.x+Math.floor(tt.w*.12),blocks=16;
+    for(let k=0;k<blocks;k++){const by=-300-k*30;const h=hash(t.k,k,Math.floor(now*2));ctx.globalAlpha=DQ>0?.3:.75;ctx.fillStyle=[t.acc,t.acc2,'#f4f4ff','#141020'][h%4];
+      ctx.fillRect(X(sx),Y(by-26),Math.max(1,Math.round(22*s)),Math.max(1,Math.round(26*s)))}
+    ctx.globalAlpha=1;if((now+t.k*.7)%1.4<.6){const z=Math.max(2,Math.round(3*s));ctx.fillStyle='#ff2a3a';ctx.fillRect(X(t.cx)-(z>>1),Y(t.tiers[2].y0-t.sp)-z,z,z)}}
+  // holographic koi
+  const KW=22,KH=9;for(let k=0;k<2;k++){const L=city.W+900,x=((now*(10+k*4)+k*1700)%L)-450,y=-(1050+k*300)+Math.sin(now*.35+k)*50,cs=13;
+    ctx.fillStyle=k?'#ff6ad8':'#5af0ff';
+    for(let r=0;r<KH;r++){if((r+Math.floor(now*6))%3===0)continue;for(let c=0;c<KW;c++){const ex=(c-12)/9,ey=(r-4)/3.6,inb=ex*ex+ey*ey<1,tail=c<5&&Math.abs(r-4)<=(5-c)*.9&&c<4;
+      if(!inb&&!tail)continue;ctx.globalAlpha=(inb&&ex*ex+ey*ey>.6?.42:.2)*(DQ>0?.5:1);ctx.fillRect(X(x+c*cs),Y(y+r*cs),Math.max(1,Math.round(cs*s)),Math.max(1,Math.round(cs*s)))}}
+    ctx.globalAlpha=.8;ctx.fillStyle='#ffffff';ctx.fillRect(X(x+17*cs),Y(y+3*cs),Math.max(1,Math.round(cs*s)),Math.max(1,Math.round(cs*s)))}
+  ctx.globalAlpha=1;
+}
+function cyberFront(now,dt){
+  const s=cam.s,X=wx=>Math.round((wx-cam.x)*s),Y=wy=>Math.round((wy-cam.y)*s),vx0=cam.x-80,vx1=cam.x+W/s+80;
+  const rect=(x0,y0,w,h)=>{const a=X(x0),b=Y(y0);ctx.fillRect(a,b,Math.max(1,Math.round(w*s)),Math.max(1,Math.round(h*s)))};
+  // neon edges and rooftop holo-billboards on some buildings
+  for(const row of [city.back,city.front])for(const b of row){if(b.x+b.w<vx0||b.x>vx1)continue;const h=hash(b.id,city.seed,95),acc=ACC[h%ACC.length];
+    if(h%100<34){ctx.fillStyle=acc;for(const t of b.tiers){const x0=b.x+t.c0*CW,x1=b.x+t.c1*CW+2*SIDE,yT=-(LOBBY+t.f1*CH),yB=-LOBBY;
+      ctx.globalAlpha=DQ>0?.35:.85;rect(x0,yT,1,yB-yT);rect(x1-1,yT,1,yB-yT);ctx.globalAlpha=DQ>0?.08:.16;rect(x0-1,yT,3,yB-yT);rect(x1-2,yT,3,yB-yT)}ctx.globalAlpha=1}
+    if((h>>>8)%100<20){const t=b.tiers[b.tiers.length-1],x0=b.x+t.c0*CW,tw=(t.c1-t.c0)*CW+2*SIDE,bw=Math.min(52,tw-8),bx=x0+((tw-bw)>>1),by=-(LOBBY+t.f1*CH)-26;
+      ctx.fillStyle='#1a1620';rect(bx+3,by+20,2,6);rect(bx+bw-5,by+20,2,6);rect(bx-1,by-1,bw+2,22);
+      const fr8=Math.floor(now*3);ctx.globalAlpha=DQ>0?.55:.92;ctx.fillStyle=acc;rect(bx,by,bw,20);ctx.fillStyle='#120a1c';
+      for(let r=0;r<4;r++)for(let c=0;c<Math.floor(bw/3);c++)if(hash(b.id,r,c+fr8,3)%3===0)rect(bx+1+c*3,by+2+r*4+(r>1?2:0),2,2);
+      ctx.fillStyle='#ffffff';ctx.globalAlpha=.5;rect(bx,by+((fr8*2)%20),bw,1);ctx.globalAlpha=DQ>0?.05:.12;ctx.fillStyle=acc;rect(bx-6,by-6,bw+12,32);ctx.globalAlpha=1}}
+  // flying cars
+  if(!city.fly){city.fly=[];const lanes=[-230,-300,-380,-470,-590,-720,-880];for(let k=0;k<18;k++){const h=hash(city.seed,96,k);city.fly.push({x:h%city.W,y:lanes[k%lanes.length]+((h>>>12)%14),d:(h>>>4)%2?1:-1,v:28+((h>>>6)%70),c:ACC[(h>>>9)%ACC.length]})}}
+  for(const f of city.fly){f.x+=f.d*f.v*dt;if(f.x>city.W+40)f.x=-40;if(f.x<-40)f.x=city.W+40;if(f.x<vx0||f.x>vx1)continue;
+    ctx.fillStyle='#16141e';rect(f.x,f.y,12,3);rect(f.x+3,f.y-2,6,2);ctx.globalAlpha=DQ>0?.25:.5;ctx.fillStyle=f.c;rect(f.x+1,f.y+3,10,1);ctx.globalAlpha=DQ>0?.06:.14;rect(f.x-2,f.y+2,16,4);
+    ctx.globalAlpha=1;ctx.fillStyle='#fff6d0';rect(f.d>0?f.x+11:f.x,f.y+1,1,1);ctx.fillStyle='#ff2a3a';rect(f.d>0?f.x:f.x+11,f.y+1,1,1);
+    if(DAYK<.6){ctx.globalAlpha=.12;ctx.fillStyle='#fff6d0';rect(f.d>0?f.x+12:f.x-14,f.y,14,3);ctx.globalAlpha=1}}
+  // rain
+  ctx.fillStyle='rgba(170,190,255,'+(DQ>0?.12:.2)+')';const L=14*DPR,z=Math.max(1,Math.round(DPR)),seg=Math.max(2,Math.round(L/4));
+  for(let k=0;k<240;k++){const h=hash(k,7,7),x=Math.round(((h%10000)/10000*W+now*90*DPR)%W),y=Math.round((((h>>>14)%10000)/10000*H+now*(520+(h%140))*DPR)%(H+L)-L);
+    for(let j=0;j<4;j++)ctx.fillRect(x-j*z,y+j*seg,z,seg)}
+}
+function setCyber(on){CYBER=!!on;bufF=-1;bufBox=null;DCC.clear();const c=document.getElementById('cyber');if(c)c.checked=CYBER;saveState()}
 /* Display modes. VGA is the normal look. SVGA draws close-ups at three times the detail.
    EGA (16 colors) and CGA (4 colors) re-draw the screen in a period palette with ordered dithering. */
 let GFX='vga',CGAP=1,retCv=null,retCx=null;
@@ -2745,10 +2842,12 @@ function frame(ms){
   if(!paused)updateCars(Math.min(.1,Math.max(0,wd)),tod);
   ctx.imageSmoothingEnabled=false;
   drawSky(now);
+  if(CYBER)cyberBack(now);
   const tD=clamp((cam.s-DET0())/(DET1()-DET0()),0,1);
   if(tD<1)drawOverview(now);
   if(tD>0){const f8=Math.floor(now*8);ensureBuf(now,f8);ctx.globalAlpha=tD;
     ctx.drawImage(bufCv,0,0,BW*S,BH*S,(BX-cam.x)*cam.s,(BY-cam.y)*cam.s,BW*cam.s,BH*cam.s);ctx.globalAlpha=1}
+  if(CYBER)cyberFront(now,Math.min(.1,Math.max(0,wd)));
   if(sel){const bx=selBox(sel),x0=(bx.x-cam.x)*cam.s,y0=(bx.y-cam.y)*cam.s,w=bx.w*cam.s,h=bx.h*cam.s;
     ctx.lineWidth=Math.max(1,DPR);ctx.setLineDash([2*DPR,2*DPR]);ctx.lineDashOffset=0;ctx.strokeStyle='#ffffff';ctx.strokeRect(Math.round(x0)+.5,Math.round(y0)+.5,Math.round(w),Math.round(h));
     ctx.lineDashOffset=2*DPR;ctx.strokeStyle='#000000';ctx.strokeRect(Math.round(x0)+.5,Math.round(y0)+.5,Math.round(w),Math.round(h));ctx.setLineDash([])}
@@ -2788,11 +2887,11 @@ function boot(){
   const q=new URLSearchParams(location.search),hm=/^#city-([0-9a-z]+-[0-9a-z]+)$/i.exec(location.hash);
   const want=parseCode((SAVER&&SAVER.code)||(hm&&hm[1])||q.get('city'));
   let st=loadState();if(want&&!(st&&st.seed===want.seed&&st.born===want.born))st=null;
-  if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;if(['cga','ega','vga','svga'].includes(SAVER.gfx))GFX=SAVER.gfx;document.body.classList.add('saver')}
+  if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;if(['cga','ega','vga','svga'].includes(SAVER.gfx))GFX=SAVER.gfx;if(typeof SAVER.cyber==='boolean')CYBER=SAVER.cyber;document.body.classList.add('saver')}
   if(!st&&want){simMin=localNow();startCity(want.seed,want.born)}
   else if(st){speed=st.speed||1;paused=!!st.paused;nightPick=typeof st.nightPick==='boolean'?st.nightPick:null;nightLock=nightPick===true;simMin=st.sim+(paused?0:(Date.now()-st.at)/60000);startCity(st.seed,st.born);
     if(st.cam){cam.s=st.cam.s*DPR;cam.x=st.cam.x;cam.y=st.cam.y;clampCam()}
-    if(['cga','ega','vga','svga'].includes(st.gfx))GFX=st.gfx;if(st.cgaPal===0||st.cgaPal===1)CGAP=st.cgaPal;
+    if(['cga','ega','vga','svga'].includes(st.gfx))GFX=st.gfx;CYBER=!!st.cyber;if(st.cgaPal===0||st.cgaPal===1)CGAP=st.cgaPal;
     if(Array.isArray(st.favs))favs=st.favs.filter(f=>city.units[f[0]]).map(([id,ids,seen])=>({id,ids,seen}));
     if(st.sel!=null&&city.units[st.sel]){sel=city.units[st.sel];follow=!!st.follow;if(follow&&!Array.isArray(st.favs))setFav(sel,true)}
     if(cam.s>=DET0())hintEl.classList.add('gone')}
@@ -2852,6 +2951,7 @@ function boot(){
   dragWin(dlg,document.getElementById('dTb'));
   document.getElementById('close').addEventListener('click',()=>select(null));
   for(const b of document.querySelectorAll('[data-gfx]')){b.setAttribute('aria-pressed',String(b.dataset.gfx===GFX));b.addEventListener('click',()=>setGfx(b.dataset.gfx))}
+  const cyb=document.getElementById('cyber');cyb.checked=CYBER;cyb.addEventListener('change',()=>setCyber(cyb.checked));
   const nl=document.getElementById('nightLock');nl.checked=nightLock;
   nl.addEventListener('change',()=>{nightLock=nightPick=nl.checked;updateSun();bufF=-1;saveState()});
   document.getElementById('follow').addEventListener('change',e=>{if(!sel||sel.box)return;follow=e.target.checked;setFav(sel,follow);renderPanel()});
@@ -2867,6 +2967,7 @@ function boot(){
     else if('12345'.includes(e.key)&&e.key.length===1)setSpeed([1,60,600,6000,86400][+e.key-1]);
     else if(e.key==='Escape'){if(flwOpen)toggleFollowing(false);else if(sel)select(null);else zoomOut()}
     else if(e.key==='p'||e.key==='P')peek();
+    else if(e.key==='y'||e.key==='Y')setCyber(!CYBER);
     else if(e.key==='g'||e.key==='G')setGfx({cga:'ega',ega:'vga',vga:'svga',svga:'cga'}[GFX]);
     else if((e.key==='s'||e.key==='S')&&!AP.on&&rnow-(AP.stoppedAt||-9)>.5)apStart(false);
     else if(e.key==='f'||e.key==='F'){if(sel&&!sel.box){follow=!favOf(sel);setFav(sel,follow);renderPanel()}}
