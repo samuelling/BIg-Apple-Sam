@@ -24,7 +24,7 @@
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;background:var(--desk);overflow:hidden}
 body{font:13px/1.25 var(--font);color:var(--ink);cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='20' viewBox='0 0 13 20' shape-rendering='crispEdges'%3E%3Cpath d='M.5.5v16l4-4 3 6.5 2.2-1-3-6.3h5.6z' fill='white' stroke='black'/%3E%3C/svg%3E") 0 0,default}
-#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='20' viewBox='0 0 13 20' shape-rendering='crispEdges'%3E%3Cpath d='M.5.5v16l4-4 3 6.5 2.2-1-3-6.3h5.6z' fill='white' stroke='black'/%3E%3C/svg%3E") 0 0,default;background:var(--desk)}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='20' viewBox='0 0 13 20' shape-rendering='crispEdges'%3E%3Cpath d='M.5.5v16l4-4 3 6.5 2.2-1-3-6.3h5.6z' fill='white' stroke='black'/%3E%3C/svg%3E") 0 0,default;background:var(--desk)}
 #c.drag{cursor:move}
 #c.busy{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='22' viewBox='0 0 16 22' shape-rendering='crispEdges'%3E%3Cpath d='M.5.5h15v2h-1.5v3l-4.5 5.5 4.5 5.5v3h1.5v2H.5v-2H2v-3l4.5-5.5L2 5.5v-3H.5z' fill='white' stroke='black'/%3E%3Cpath d='M4 5h8l-4 5zM4 18l4-4 4 4z' fill='black'/%3E%3C/svg%3E") 8 11,wait}
 .idle #c{cursor:none}
@@ -2264,8 +2264,9 @@ const SKYK=[[-90,'#020309','#070a1c','#171c40'],[-14,'#020309','#070a1c','#171c4
 function skyCols(alt){let i=0;while(i<SKYK.length-2&&alt>SKYK[i+1][0])i++;const a=SKYK[i],b=SKYK[i+1],t=clamp((alt-a[0])/(b[0]-a[0]),0,1),q=Math.round(t*24)/24;
   return[LH(a[1],b[1],q),LH(a[2],b[2],q),LH(a[3],b[3],q)]}
 /* Cyberpunk mode is a secret: press and hold on the sun or the moon until the ring closes. */
-const SKYB={sun:null,moon:null};let SKYLOCK=null;
-function skyBodyAt(x,y){for(const k of ['moon','sun']){const b=SKYB[k];if(b&&Math.hypot(x-b.x,y-b.y)<b.r+12*DPR)return k}return null}
+const SKYB={sun:null,moon:null};let SKYLOCK=null,lastSkyTap=null;
+function skyBodyAt(x,y,touch){for(const k of ['moon','sun']){const b=SKYB[k];if(b&&Math.hypot(x-b.x,y-b.y)<b.r+(touch?32:16)*DPR)return k}return null}
+function skyFlip(body){const b=SKYB[body];if(!b)return;SKYLOCK={body,t0:rnow-2,done:rnow};setCyber(!CYBER)}
 function skyLockTick(now){
   if(!SKYLOCK)return;const b=SKYB[SKYLOCK.body];if(!b){SKYLOCK=null;return}
   const p=(now-SKYLOCK.t0)/1.1;if(SKYLOCK.done){const q=(now-SKYLOCK.done)/.6;if(q>=1){SKYLOCK=null;return}
@@ -3071,7 +3072,7 @@ function boot(){
   const ptrs=new Map();let drag=null,pinch=null;
   const pinchState=()=>{const [a,b]=[...ptrs.values()];return{d:Math.hypot(a.x-b.x,a.y-b.y)||1,m:{x:(a.x+b.x)/2,y:(a.y+b.y)/2}}};
   cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const pt={x:e.clientX*DPR,y:e.clientY*DPR};ptrs.set(e.pointerId,pt);anim=null;wake();
-    {const bd=ptrs.size===1&&!AP.on?skyBodyAt(pt.x,pt.y):null;if(bd&&(!SKYLOCK||!SKYLOCK.done))SKYLOCK={body:bd,t0:rnow,x:pt.x,y:pt.y,id:e.pointerId}}
+    {const bd=ptrs.size===1&&!AP.on?skyBodyAt(pt.x,pt.y,e.pointerType==='touch'):null;if(bd&&(!SKYLOCK||!SKYLOCK.done))SKYLOCK={body:bd,t0:rnow,x:pt.x,y:pt.y,id:e.pointerId}}
     if(ptrs.size===1){drag={x:pt.x,y:pt.y,sx:pt.x,sy:pt.y,t:performance.now(),moved:false};cv.classList.add('drag')}
     else if(ptrs.size===2){drag=null;pinch=pinchState()}});
   cv.addEventListener('pointermove',e=>{wake();const pt={x:e.clientX*DPR,y:e.clientY*DPR};
@@ -3080,13 +3081,15 @@ function boot(){
     if(pinch&&ptrs.size===2){const ns=pinchState();zoomAt(ns.d/pinch.d,ns.m.x,ns.m.y);cam.x-=(ns.m.x-pinch.m.x)/cam.s;cam.y-=(ns.m.y-pinch.m.y)/cam.s;clampCam();pinch=ns}
     else if(drag){const dx=pt.x-drag.x,dy=pt.y-drag.y;if(Math.hypot(pt.x-drag.sx,pt.y-drag.sy)>6*DPR){drag.moved=true;if(SKYLOCK&&!SKYLOCK.done)SKYLOCK=null;if(follow){follow=false;renderPanel()}}cam.x-=dx/cam.s;cam.y-=dy/cam.s;clampCam();drag.x=pt.x;drag.y=pt.y}});
   const up=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);
-    const wasSky=SKYLOCK&&SKYLOCK.id===e.pointerId;if(wasSky&&!SKYLOCK.done)SKYLOCK=null;
+    const wasSky=SKYLOCK&&SKYLOCK.id===e.pointerId;if(wasSky&&!SKYLOCK.done){const bd=SKYLOCK.body,quick=rnow-SKYLOCK.t0<.35&&!(drag&&drag.moved);SKYLOCK=null;
+      if(quick){if(lastSkyTap&&lastSkyTap.body===bd&&rnow-lastSkyTap.t<.45){lastSkyTap=null;skyFlip(bd)}else lastSkyTap={body:bd,t:rnow}}}
     if(drag&&!drag.moved&&performance.now()-drag.t<500&&!wasSky)clickAt(drag.sx,drag.sy);
     drag=null;cv.classList.remove('drag');
     if(ptrs.size===1){const [pt]=[...ptrs.values()];drag={x:pt.x,y:pt.y,sx:pt.x,sy:pt.y,t:0,moved:true}}
     if(ptrs.size<2)pinch=null};
   cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
-  cv.addEventListener('dblclick',e=>{const wx=cam.x+e.clientX*DPR/cam.s,wy=cam.y+e.clientY*DPR/cam.s;flyTo(wx,wy,cam.s*2.4,600)});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('dblclick',e=>{if(skyBodyAt(e.clientX*DPR,e.clientY*DPR,false))return;const wx=cam.x+e.clientX*DPR/cam.s,wy=cam.y+e.clientY*DPR/cam.s;flyTo(wx,wy,cam.s*2.4,600)});
   function clickAt(sx,sy){const wx=cam.x+sx/cam.s,wy=cam.y+sy/cam.s;
     if(cam.s<DET0()){flyTo(wx,wy,DET1()*1.7);return}
     const u=hitUnit(wx,wy)||hitStreet(wx,wy);if(u!==sel)follow=false;select(u)}
