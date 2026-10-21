@@ -5,9 +5,7 @@ name: Build screen savers
 #
 # Signing switches on by itself once the secrets exist (see SIGNING.md):
 #   macOS   MACOS_CERT_P12, MACOS_CERT_PASSWORD, NOTARY_KEY_P8, NOTARY_KEY_ID, NOTARY_ISSUER_ID
-#   Windows AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, plus repository variables
-#           AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_CERT_PROFILE
-# Without them, the builds are unsigned (as before).
+# Without them, the Mac build is unsigned (as before). The Windows build is free and unsigned.
 
 on:
   push:
@@ -17,7 +15,6 @@ on:
 
 permissions:
   contents: write
-  id-token: write
 
 jobs:
   mac:
@@ -129,15 +126,9 @@ jobs:
   windows:
     runs-on: windows-2022
     env:
-      WIN_SIGNING: ${{ secrets.AZURE_CLIENT_ID != '' && vars.AZURE_SIGNING_ACCOUNT != '' }}
       BAS_VERSION: 1.0.${{ github.run_number }}
-    outputs:
-      signed: ${{ steps.flag.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
-
-      - id: flag
-        run: Add-Content $env:GITHUB_OUTPUT "signed=$env:WIN_SIGNING"
 
       - uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -151,26 +142,6 @@ jobs:
         working-directory: windows
         run: .\build.ps1 -Version $env:BAS_VERSION
 
-      - name: Azure login
-        if: env.WIN_SIGNING == 'true'
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Sign BigAppleSam.scr
-        if: env.WIN_SIGNING == 'true'
-        uses: azure/artifact-signing-action@v2
-        with:
-          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE }}
-          files: ${{ github.workspace }}\windows\BigAppleSam.scr
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-
       - name: Smoke test (run it and take screenshots)
         working-directory: windows
         run: .\smoke.ps1
@@ -182,18 +153,6 @@ jobs:
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
           & $iscc /Q "/DAppVersion=$env:BAS_VERSION" installer.iss
           if ($LASTEXITCODE) { throw "ISCC failed" }
-
-      - name: Sign installer
-        if: env.WIN_SIGNING == 'true'
-        uses: azure/artifact-signing-action@v2
-        with:
-          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE }}
-          files: ${{ github.workspace }}\windows\Big-Apple-Sam-Windows-Setup.exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
 
       - name: Zip the bare .scr
         working-directory: windows
@@ -230,7 +189,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MAC_SIGNED: ${{ needs.mac.outputs.signed }}
-          WIN_SIGNED: ${{ needs.windows.outputs.signed }}
         run: |
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
@@ -239,11 +197,8 @@ jobs:
           else
             MAC="**Mac:** unzip Big-Apple-Sam-saver.zip and double-click Big Apple Sam.saver. This build is not notarized yet, so see the README for the one-time security step."
           fi
-          if [ "$WIN_SIGNED" = "true" ]; then
-            WIN="**Windows 10/11:** run Big-Apple-Sam-Windows-Setup.exe (code-signed)."
-          else
-            WIN="**Windows 10/11:** run Big-Apple-Sam-Windows-Setup.exe. It is not code-signed yet, so Windows may say \"Windows protected your PC\": choose More info, then Run anyway."
-          fi
+          WIN="**Windows 10/11:** run Big-Apple-Sam-Windows-Setup.exe. It isn't code-signed, so Windows may say \"Windows protected your PC\": choose More info, then Run anyway."
+
           NOTES=$(printf 'Built from %s.\n\n%s\n\n%s\n\nSHA-256 checksums are in SHA256SUMS.txt.' "${GITHUB_SHA::7}" "$MAC" "$WIN")
           gh release delete latest --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
           gh release create latest * --repo "$GITHUB_REPOSITORY" \
