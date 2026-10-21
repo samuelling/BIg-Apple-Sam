@@ -1,19 +1,36 @@
-name: Build screen saver
+name: Build screen savers
+
+# Builds the macOS .saver and the Windows .scr from the same index.html, then publishes both
+# to the rolling "latest" release.
+#
+# Signing switches on by itself once the secrets exist (see SIGNING.md):
+#   macOS   MACOS_CERT_P12, MACOS_CERT_PASSWORD, NOTARY_KEY_P8, NOTARY_KEY_ID, NOTARY_ISSUER_ID
+#   Windows AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, plus repository variables
+#           AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_CERT_PROFILE
+# Without them, the builds are unsigned (as before).
 
 on:
   push:
     branches: [main]
-    paths: ["index.html", "saver/**", ".github/workflows/screensaver.yml"]
+    paths: ["index.html", "saver/**", "windows/**", ".github/workflows/screensaver.yml"]
   workflow_dispatch:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
-  build:
+  mac:
     runs-on: macos-15
+    env:
+      MAC_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' && secrets.NOTARY_KEY_P8 != '' }}
+    outputs:
+      signed: ${{ steps.flag.outputs.signed }}
     steps:
       - uses: actions/checkout@v4
+
+      - id: flag
+        run: echo "signed=$MAC_SIGNING" >> "$GITHUB_OUTPUT"
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -31,21 +48,203 @@ jobs:
           lipo -info "build/Release/Big Apple Sam.saver/Contents/MacOS/Big Apple Sam"
           test -f "build/Release/Big Apple Sam.saver/Contents/Resources/index.html"
 
-      - name: Zip
+      - name: Import Developer ID certificate
+        if: env.MAC_SIGNING == 'true'
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/signing.keychain-db"; KCPW="$(uuidgen)"
+          security create-keychain -p "$KCPW" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KCPW" "$KC"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KCPW" "$KC" > /dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          ID=$(security find-identity -v -p codesigning "$KC" | awk '/Developer ID Application/ {print $2; exit}')
+          if [ -z "$ID" ]; then echo "::error::No 'Developer ID Application' identity in MACOS_CERT_P12"; exit 1; fi
+          echo "SIGN_ID=$ID" >> "$GITHUB_ENV"
+          echo "KC=$KC" >> "$GITHUB_ENV"
+
+      - name: Sign, notarize and staple the .saver
+        if: env.MAC_SIGNING == 'true'
         working-directory: saver/build/Release
-        run: ditto -c -k --sequesterRsrc --keepParent "Big Apple Sam.saver" "$GITHUB_WORKSPACE/Big-Apple-Sam-saver.zip"
+        env:
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          printf '%s\n' "$NOTARY_KEY_P8" > "$RUNNER_TEMP/notary.p8"
+          notarize() {
+            xcrun notarytool submit "$1" --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" \
+              --issuer "$NOTARY_ISSUER_ID" --wait --timeout 30m --output-format json > "$RUNNER_TEMP/notary.json" || true
+            cat "$RUNNER_TEMP/notary.json"; echo
+            if [ "$(jq -r .status "$RUNNER_TEMP/notary.json")" != "Accepted" ]; then
+              SUB=$(jq -r .id "$RUNNER_TEMP/notary.json")
+              [ -n "$SUB" ] && [ "$SUB" != "null" ] && xcrun notarytool log "$SUB" --key "$RUNNER_TEMP/notary.p8" \
+                --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
+              echo "::error::Notarization of $1 failed"; exit 1
+            fi
+          }
+          codesign --force --timestamp --options runtime --keychain "$KC" --sign "$SIGN_ID" "Big Apple Sam.saver"
+          codesign --verify --strict --verbose=2 "Big Apple Sam.saver"
+          ditto -c -k --keepParent "Big Apple Sam.saver" "$RUNNER_TEMP/saver.zip"
+          notarize "$RUNNER_TEMP/saver.zip"
+          xcrun stapler staple "Big Apple Sam.saver"
+          xcrun stapler validate "Big Apple Sam.saver"
+
+      - name: Package (.dmg and .zip)
+        run: |
+          mkdir -p dmg && cp -R "saver/build/Release/Big Apple Sam.saver" dmg/
+          hdiutil create -volname "Big Apple Sam" -srcfolder dmg -ov -format UDZO Big-Apple-Sam-Mac.dmg
+          ditto -c -k --sequesterRsrc --keepParent "saver/build/Release/Big Apple Sam.saver" Big-Apple-Sam-saver.zip
+
+      - name: Sign, notarize and staple the .dmg
+        if: env.MAC_SIGNING == 'true'
+        env:
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          codesign --force --timestamp --keychain "$KC" --sign "$SIGN_ID" Big-Apple-Sam-Mac.dmg
+          xcrun notarytool submit Big-Apple-Sam-Mac.dmg --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" \
+            --issuer "$NOTARY_ISSUER_ID" --wait --timeout 30m
+          xcrun stapler staple Big-Apple-Sam-Mac.dmg
+          spctl -a -vvv -t open --context context:primary-signature Big-Apple-Sam-Mac.dmg
+
+      - name: Clean up signing material
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/notary.p8"
+          [ -n "${KC:-}" ] && security delete-keychain "$KC" || true
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Big-Apple-Sam-saver
-          path: Big-Apple-Sam-saver.zip
+          name: mac
+          path: |
+            Big-Apple-Sam-Mac.dmg
+            Big-Apple-Sam-saver.zip
+
+  windows:
+    runs-on: windows-2022
+    env:
+      WIN_SIGNING: ${{ secrets.AZURE_CLIENT_ID != '' && vars.AZURE_SIGNING_ACCOUNT != '' }}
+      BAS_VERSION: 1.0.${{ github.run_number }}
+    outputs:
+      signed: ${{ steps.flag.outputs.signed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: flag
+        run: Add-Content $env:GITHUB_OUTPUT "signed=$env:WIN_SIGNING"
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Fetch WebView2 SDK
+        working-directory: windows
+        run: nuget install Microsoft.Web.WebView2 -Version 1.0.4258.31 -OutputDirectory packages -NonInteractive
+
+      - name: Build BigAppleSam.scr
+        working-directory: windows
+        run: .\build.ps1 -Version $env:BAS_VERSION
+
+      - name: Azure login
+        if: env.WIN_SIGNING == 'true'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign BigAppleSam.scr
+        if: env.WIN_SIGNING == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE }}
+          files: ${{ github.workspace }}\windows\BigAppleSam.scr
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Smoke test (run it and take screenshots)
+        working-directory: windows
+        run: .\smoke.ps1
+
+      - name: Build installer
+        working-directory: windows
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc /Q "/DAppVersion=$env:BAS_VERSION" installer.iss
+          if ($LASTEXITCODE) { throw "ISCC failed" }
+
+      - name: Sign installer
+        if: env.WIN_SIGNING == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE }}
+          files: ${{ github.workspace }}\windows\Big-Apple-Sam-Windows-Setup.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Zip the bare .scr
+        working-directory: windows
+        run: Compress-Archive -Path BigAppleSam.scr -DestinationPath Big-Apple-Sam-Windows-scr.zip -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            windows/Big-Apple-Sam-Windows-Setup.exe
+            windows/Big-Apple-Sam-Windows-scr.zip
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-screenshots
+          path: windows/shots/
+
+  release:
+    needs: [mac, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mac
+          path: out
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: out
 
       - name: Publish rolling "latest" release
+        working-directory: out
         env:
           GH_TOKEN: ${{ github.token }}
+          MAC_SIGNED: ${{ needs.mac.outputs.signed }}
+          WIN_SIGNED: ${{ needs.windows.outputs.signed }}
         run: |
-          gh release delete latest --cleanup-tag --yes || true
-          gh release create latest Big-Apple-Sam-saver.zip \
-            --title "Big Apple Sam screen saver (latest build)" \
-            --notes "Built from ${GITHUB_SHA::7}. Unzip, then double-click Big Apple Sam.saver to install. See the README for the one-time security step." \
-            --target "$GITHUB_SHA"
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          if [ "$MAC_SIGNED" = "true" ]; then
+            MAC="**Mac:** open Big-Apple-Sam-Mac.dmg and double-click Big Apple Sam.saver (signed and notarized by Apple)."
+          else
+            MAC="**Mac:** unzip Big-Apple-Sam-saver.zip and double-click Big Apple Sam.saver. This build is not notarized yet, so see the README for the one-time security step."
+          fi
+          if [ "$WIN_SIGNED" = "true" ]; then
+            WIN="**Windows 10/11:** run Big-Apple-Sam-Windows-Setup.exe (code-signed)."
+          else
+            WIN="**Windows 10/11:** run Big-Apple-Sam-Windows-Setup.exe. It is not code-signed yet, so Windows may say \"Windows protected your PC\": choose More info, then Run anyway."
+          fi
+          NOTES=$(printf 'Built from %s.\n\n%s\n\n%s\n\nSHA-256 checksums are in SHA256SUMS.txt.' "${GITHUB_SHA::7}" "$MAC" "$WIN")
+          gh release delete latest --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+          gh release create latest * --repo "$GITHUB_REPOSITORY" \
+            --title "Big Apple Sam screen savers (latest build)" --notes "$NOTES" --target "$GITHUB_SHA"

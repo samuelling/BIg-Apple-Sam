@@ -1,0 +1,6 @@
+packages/
+*.res
+*.obj
+*.scr
+shots/
+Big-Apple-Sam-Windows-Setup.exe

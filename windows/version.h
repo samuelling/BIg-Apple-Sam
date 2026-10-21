@@ -1,0 +1,2 @@
+#define BAS_VERSION_NUM 1,0,0,0
+#define BAS_VERSION_STR "1.0.0"
