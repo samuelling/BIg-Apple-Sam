@@ -3668,6 +3668,7 @@ function hbBuzz(s,F){if(s.kind==='construction'||s.kind==='positron'||s.kind==='
   if(s.bbs)o.push(hbPick(R,[`Dial into ${B}! It only takes one caller at a time, so be patient.`,`Does anyone know the secret login on ${B}? Email me. Seriously.`,
     `My handle on ${B} is ${hbE(s.p.first.toUpperCase())}${s.num%100}. Page me!`,`I spend way too much time on ${B}. My ratio is terrible.`]));
   return`<table align="center" width="80%" border="1" cellpadding="8"${s.th.panel?'':` bgcolor="${s.th.dark?'#101028':'#fffbe0'}"`}><tr><td><font size="2" color="${s.th.dark&&!s.th.panel?'#ffffff':s.th.ink}">${hbImg('newb',{sc:1})} ${o.join('<br><br>')}</font></td></tr></table>`}
+function hbAptLink(s){return HB.standalone?` | <a href="${HBAPP}#city-${HB.standalone}/apt-${s.u.id}"><b>See ${s.p.kid?'my':'my'} window in the city</b></a>`:''}
 function hbGuestbook(s,F){
   const r=hbR(s.p,30),I=HB.idx,n=2+hash(s.id,city.seed,4280)%7+(s.tags.has('sociable')?4:0);let fr=hbFriends(s,F,r,n+2).filter(x=>x.u!==F.u);
   const days=Math.max(1,F.L-F.created);const ents=[];
@@ -3713,7 +3714,7 @@ function hbPage(s,file){
   const navH=nav.map(([f,t])=>(f===file||(f==='main.html'&&file==='index.html'))?`<b>${hbE(t)}</b>`:`<a href="${hbUrl(s,f)}">${hbE(t)}</a>`);
   const foot=`${file==='index.html'?hbBuzz(s,F):''}${hbHr(th,s)}<center><font size="2">${th.counter?`You are visitor number ${hbCounter(s,F)}<br>`:''}${th.mail?`${hbImg('mail',{sc:1})} <a href="mailto:${hbE((F.first+'_'+F.last).toLowerCase().replace(/[^a-z_]/g,''))}@homeblocks.com">Email me!</a><br>`:''}
     This page was last updated on ${hbDate(F.updated)}.<br>${v.old?'Best viewed with your glasses on.':hbPick(r,['Best viewed at 800x600 in 256 colors.','Best viewed with your eyes.','This page is best viewed at 640x480.','Made with Notepad and love.'])}<br>
-    <a href="${HBROOT}">${'&#9668;'} Back to HomeBlocks</a> | <a href="${HBROOT}${s.nb.id}/">${hbE(s.nb.nm)} Neighborhood</a></font></center>`;
+    <a href="${HBROOT}">${'&#9668;'} Back to HomeBlocks</a> | <a href="${HBROOT}${s.nb.id}/">${hbE(s.nb.nm)} Neighborhood</a>${hbAptLink(s)}</font></center>`;
   let main;
   const navBar=`<p align="center"><font size="2">[ ${navH.join(' | ')} ]</font></p>`;
   if(th.layout==='side')main=`<table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td width="${th.tl.side-8}" valign="top"><font size="2" face="Arial"><br>${navH.map(x=>th.tile==='stripe'?x.replace('<a ','<a class="sn" ').replace('<b>','<b style="color:#fff">'):x).join('<br><br>')}</font></td><td width="18"></td><td valign="top">${body}${foot}</td></tr></table>`;
@@ -4623,7 +4624,7 @@ function hbGK(s,F){
     .replace('{{BBS}}',`<li><b>The MEGAzine BBS:</b> <a href="${bbs}">dial in</a> and ask the sysop (that's me) about the adventure game file area.</li>`)
     .replace('{{GUEST}}',`<p><b>Update:</b> HomeBlocks has guestbooks! <a href="${g}">Sign mine here.</a> I read every entry.</p>`)
     .replace('{{ADDR}}',`Page maintained by Sam, a fellow Schattenj&auml;ger and SysOp of <a href="${bbs}">the MEGAzine BBS</a><br><tt>schattenjaeger (at) homeblocks.com</tt><br>Last updated 31-Jan-1994`)
-    .replace('{{FOOT}}',`<hr><p class="small">You are visitor number ${hbCounter(s,F)}. <a href="${HBROOT}">Back to HomeBlocks</a> | <a href="${HBROOT}${s.nb.id}/">${hbE(s.nb.nm)} Neighborhood</a></p>`);
+    .replace('{{FOOT}}',`<hr><p class="small">You are visitor number ${hbCounter(s,F)}. <a href="${HBROOT}">Back to HomeBlocks</a> | <a href="${HBROOT}${s.nb.id}/">${hbE(s.nb.nm)} Neighborhood</a>${hbAptLink(s)}</p>`);
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>Gabriel Knight Home Page</title><style>${HBGK_CSS}
   .ctr span{display:inline-block;background:#000;color:#20ff20;font:bold 14px "Courier New",monospace;padding:1px 3px;margin:0 1px}</style></head><body class="doc">${body}<script>${HBGK_JS}<\/script></body></html>`;
   return{title:'Gabriel Knight Home Page',html,s,file:'index.html'};
@@ -4776,7 +4777,7 @@ function hbBoot(){
   hbSetLoc(HBROOT);
   dragWin(hbEl('web'),hbEl('wTb'));
   hbEl('webBtn').addEventListener('click',()=>{if(HB.open&&!mini.web)hbClose();else if(HB.open){mini.web=false;hbEl('web').hidden=false;renderIcons()}else hbOpen(HBROOT)});
-  hbEl('pbody').addEventListener('click',e=>{const a=e.target.closest('[data-hb]');if(!a)return;e.preventDefault();hbOpenPerson(+a.dataset.hb)});
+  hbEl('pbody').addEventListener('click',e=>{const a=e.target.closest('[data-hb]');if(!a)return;e.preventDefault();const s=hbIndex().byId.get(+a.dataset.hb);if(HB.fromWeb&&s){location.href=hbExtUrl(hbUrl(s));return}hbOpenPerson(+a.dataset.hb)});
   hbEl('wThrob').src=hbSprite('globe').fr[0];hbBuzzFetch();
   setInterval(hbAnimate,80);
 }
@@ -4786,7 +4787,7 @@ function boot(){
   cv=document.getElementById('c');ctx=cv.getContext('2d');bufCv=document.createElement('canvas');bctx=bufCv.getContext('2d');
   clockEl=document.getElementById('clk');liveEl=document.getElementById('live');whenBtn=document.getElementById('when');hintEl=document.getElementById('hint');
   DPR=Math.min(2,window.devicePixelRatio||1);W=Math.round(innerWidth*DPR);H=Math.round(innerHeight*DPR);cv.width=W;cv.height=H;
-  const q=new URLSearchParams(location.search),hm=/^#city-([0-9a-z]+-[0-9a-z]+)$/i.exec(location.hash);
+  const q=new URLSearchParams(location.search),hm=/^#city-([0-9a-z]+-[0-9a-z]+)(?:\/apt-(\d+))?$/i.exec(location.hash);
   const want=parseCode((SAVER&&SAVER.code)||(hm&&hm[1])||q.get('city'));
   let st=loadState();if(want&&!(st&&st.seed===want.seed&&st.born===want.born))st=null;
   if(SAVER){if(typeof SAVER.night==='boolean')nightLock=SAVER.night;if(['cga','ega','vga','svga'].includes(SAVER.gfx))GFX=SAVER.gfx;if(typeof SAVER.cyber==='boolean')CYBER=SAVER.cyber;cyberSync();document.body.classList.add('saver')}
@@ -4899,6 +4900,7 @@ function boot(){
     apStop()};
   for(const ev of ['pointermove','pointerdown','keydown','wheel'])addEventListener(ev,apExit,true);
   hbBoot();
+  if(hm&&hm[2]&&!SAVER){const u=city.units[+hm[2]];if(u&&u.kind==='res'){HB.fromWeb=true;mini.panel=false;select(u);follow=true;flyTo(u.x0+u.n*CW/2,u.wy+RH/2,clamp(W*.55/(Math.max(3,u.n)*CW),DET1()*1.4,Math.min(sMax,H*.3/RH)),1600);renderPanel()}}
   if(SAVER)apStart(true);
   lastWall=Date.now();wake();renderIcons();renderPanel();requestAnimationFrame(frame);
 }
