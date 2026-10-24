@@ -3262,7 +3262,7 @@ const HBNB=[
 ];
 const HBNBI=Object.fromEntries(HBNB.map(n=>[n.id,n]));
 /* webrings: tag -> ring */
-const HBRINGS={cat:'Cat Lovers of the City',dog:'Good Dog Webring',guitar:'Six-String Ring',synth:'Patch Cable Ring',novel:'Novelists in Progress',night:'Night Shift Ring',insomnia:'The 3 A.M. Club',
+const HBRINGS={zine:'megaZINE Readers Ring',cat:'Cat Lovers of the City',dog:'Good Dog Webring',guitar:'Six-String Ring',synth:'Patch Cable Ring',novel:'Novelists in Progress',night:'Night Shift Ring',insomnia:'The 3 A.M. Club',
   heartbreak:'Lonely Hearts Ring',dating:'Lonely Hearts Ring',marathon:'26.2 Ring',grief:'Remembrance Ring',homesick:'Far From Home Ring',knit:'Knit Wits',coffee:'Bean Counters Ring',
   film:'Darkroom Ring',retro:'8-Bit Ring',stargaze:'Stargazers Ring',spooky:'Haunted Homepages',plants:'Green Thumbs Ring',carni:'Green Thumbs Ring',fish:'Tank Talk',yoga:'Inner Peace Ring',
   parent:'Proud Parents Ring',newlywed:'Just Married Ring',baby:'Baby on Board',retiree:'Golden Years Ring',student:'Dorm Room Ring',paint:'Easel Ring','a foodie':'Kitchen Table Ring',food:'Kitchen Table Ring',
@@ -3287,15 +3287,15 @@ function hbR(p,k){return srng(p.id,city.seed,4242,k)}
 /* one site per resident (adults, plus kids 8 and up), indexed by url */
 function hbEligible(p,u){return u&&u.kind==='res'&&!u.mega&&!u.vacant&&(!p.kid||p.age>=8)}
 function hbSite(p,u,L){
-  const r=hbR(p,1),tags=hbTags(p,u,L),sc={};
+  const r=hbR(p,1),tags=hbTags(p,u,L),sc={};const zine=!p.kid&&hash(p.id,city.seed,4290)%100<7,bbs=!p.kid&&hash(p.id,city.seed,4291)%100<5;if(zine)tags.add('zine');if(bbs)tags.add('bbs');
   for(const nb of HBNB){let s=r()*1.4;for(const[k,v]of Object.entries(nb.w))if(tags.has(k))s+=v;sc[nb.id]=s}
   let nb=HBNB[0];for(const n of HBNB)if(sc[n.id]>sc[nb.id])nb=n;
   const kev=hbIsKev(p);if(kev)nb=HBNBI.SunsetStrip;
   const sub=kev?'Amplifier':nb.subs[Math.floor(r()*nb.subs.length)],num=1000+hash(p.id,city.seed,4243)%9000;
   const v=hbVoice(p,u,tags,hbR(p,2));
-  const rings=[];for(const k of ['spooky','novel','marathon','grief','homesick','heartbreak','dating','insomnia','theremin','newlywed','baby','kid','cat','dog','guitar','synth','fish','film','retro','stargaze','carni','knit','coffee','paint','yoga','computer','science','night','parent','retiree','student','a foodie','food','plants','cycle','lonely','music'])
+  const rings=[];for(const k of ['zine','spooky','novel','marathon','grief','homesick','heartbreak','dating','insomnia','theremin','newlywed','baby','kid','cat','dog','guitar','synth','fish','film','retro','stargaze','carni','knit','coffee','paint','yoga','computer','science','night','parent','retiree','student','a foodie','food','plants','cycle','lonely','music'])
     if(tags.has(k)&&HBRINGS[k]&&!rings.includes(HBRINGS[k])&&rings.length<2)rings.push(HBRINGS[k]);
-  const site={p,u,nb,sub,num,tags,v,rings,path:`/${nb.id}/${sub}/${num}/`,id:p.id};site.kind=hbKind(site);return site;
+  const site={zine,bbs,p,u,nb,sub,num,tags,v,rings,path:`/${nb.id}/${sub}/${num}/`,id:p.id};site.kind=hbKind(site);return site;
 }
 const HB={open:false,hist:[],hi:-1,cur:null,idx:null,idxL:-1,idxSeed:-1,anim:0,midi:null,trail:[],loadT:0};
 function hbIndex(){
@@ -3650,6 +3650,7 @@ function hbFriends(s,F,r,n){const I=HB.idx,o=[],seen=new Set([s.id]);
 function hbLinks(s,F,r){const fr=hbFriends(s,F,r,6),out=[];
   for(const x of fr){const rel=x.u===F.u?(x.p.kid?'':F.partner&&x.p===F.partner?'my partner':'my roommate'):x.u.b===F.u.b?`my neighbor in Apt ${x.u.f+2}${x.u.letter}`:hbPick(r,['a friend','cool page!','check it out','met online','my buddy']);
     out.push(`<a href="${hbUrl(x)}">${hbE(hbTitleOf(x))}</a>${rel?` <font size="2">(${hbE(rel)})</font>`:''}`)}
+  if(s.zine)out.push(`<a href="${HBZINE}">megaZINE</a> <font size="2">(a zine that is one sheet of paper. weird stuff!)</font>`);if(s.bbs)out.push(`<a href="${HBBBS}">The MEGAzine BBS</a> <font size="2">(dial in!)</font>`);
   for(const[t,d]of hbPickN(r,HBFAKE,2))out.push(`<a href="http://${d}/">${hbE(t)}</a>`);
   return out}
 const HBAWARD=['Golden Doorknob Award','Top 5% of the Block','HomeBlocks Pick of the Week','Rooftop Excellence Award','Fire Escape Seal of Approval','Cool Page Award'];
@@ -3657,6 +3658,15 @@ function hbAwards(s,r){return`<p align="center">${hbPickN(r,HBAWARD,2).map((a,i)
 function hbMidiBox(s){const nm=hbMidiName(s);return`<table border="2" cellpadding="3" bgcolor="#c0c0c0" align="center"><tr><td><font face="Arial" size="1" color="#000000"><b>&#9835; ${hbE(nm)}</b></font><br><a href="midi:play"><img alt="Play" title="Play" src="${hbSprite('mplay').fr[0]}" width="22" height="18"></a> <a href="midi:stop"><img alt="Stop" title="Stop" src="${hbSprite('mstop').fr[0]}" width="22" height="18"></a></td></tr></table>`}
 function hbMidiName(s){if(s.kind==='positron')return'mylittlefriend.mid';const r=hbR(s.p,7);return hbPick(r,['theme','lovesong','sunset','canyon','mysong','groove','dreams','rain','party','nocturne','journey','oldtown'])+(r()<.5?(1+Math.floor(r()*9)):'')+'.mid'}
 
+const HBZINE='http://megazine.org/',HBBBS='https://samuelling.github.io/BBS/';
+function hbBuzz(s,F){if(s.kind==='construction'||s.kind==='positron'||!(s.zine||s.bbs))return'';const R=hbR(s.p,96),v=s.v,o=[];
+  const Z=`<a href="${HBZINE}">megaZINE</a>`,B=`<a href="${HBBBS}">the MEGAzine BBS</a>`;
+  if(s.zine)o.push(hbPick(R,[`<b>Has anybody else seen ${Z}?</b> Somebody left a copy at the laundromat. It's one sheet of paper folded into a tiny book, and every page points to something weird.`,
+    `Shout out to ${Z}! A new issue comes out every month. I am trying to get my page in it.`,`I found out about HomeBlocks from ${Z}. Thanks, whoever made it.`,
+    `Picked up ${Z} at the corner store. Read the whole thing on the subway. Took four minutes. Then I spent four hours on the websites.`,`If you like this page, you'll love ${Z}. (If you hate this page, you'll still like ${Z}.)`]));
+  if(s.bbs)o.push(hbPick(R,[`Dial into ${B}! It only takes one caller at a time, so be patient.`,`Does anyone know the secret login on ${B}? Email me. Seriously.`,
+    `My handle on ${B} is ${hbE(s.p.first.toUpperCase())}${s.num%100}. Page me!`,`I spend way too much time on ${B}. My ratio is terrible.`]));
+  return`<table align="center" width="80%" border="1" cellpadding="8"${s.th.panel?'':` bgcolor="${s.th.dark?'#101028':'#fffbe0'}"`}><tr><td><font size="2" color="${s.th.dark&&!s.th.panel?'#ffffff':s.th.ink}">${hbImg('newb',{sc:1})} ${o.join('<br><br>')}</font></td></tr></table>`}
 function hbGuestbook(s,F){
   const r=hbR(s.p,30),I=HB.idx,n=2+hash(s.id,city.seed,4280)%7+(s.tags.has('sociable')?4:0);let fr=hbFriends(s,F,r,n+2).filter(x=>x.u!==F.u);
   const days=Math.max(1,F.L-F.created);const ents=[];
@@ -3664,7 +3674,8 @@ function hbGuestbook(s,F){
     const parts=[];const T=k=>s.tags.has(k);
     if(x.u.b===F.u.b)parts.push(hbPick(rr,[`Hi from ${'Apt '+(x.u.f+2)+x.u.letter}! Didn't know you had a homepage!`,'Hey neighbor!',`We should talk in the elevator more!`]));
     else{const g=s.rings.find(q=>x.rings.includes(q));if(g)parts.push(`Found you through the ${g}!`);else parts.push(hbPick(rr,['Great page!','Cool site!','Nice page!','Just surfing by!','Love the graphics!','WOW what a page.']))}
-    if(s.kind==='positron')parts.push(hbPick(rr,['POSITRON RULES!!!','Play Abercrombian Bitch at the next show!!','My Little Friend is stuck in my head. Thanks a lot.','When is the next show???','Saw you guys in Rochester, you were SO loud.','Tell Brody and Nate to show up more.']));
+    if(hash(x.id,s.id,4292)%100<4)parts.push(hbPick(rr,['Found your page through megaZINE!','Saw your page mentioned on the BBS!','Is your page going to be in the next megaZINE??']));
+    else if(s.kind==='positron')parts.push(hbPick(rr,['POSITRON RULES!!!','Play Abercrombian Bitch at the next show!!','My Little Friend is stuck in my head. Thanks a lot.','When is the next show???','Saw you guys in Rochester, you were SO loud.','Tell Brody and Nate to show up more.']));
     else if(T('grief')&&d>=F.p.arcS)parts.push(hbPick(rr,['So sorry for your loss.','Thinking of you.','What a beautiful tribute.']));
     else if(F.pets.length&&rr()<.6)parts.push(`${F.pets[0].name} is SO cute!`);
     else if(T('marathon'))parts.push('Good luck with the marathon!!');
@@ -3697,7 +3708,7 @@ function hbPage(s,file){
   else if(mod)body=mod.page(s,F,r);
   else return null;
   const navH=nav.map(([f,t])=>(f===file||(f==='main.html'&&file==='index.html'))?`<b>${hbE(t)}</b>`:`<a href="${hbUrl(s,f)}">${hbE(t)}</a>`);
-  const foot=`${hbHr(th,s)}<center><font size="2">${th.counter?`You are visitor number ${hbCounter(s,F)}<br>`:''}${th.mail?`${hbImg('mail',{sc:1})} <a href="mailto:${hbE((F.first+'_'+F.last).toLowerCase().replace(/[^a-z_]/g,''))}@homeblocks.com">Email me!</a><br>`:''}
+  const foot=`${file==='index.html'?hbBuzz(s,F):''}${hbHr(th,s)}<center><font size="2">${th.counter?`You are visitor number ${hbCounter(s,F)}<br>`:''}${th.mail?`${hbImg('mail',{sc:1})} <a href="mailto:${hbE((F.first+'_'+F.last).toLowerCase().replace(/[^a-z_]/g,''))}@homeblocks.com">Email me!</a><br>`:''}
     This page was last updated on ${hbDate(F.updated)}.<br>${v.old?'Best viewed with your glasses on.':hbPick(r,['Best viewed at 800x600 in 256 colors.','Best viewed with your eyes.','This page is best viewed at 640x480.','Made with Notepad and love.'])}<br>
     <a href="${HBROOT}">${'&#9668;'} Back to HomeBlocks</a> | <a href="${HBROOT}${s.nb.id}/">${hbE(s.nb.nm)} Neighborhood</a></font></center>`;
   let main;
@@ -4065,7 +4076,8 @@ function hbNavBtns(){hbEl('wBack').disabled=HB.hi<=0;hbEl('wFwd').disabled=HB.hi
 function hbHook(){
   const fr=hbEl('wFrame'),doc=fr.contentDocument;if(!doc||!doc.body)return;HB.doc=doc;HB.imgs=[...doc.querySelectorAll('img[data-s]')];
   doc.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href]');if(!a)return;e.preventDefault();const h=a.getAttribute('href');
-    if(h==='midi:play'){if(HB.cur&&HB.cur.res.s)hbMidiPlay(HB.cur.res.s);return}if(h==='midi:stop'){hbMidiStop();return}hbGo(h)});
+    if(h==='midi:play'){if(HB.cur&&HB.cur.res.s)hbMidiPlay(HB.cur.res.s);return}if(h==='midi:stop'){hbMidiStop();return}
+    if(/^https?:\/\/(www\.)?(megazine\.org|samuelling\.github\.io)\//i.test(h)){window.open(h.replace(/^http:/,'https:'),'_blank','noopener');return}hbGo(h)});
   doc.addEventListener('mouseover',e=>{const a=e.target.closest&&e.target.closest('a[href]');hbEl('wStat').textContent=a?(/^midi:/.test(a.getAttribute('href'))?'Play MIDI':a.getAttribute('href')):'Document: Done'});
   doc.addEventListener('submit',e=>{e.preventDefault();const f=e.target,fd=new FormData(f);
     if(f.dataset.search)return hbGo(HBROOT+'search?q='+encodeURIComponent((fd.get('q')||'').toString().trim()));

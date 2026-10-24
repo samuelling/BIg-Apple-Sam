@@ -41,7 +41,8 @@ function show(url,push){
 }
 function go(href){
   if(/^midi:/.test(href))return;
-  if(/^https?:\/\/samuelling\.github\.io\//i.test(href)){location.href=href;return}
+  if(/^https?:\/\/samuelling\.github\.io\/Big-Apple-Sam\//i.test(href)){location.href=href;return}
+  if(/^https?:\/\/(www\.)?(megazine\.org|samuelling\.github\.io)\//i.test(href)){window.open(href.replace(/^http:/,'https:'),'_blank','noopener');return}
   show(/^[a-z]+:/i.test(href)?href:'http://'+href.replace(/^\/+/,''),true);
 }
 function hook(){
