@@ -90,7 +90,7 @@ jobs:
           ditto -c -k --keepParent "Big Apple Sam.saver" "$RUNNER_TEMP/saver.zip"
           notarize "$RUNNER_TEMP/saver.zip"
           for k in 1 2 3 4; do xcrun stapler staple "Big Apple Sam.saver" && break; [ $k = 4 ] && exit 1; echo "Stapling failed, retrying in 20s"; sleep 20; done
-          xcrun stapler validate "Big Apple Sam.saver"
+          for k in 1 2 3 4; do xcrun stapler validate "Big Apple Sam.saver" && break; [ $k = 4 ] && exit 1; sleep 20; done
 
       - name: Package (.dmg and .zip)
         run: |

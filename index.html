@@ -2526,7 +2526,7 @@ function renderPanel0(){
   const nowLab=p=>nowLabel(p,t);
   const line=p=>{const nx=nextSeg(p,t);const who=p.kid?`${p.first}, ${p.age}`:`${p.first} ${p.last}, ${p.age}`;
     const bio=[p.traits.join(', '),arcText(p,L)].filter(Boolean).join('; ');
-    const hbOk=u.kind==='res'&&!u.mega&&(!p.kid||p.age>=8);
+    const hbOk=u.kind==='res'&&!u.mega&&(!p.kid||p.age>=8)&&!(p.samFam&&p!==city.sam);
     return `<div class="who"><div class="nm">${esc(who)}${hbOk?`<button class="hbl" data-hb="${p.id}" title="Open ${esc(p.first)}'s home page">Home page</button>`:''}</div>${p.job?`<div class="jb">${esc(p.job)}</div>`:''}${bio&&u.kind==='res'?`<div class="bio">${esc(bio.charAt(0).toUpperCase()+bio.slice(1))}.</div>`:''}`+
       (u.kind==='res'?`<div class="md">Mood today: ${moodWord(moodOf(p,L))}</div>`:'')+
       `<div class="now">${esc(nowLab(p))}</div>${nx?`<div class="nx">then ${esc(lc(label(p,nx.act,nx)))} at ${fmtTime(nx.s)}</div>`:''}</div>`};
@@ -3079,7 +3079,7 @@ function updateCars(dt,tod){
     city.cars.push({x:dir>0?-40:city.W+40,dir,lane:dir>0?32:16,v:60+Math.random()*55,len:13+Math.floor(Math.random()*4),col,colD:shade(col,-.25)})}
 }
 function startCity(seed,born){
-  eraL=null;city=genCity(seed,born);markParlors(city);addFrontage(city);pickKevin(city);addMega(city);makeSky(seed);sel=null;follow=false;favs=[];favI=-1;syncFavBtn();renderFollow();computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
+  eraL=null;city=genCity(seed,born);markParlors(city);addFrontage(city);pickKevin(city);addMega(city);samFamily(city);makeSky(seed);sel=null;follow=false;favs=[];favI=-1;syncFavBtn();renderFollow();computeLimits();cam.s=sMin;cam.x=(city.W-W/cam.s)/2;cam.y=STREET+10-H/cam.s;clampCam();
   for(let k=0;k<12;k++)updateCars(1,mod(simMin,1440));updateWorld(simMin);lastUpd=simMin;bufBox=null;bufF=-1;
   const co=document.getElementById('codeOut');if(co)co.value=cityCode();
 }
@@ -3287,11 +3287,11 @@ function hbR(p,k){return srng(p.id,city.seed,4242,k)}
 /* one site per resident (adults, plus kids 8 and up), indexed by url */
 function hbEligible(p,u){return u&&u.kind==='res'&&!u.mega&&!u.vacant&&(!p.kid||p.age>=8)}
 function hbSite(p,u,L){
-  const r=hbR(p,1),tags=hbTags(p,u,L),sc={};const zine=!p.kid&&hash(p.id,city.seed,4290)%100<7,bbs=!p.kid&&hash(p.id,city.seed,4291)%100<5;if(zine)tags.add('zine');if(bbs)tags.add('bbs');
+  const r=hbR(p,1),tags=hbTags(p,u,L),sc={};const zine=!p.kid&&hash(p.id,city.seed,4290)%1000<HB.buzz.z*10,bbs=!p.kid&&(hbIsSam(p)||hash(p.id,city.seed,4291)%1000<HB.buzz.b*10);if(zine)tags.add('zine');if(bbs)tags.add('bbs');
   for(const nb of HBNB){let s=r()*1.4;for(const[k,v]of Object.entries(nb.w))if(tags.has(k))s+=v;sc[nb.id]=s}
   let nb=HBNB[0];for(const n of HBNB)if(sc[n.id]>sc[nb.id])nb=n;
-  const kev=hbIsKev(p);if(kev)nb=HBNBI.SunsetStrip;
-  const sub=kev?'Amplifier':nb.subs[Math.floor(r()*nb.subs.length)],num=1000+hash(p.id,city.seed,4243)%9000;
+  const kev=hbIsKev(p),sam=hbIsSam(p);if(kev)nb=HBNBI.SunsetStrip;if(sam)nb=HBNBI.SiliconAlley;
+  const sub=kev?'Amplifier':sam?'Modem':nb.subs[Math.floor(r()*nb.subs.length)],num=1000+hash(p.id,city.seed,4243)%9000;
   const v=hbVoice(p,u,tags,hbR(p,2));
   const rings=[];for(const k of ['zine','spooky','novel','marathon','grief','homesick','heartbreak','dating','insomnia','theremin','newlywed','baby','kid','cat','dog','guitar','synth','fish','film','retro','stargaze','carni','knit','coffee','paint','yoga','computer','science','night','parent','retiree','student','a foodie','food','plants','cycle','lonely','music'])
     if(tags.has(k)&&HBRINGS[k]&&!rings.includes(HBRINGS[k])&&rings.length<2)rings.push(HBRINGS[k]);
@@ -3302,7 +3302,7 @@ function hbIndex(){
   const L=Math.floor(simMin/1440);if(HB.idx&&HB.idxL===L&&HB.idxSeed===city.seed)return HB.idx;
   const byUrl=new Map(),byId=new Map(),list=[],nb={},rings={};
   for(const u of city.units){if(u.kind!=='res'||u.mega||u.vacant)continue;
-    for(const p of u.people){if(!hbEligible(p,u))continue;const s=hbSite(p,u,L);
+    for(const p of u.people){if(!hbEligible(p,u)||(p.samFam&&!hbIsSam(p)))continue;const s=hbSite(p,u,L);
       while(byUrl.has(s.path)){s.num=s.num>=9999?1000:s.num+1;s.path=`/${s.nb.id}/${s.sub}/${s.num}/`}
       byUrl.set(s.path,s);byId.set(p.id,s);list.push(s);(nb[s.nb.id]=nb[s.nb.id]||[]).push(s);for(const g of s.rings)(rings[g]=rings[g]||[]).push(s)}}
   for(const k in rings)rings[k].sort((a,b)=>a.num-b.num||a.id-b.id);
@@ -3364,6 +3364,7 @@ function hbTheme(s){
   if(s.kind==='construction'){th.cons=true;th.awards=false;th.music=r()<.3}
   if(s.kind==='hobby'&&HBHOB[s.hob]&&r()<.6){const t2=hbTile(hbPick(r,HBHOB[s.hob].tile),null,s.num%5+1);th.tile='x';th.tl=t2;th.dark=t2.dark;const pl=t2.dark?hbPick(r,HBPAL):hbPick(r,HBPALL);th.ink=pl[0];th.link=pl[1];th.vlink=pl[2];if(th.layout==='side')th.layout='center'}
   if(s.kind==='business'){th.marquee=false;th.cons=false;th.trail=false}
+  if(s.kind==='gk'){const c=hbCv(2,2),x=c.getContext('2d');x.fillStyle='#c0c0c0';x.fillRect(0,0,2,2);Object.assign(th,{tile:'gray',tl:{url:c.toDataURL(),base:'#c0c0c0',dark:false,side:0},dark:false,ink:'#000000',link:'#0000ee',vlink:'#551a8b',font:'Times New Roman',head:'plain',layout:'plain',panel:'',music:false,marquee:false,cons:false,splash:false,awards:false,counter:true,trail:false,gfx:null,align:'left',bullet:null,hr:'hr',mail:true})}
   if(s.kind==='positron'){const t2=hbTile('flames',null,2);Object.assign(th,{tile:'flames',tl:t2,dark:true,ink:'#ffffff',link:'#ffff00',vlink:'#ff8000',font:'Arial Black',head:'big',layout:'table',panel:'#000000',music:true,marquee:false,cons:false,splash:false,awards:true,counter:true,trail:true,gfx:['#ffff00','#ff2000','#400000'],align:'left',bullet:'#ff2020'})}
   if(th.panel&&th.dark!==(hbLum(th.panel)<.45)){const p2=th.dark?HBPAL:HBPALL;const q=hbLum(th.panel)<.45?hbPick(r,HBPAL):hbPick(r,HBPALL);th.ink=q[0];th.link=q[1];th.vlink=q[2]}
   return th;
@@ -3659,7 +3660,7 @@ function hbMidiBox(s){const nm=hbMidiName(s);return`<table border="2" cellpaddin
 function hbMidiName(s){if(s.kind==='positron')return'mylittlefriend.mid';const r=hbR(s.p,7);return hbPick(r,['theme','lovesong','sunset','canyon','mysong','groove','dreams','rain','party','nocturne','journey','oldtown'])+(r()<.5?(1+Math.floor(r()*9)):'')+'.mid'}
 
 const HBZINE='http://megazine.org/',HBBBS='https://samuelling.github.io/BBS/';
-function hbBuzz(s,F){if(s.kind==='construction'||s.kind==='positron'||!(s.zine||s.bbs))return'';const R=hbR(s.p,96),v=s.v,o=[];
+function hbBuzz(s,F){if(s.kind==='construction'||s.kind==='positron'||s.kind==='gk'||!(s.zine||s.bbs))return'';const R=hbR(s.p,96),v=s.v,o=[];
   const Z=`<a href="${HBZINE}">megaZINE</a>`,B=`<a href="${HBBBS}">the MEGAzine BBS</a>`;
   if(s.zine)o.push(hbPick(R,[`<b>Has anybody else seen ${Z}?</b> Somebody left a copy at the laundromat. It's one sheet of paper folded into a tiny book, and every page points to something weird.`,
     `Shout out to ${Z}! A new issue comes out every month. I am trying to get my page in it.`,`I found out about HomeBlocks from ${Z}. Thanks, whoever made it.`,
@@ -3675,6 +3676,7 @@ function hbGuestbook(s,F){
     if(x.u.b===F.u.b)parts.push(hbPick(rr,[`Hi from ${'Apt '+(x.u.f+2)+x.u.letter}! Didn't know you had a homepage!`,'Hey neighbor!',`We should talk in the elevator more!`]));
     else{const g=s.rings.find(q=>x.rings.includes(q));if(g)parts.push(`Found you through the ${g}!`);else parts.push(hbPick(rr,['Great page!','Cool site!','Nice page!','Just surfing by!','Love the graphics!','WOW what a page.']))}
     if(hash(x.id,s.id,4292)%100<4)parts.push(hbPick(rr,['Found your page through megaZINE!','Saw your page mentioned on the BBS!','Is your page going to be in the next megaZINE??']));
+    else if(s.kind==='gk')parts.push(hbPick(rr,['Day Eleven made me laugh out loud!','I got GRACE on your quiz. Obviously.','I was stuck on Day 3 for a week too!','See you on the BBS, sysop!','Number 7 on your top ten is the best one.','Please write another story!']));
     else if(s.kind==='positron')parts.push(hbPick(rr,['POSITRON RULES!!!','Play Abercrombian Bitch at the next show!!','My Little Friend is stuck in my head. Thanks a lot.','When is the next show???','Saw you guys in Rochester, you were SO loud.','Tell Brody and Nate to show up more.']));
     else if(T('grief')&&d>=F.p.arcS)parts.push(hbPick(rr,['So sorry for your loss.','Thinking of you.','What a beautiful tribute.']));
     else if(F.pets.length&&rr()<.6)parts.push(`${F.pets[0].name} is SO cute!`);
@@ -3698,6 +3700,7 @@ function hbGbPage(s,F){const ents=hbGuestbook(s,F),th=s.th;
 
 function hbPage(s,file){
   const L=F0(),F=hbFacts(s,L);s.F=F;s.title=s.title||hbTitle(s,F);const th=s.th=s.th||hbTheme(s),v=s.v,r=hbR(s.p,40+file.length);
+  if(s.kind==='gk'&&file==='index.html')return hbGK(s,F);
   if(s.kind==='construction')F.updated=F.created;
   const home=th.splash?'main.html':'index.html';if(th.splash&&file==='index.html')return hbSplash(s,F);if(th.splash&&file==='main.html')file='index.html';
   const mods=hbMods(s,F),nav=[[home,'Home']].concat(mods.map(m=>[m.f,m.nav(F)]),[['guestbook.html','Guestbook']],s.kind==='construction'?[]:[['links.html','Links']]);
@@ -3834,7 +3837,7 @@ const HBBIZ=[[/seamstress/,'Alterations by {F}','Hems, zippers, wedding dresses.
   [/travel agent/,'{F}\'s Travel Deals','Cruises, flights and getaways. Call me before you book!'],[/jazz pianist/,'Piano Lessons with {F}','All ages, all levels. 50 years of playing.'],[/architect/,'{L} Design Studio','Renovations, additions and dream houses.'],[/accountant|bookkeep/,'{L} Tax & Bookkeeping','Tax season is coming. Don\'t panic. Call me.']];
 const HBFANSHOW=['The {N} Files','Late Night at the {N}','{A} Heights','Captain {N}','The {N} Family','{A} Detectives'];
 function hbKind(s){
-  if(hbIsKev(s.p))return'positron';
+  if(hbIsKev(s.p))return'positron';if(hbIsSam(s.p))return'gk';
   const r=hbR(s.p,70),T=k=>s.tags.has(k),v=s.v,p=s.p;if(v.kid)return r()<.25?'construction':'about';
   const hob=Object.keys(HBHOB).filter(k=>T(k));const biz=!p.kid&&HBBIZ.find(([re])=>re.test(p.job||''));
   const w=[['about',3],['construction',v.young||T('messy')||T('restless')?.9:v.old?.2:.45],['links',.25],['fan',.3]];
@@ -3849,7 +3852,7 @@ function hbKindTitle(s,F){const r=hbR(s.p,73),p=s.p;
   switch(s.kind){case'hobby':return hbFill(hbPick(r,HBHOB[s.hob].t),s,F);case'family':return hbPick(r,[`The ${plural(p.last)} Home Page`,`The ${p.last} Family`,`Welcome to the ${p.last} House!`]);
     case'construction':return hbPick(r,[`${p.first}'s Page (UNDER CONSTRUCTION)`,'My First Web Page!!!',`${p.first}'s Home Page`,`Coming Soon: ${p.first}'s Page`]);
     case'diary':return hbPick(r,[`${p.first}'s Online Journal`,'Dear Diary...',`${p.first.toLowerCase()}'s notebook`,'Thoughts From Apartment '+(F?F.u.f+2+F.u.letter:'')]);
-    case'business':return hbFill(s.biz[1],s,F);case'fan':s.fan=s.fan||hbFanName(s);return`The Unofficial ${s.fan} Fan Page`;case'positron':return'POSITRON - Official Home Page';case'links':return hbPick(r,[`${p.first}'s Hotlist`,`${p.first}'s Favorite Places on the Web`,'Cool Links!!!'])}
+    case'business':return hbFill(s.biz[1],s,F);case'fan':s.fan=s.fan||hbFanName(s);return`The Unofficial ${s.fan} Fan Page`;case'positron':return'POSITRON - Official Home Page';case'gk':return'The Gabriel Knight Home Page';case'links':return hbPick(r,[`${p.first}'s Hotlist`,`${p.first}'s Favorite Places on the Web`,'Cool Links!!!'])}
   return null}
 function hbFanName(s){const r=hbR(s.p,74);return r()<.5?hbBand(r):hbPick(r,HBFANSHOW).replace('{N}',hbPick(r,HBNOUN)).replace('{A}',hbPick(r,HBADJ))}
 /* graphic headers: words drawn as an image, the way people made section titles in paint programs */
@@ -3963,6 +3966,669 @@ function hbKPositron(s,F,mods,r){const R=hbR(s.p,95),th=s.th,yrs=new Date(F.L*86
   ${mods.length?hbUl(mods.map(m=>`<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`)):''}`}
 HBKIND.positron=hbKPositron;
 
+const HBGK_CSS=String.raw`:root{--face:#c0c0c0;--hi:#ffffff;--shade:#808080;--dark:#000000;--ink:#000000;--link:#0000ee;--visited:#551a8b;--ui:"MS Sans Serif",Arial,Helvetica,sans-serif;--serif:"Times New Roman",Times,serif;--mono:"Courier New",Courier,monospace}
+*,*::before,*::after{box-sizing:border-box}html{background:#c0c0c0}body.doc{margin:0}
+.tb{font:inherit;color:#000;background:#c0c0c0;padding:3px 9px;border:1px solid;border-color:#fff #000 #000 #fff;box-shadow:inset -1px -1px 0 #808080}
+/* ---------- the document (as plain as 1993 gets) ---------- */
+body.doc {
+  background: var(--face);
+  border: 2px solid; border-color: var(--shade) var(--hi) var(--hi) var(--shade);
+  box-shadow: inset 1px 1px 0 var(--dark);
+  padding: 8px 16px 20px;
+  font-family: var(--serif); font-size: 18px; line-height: 1.25; color: var(--ink);
+}
+body.doc a { color: var(--link); }
+body.doc a:visited { color: var(--visited); }
+body.doc a:focus-visible { outline: 1px dotted var(--ink); outline-offset: 2px; }
+body.doc h1 { font-size: 2em; font-weight: bold; margin: 0.3em 0 0.4em; text-wrap: balance; }
+body.doc h2 { font-size: 1.5em; font-weight: bold; margin: 0.8em 0 0.4em; }
+body.doc h3 { font-size: 1.17em; font-weight: bold; margin: 1em 0 0.3em; }
+body.doc p, body.doc ul, body.doc dl { margin: 0.8em 0; }
+body.doc ul { padding-left: 2em; list-style: disc; }
+body.doc dt { font-weight: bold; margin-top: 0.7em; }
+body.doc dd { margin-left: 2em; }
+body.doc hr { border: 0; height: 4px; margin: 1em 0; border-top: 1px solid var(--shade); border-bottom: 1px solid var(--hi); box-sizing: content-box; }
+body.doc address { font-style: italic; }
+body.doc pre, body.doc tt { font-family: var(--mono); font-size: 0.9em; }
+body.doc pre { overflow-x: auto; margin: 0.8em 0; }
+.small { font-size: 0.8em; }
+
+/* in-line banner, an EGA-colour GIF in spirit */
+#banner {
+  display: block; width: 100%; max-width: 640px; height: auto; aspect-ratio: 320 / 96;
+  margin: 6px 0 10px; image-rendering: pixelated; image-rendering: crisp-edges; background: #000;
+}
+
+.hint-body { border: 1px solid var(--shade); background: #d8d8d8; padding: 4px 10px; margin: 4px 0 4px 0; }
+.hint-body[hidden] { display: none !important; }
+.spoiler { background: #000; color: #000; cursor: pointer; }
+.spoiler.shown { background: transparent; color: inherit; }
+.tablewrap { overflow-x: auto; }
+table.cast { border-collapse: collapse; width: 100%; }
+table.cast th, table.cast td { border: 1px solid #000; padding: 3px 8px; text-align: left; vertical-align: top; }
+
+.gallery { display: flex; flex-wrap: wrap; gap: 14px; margin: 0.8em 0; padding: 0; list-style: none; }
+.gallery figure { margin: 0; flex: 1 1 200px; min-width: 0; max-width: 320px; }
+.gallery canvas { display: block; width: 100%; height: auto; aspect-ratio: 160 / 96; image-rendering: pixelated; image-rendering: crisp-edges; border: 2px solid; border-color: var(--shade) var(--hi) var(--hi) var(--shade); background: #000; }
+.gallery figcaption { font-size: 0.85em; margin-top: 4px; }
+.story { border: 1px solid var(--shade); background: #d0d0d0; padding: 2px 18px 8px; margin: 0.8em 0; }
+.story p { margin: 0.7em 0; }
+.story .dialogue { margin-left: 1.5em; }
+.quiz fieldset { border: 2px groove var(--hi); margin: 0.8em 0; padding: 4px 12px 8px; }
+.quiz legend { font-weight: bold; padding: 0 4px; }
+.quiz label { display: block; margin: 3px 0; }
+body.doc button.tb { font-family: var(--ui); font-size: 14px; padding: 4px 14px; cursor: pointer; }
+body.doc button.tb:active { border-color: var(--dark) var(--hi) var(--hi) var(--dark); box-shadow: inset 1px 1px 0 var(--shade); }
+body.doc button.tb:focus-visible { outline: 1px dotted var(--dark); outline-offset: -4px; }
+body.doc ol { padding-left: 2em; margin: 0.8em 0; }
+body.doc ol li { margin: 0.3em 0; }
+`;
+const HBGK_BODY=String.raw`
+
+<canvas id="banner" width="320" height="96" role="img" aria-label="Pixel-art banner: a full moon over New Orleans rooftops and church spires, with the words Gabriel Knight, Sins of the Fathers"></canvas>
+
+<h1>The Gabriel Knight Home Page</h1>
+
+<p><i>An unofficial fan page for <b>Gabriel Knight: Sins of the Fathers</b>, a Sierra On-Line adventure game designed by Jane Jensen.</i></p>
+
+<hr>
+
+<p>Welcome, fellow Schattenj&auml;ger! This page is for everyone who has spent a long night in New Orleans with a flashlight, a rubber snake, and a voodoo doll that Grace says is "not a toy." I put it together on my school account after I finished the game for the third time. Please be kind to the server. It is a Sun workstation and it has feelings.</p>
+
+<p><b>Spoiler policy:</b> Anything that gives away the plot is behind a black bar. Click the bar to read it. Hints work the same way.</p>
+
+{{TOP}}
+<hr>
+
+<h2><a name="contents">Contents</a></h2>
+<ul>
+  <li><a href="#whatsnew">What's New</a></li>
+  <li><a href="#fanfic">Fan Fiction Corner</a></li>
+  <li><a href="#gallery">Fan Art Gallery</a></li>
+  <li><a href="#quiz">Which Character Are You?</a></li>
+  <li><a href="#topten">Top Ten List</a></li>
+  <li><a href="#theories">Crackpot Theories</a></li>
+  <li><a href="#about">About the Game</a></li>
+  <li><a href="#cast">The Cast</a></li>
+  <li><a href="#places">Places in New Orleans (the real ones)</a></li>
+  <li><a href="#lore">Schattenj&auml;ger Lore</a></li>
+  <li><a href="#hints">Hint Line</a></li>
+  <li><a href="#faq">Frequently Asked Questions</a></li>
+  <li><a href="#sys">System Requirements</a></li>
+  <li><a href="#links">Other Places on the Net</a></li>
+  <li><a href="#guest">Guestbook</a></li>
+</ul>
+
+<hr>
+
+<h2><a name="whatsnew">What's New</a></h2>
+<dl>
+  <dt>31-Jan-1994</dt>
+  <dd>Big update! Added the <a href="#fanfic">Fan Fiction Corner</a>, a <a href="#gallery">Fan Art Gallery</a>, a <a href="#quiz">quiz</a>, a <a href="#topten">Top Ten list</a> and some <a href="#theories">theories</a>. Send me your stories!</dd>
+  <dt>24-Jan-1994</dt>
+  <dd>Rebuilt the cast table. Added the Hint Line. Thanks to everyone who wrote in about the voodoo doll puzzle.</dd>
+  <dt>17-Jan-1994</dt>
+  <dd>Rumor: a CD-ROM version with spoken dialogue is in the works. I have no proof. If you know anything, <a href="#guest">write to me</a>.</dd>
+  <dt>09-Jan-1994</dt>
+  <dd>Added a section on the real New Orleans locations that appear in the game.</dd>
+  <dt>02-Jan-1994</dt>
+  <dd>First version of this page. It has one picture and a list of characters.</dd>
+</dl>
+
+<hr>
+
+<h2><a name="fanfic">Fan Fiction Corner</a></h2>
+<p>Stories set in the world of the game, written by fans. These assume you have <b>finished the game</b>, so there may be spoilers. Everyone in them belongs to Sierra and Jane Jensen. I just borrowed them for the afternoon.</p>
+
+<h3>Day Eleven</h3>
+<p class="small">by the webmaster. Rated PG. Contains rain, paperwork, and a library book.</p>
+
+<div class="story">
+<p>The rain started at six, which in New Orleans means nothing. It starts at six, it stops at seven, and by eight the Quarter has forgotten it ever happened and gone back to sweating.</p>
+
+<p>Gabriel Knight stood at the front window of St. George's Rare Books with a cup of coffee and watched the rain bounce off Jackson Square. He had been standing there long enough that the coffee had gone cold and a tour group had started to take his picture.</p>
+
+<p class="dialogue">"You're standing in the window again," Grace said from behind the counter.</p>
+<p class="dialogue">"I'm thinking."</p>
+<p class="dialogue">"You're being photographed."</p>
+<p class="dialogue">"That's part of the thinking."</p>
+
+<p>She did not look up from the inventory ledger. Grace had a way of not looking up that could be heard from across the room. "There's a package on your desk."</p>
+
+<p>It was a small package, in brown paper, tied with string. There was no return address and no stamp. Gabriel turned it over twice, which was twice more than Grace thought wise.</p>
+
+<p class="dialogue">"Did it come in the mail?"</p>
+<p class="dialogue">"It was on the step when I opened up."</p>
+<p class="dialogue">"Does it tick?"</p>
+<p class="dialogue">"I do not open things that tick, hum, or smell like a basement."</p>
+<p class="dialogue">"It does not do any of those things."</p>
+<p class="dialogue">"It might. You haven't had it long."</p>
+
+<p>He cut the string. Inside was a book, old and small, bound in cloth that had once been green. The spine had no title. The first page was stamped in faded purple ink with the name of a library in Germany, and under the stamp, in a careful hand, somebody had written a date. It was a very old date. Beside it was another word, in the same careful hand, and the word was <i>overdue</i>.</p>
+
+<p>Grace had come around the counter without a sound. She read the stamp over his shoulder, then took the book from his hands, opened the ledger on the desk, and began to write numbers.</p>
+
+<p class="dialogue">"What are you doing?"</p>
+<p class="dialogue">"Late fees." She wrote for a while. "At two cents a day, this comes to a figure I would like to be able to say out loud in front of you without you fainting. So I will write it down." She turned the ledger around.</p>
+
+<p>Gabriel looked at the number for a long moment. "That's more than the shop is worth."</p>
+
+<p class="dialogue">"It is more than the building is worth."</p>
+<p class="dialogue">"Maybe they take credit."</p>
+
+<p>The bell over the door rang. Detective Mosely came in shaking an umbrella that had given up some time ago. He looked at the book, then at Gabriel, then at Grace, who had closed the ledger with the calm of a woman who has seen the end of the quarter.</p>
+
+<p class="dialogue">"Tell me that is not one of your books," Mosely said.</p>
+<p class="dialogue">"It is a library book," Gabriel said. "It is not <i>mine</i>. It just arrived."</p>
+<p class="dialogue">"Same thing, with you."</p>
+
+<p>Outside the rain stopped. It was seven. Somewhere in the Quarter a man started to hose down a sidewalk, and the whole city began, slowly, to steam.</p>
+
+<p>Gabriel picked up his pen, found a clean sheet of paper, and wrote <i>Chapter One</i> at the top. Grace watched him do it. She did not say anything. She did not have to.</p>
+
+<p><b>THE END</b></p>
+</div>
+
+<h3>Send me your story!</h3>
+<p>I would love to put your fan fiction here. Send it to the address at the bottom of the page in plain ASCII text, with a title and a rating. I will post anything that is not mean. Please no stories where Gabriel is a cat. (Okay, one.)</p>
+
+<hr>
+
+<h2><a name="gallery">Fan Art Gallery</a></h2>
+<p>Scenes from my own drawing pad, redrawn in 16 colors on the PC. These are places, not people. I am bad at faces. All made with a paint program and too much free time.</p>
+
+<ul class="gallery">
+  <li><figure><canvas id="art1" width="160" height="96" role="img" aria-label="Pixel art of white above-ground tombs in a cemetery under a yellow moon"></canvas><figcaption><b>Plate 1.</b> Tombs by moonlight.</figcaption></figure></li>
+  <li><figure><canvas id="art2" width="160" height="96" role="img" aria-label="Pixel art of a lit bookshop window at night with stacks of books and a rainy street"></canvas><figcaption><b>Plate 2.</b> A bookshop window in the rain.</figcaption></figure></li>
+  <li><figure><canvas id="art3" width="160" height="96" role="img" aria-label="Pixel art of a gas lamp on an iron balcony against a purple night sky"></canvas><figcaption><b>Plate 3.</b> Gas lamp, iron balcony.</figcaption></figure></li>
+</ul>
+<p class="small">Want your art here? Send a GIF or a PCX (under 100K, please). The page is on a slow line.</p>
+
+<hr>
+
+<h2><a name="quiz">Which Character Are You?</a></h2>
+<p>A very scientific quiz. Pick one answer for each question and press the button.</p>
+
+<form class="quiz" id="quizform" onsubmit="return false">
+  <fieldset>
+    <legend>1. It is raining and a mysterious package has arrived. You:</legend>
+    <label for="q1a"><input type="radio" id="q1a" name="q1" value="g"> Open it. It would make a good story.</label>
+    <label for="q1b"><input type="radio" id="q1b" name="q1" value="r"> Check the ledger first. Then open it.</label>
+    <label for="q1c"><input type="radio" id="q1c" name="q1" value="m"> Call it in. Do not touch it.</label>
+  </fieldset>
+  <fieldset>
+    <legend>2. Your ideal Saturday night:</legend>
+    <label for="q2a"><input type="radio" id="q2a" name="q2" value="g"> A cafe, a notebook, and a good-looking stranger.</label>
+    <label for="q2b"><input type="radio" id="q2b" name="q2" value="r"> The library. Obviously.</label>
+    <label for="q2c"><input type="radio" id="q2c" name="q2" value="m"> Sleep. I worked a double.</label>
+  </fieldset>
+  <fieldset>
+    <legend>3. Someone tells you the supernatural is real. You:</legend>
+    <label for="q3a"><input type="radio" id="q3a" name="q3" value="g"> Say "Of course," then run the other way.</label>
+    <label for="q3b"><input type="radio" id="q3b" name="q3" value="r"> Ask for sources.</label>
+    <label for="q3c"><input type="radio" id="q3c" name="q3" value="m"> Ask for ID.</label>
+  </fieldset>
+  <fieldset>
+    <legend>4. Pick a snack:</legend>
+    <label for="q4a"><input type="radio" id="q4a" name="q4" value="g"> Beignets, with a lot of powdered sugar on the shirt.</label>
+    <label for="q4b"><input type="radio" id="q4b" name="q4" value="r"> Tea, no sugar.</label>
+    <label for="q4c"><input type="radio" id="q4c" name="q4" value="m"> Whatever is in the break room.</label>
+  </fieldset>
+  <p><button type="button" class="tb" id="quizbtn">Tell me who I am</button></p>
+  <p id="quizout" aria-live="polite"></p>
+</form>
+
+<hr>
+
+<h2><a name="topten">Top Ten Things Gabriel Should Not Say to Detective Mosely</a></h2>
+<ol>
+  <li>"I'm doing research for a book."</li>
+  <li>"It's a long story."</li>
+  <li>"I was just in the neighborhood."</li>
+  <li>"Technically it's not breaking in if the door is a suggestion."</li>
+  <li>"You wouldn't believe me."</li>
+  <li>"Grace said it was fine."</li>
+  <li>"I can explain the snake."</li>
+  <li>"I have a theory."</li>
+  <li>"Don't worry, I've read about this."</li>
+  <li>"Where were <i>you</i> last night?"</li>
+</ol>
+<p class="small">Got a better one? Write to me and I will add it. Number 7 is the best, so far.</p>
+
+<hr>
+
+<h2><a name="theories">Crackpot Theories</a></h2>
+<p>Things I have decided are true, with no evidence whatsoever.</p>
+<ul>
+  <li><b>Grace runs the whole shop and Gabriel is just the guy on the sign.</b> The books are always in order. Gabriel could not alphabetize a grocery list.</li>
+  <li><b>Gabriel owns exactly one shirt.</b> Possibly two. The second is for funerals.</li>
+  <li><b>Everyone in New Orleans knows more than they say.</b> This is why you have to talk to them all, twice.</li>
+  <li><b>The best puzzle in the game is the one you solved by accident.</b> You know the one.</li>
+  <li><b>Detective Mosely is secretly a fan of Gabriel's writing.</b> There is no proof. There is also no proof against.</li>
+</ul>
+<p>Got a theory of your own? Write to me, or post it on the adventure game newsgroups and see what happens.</p>
+
+<hr>
+
+<h2><a name="about">About the Game</a></h2>
+<p><b>Gabriel Knight: Sins of the Fathers</b> came out from Sierra On-Line at the end of 1993. It was written and designed by <b>Jane Jensen</b>, who worked on the King's Quest and Police Quest games before this one. The music is by <b>Robert Holmes</b>, and I think it is some of the best on the PC.</p>
+
+<p>You play <b>Gabriel Knight</b>, the owner of a rare bookshop in New Orleans called <i>St. George's Rare Books</i>. He is also a struggling novelist, a bit of a ladies' man, and a man who keeps having the same bad dream. A string of murders hits the city, each with signs of voodoo. Gabriel decides they would make a great book. Then it starts to look like they are about something larger, and about him.</p>
+
+<p>The game is played over <b>ten days</b>. Each day has its own set of things to do, and you cannot move on until you have done them. Unlike many adventure games, you cannot easily get permanently stuck. You can, however, get very lost on Day 3.</p>
+
+<p>The look is hand-painted and moody. Conversations are done as a tree where you pick what to say. Do not skip any of them.</p>
+
+<h3>Why it's good</h3>
+<ul>
+  <li>The story takes itself seriously and is still funny.</li>
+  <li>It uses real history, real streets, and real folklore, so you learn something.</li>
+  <li>The puzzles usually make sense once you think like Gabriel (a writer who talks his way into things).</li>
+  <li>There is very little dying compared to other Sierra games.</li>
+</ul>
+
+<hr>
+
+<h2><a name="cast">The Cast</a></h2>
+<p>If I got something wrong, please write and I will fix it.</p>
+
+<div class="tablewrap">
+<table class="cast">
+  <tr><th>Character</th><th>Who they are</th></tr>
+  <tr><td><b>Gabriel Knight</b></td><td>Bookshop owner, would-be author, the hero.</td></tr>
+  <tr><td><b>Grace Nakimura</b></td><td>Gabriel's assistant at the shop. Smarter than him, and knows it. The real brains of the operation.</td></tr>
+  <tr><td><b>Detective Mosely</b></td><td>New Orleans police. Not a fan of writers who poke around crime scenes. Gruff, but not a bad guy.</td></tr>
+  <tr><td><b>Dr. John</b></td><td>Runs a voodoo shop in the Quarter. Everyone seems to know him. Do you trust him? Hmm.</td></tr>
+  <tr><td><b>Wolfgang Ritter</b></td><td>A man with a very old family tradition. Gabriel meets him later in the game.</td></tr>
+</table>
+</div>
+
+<p class="small">This is a short list, not everyone. Gabriel meets many more people in the Quarter. Talk to all of them.</p>
+
+<hr>
+
+<h2><a name="places">Places in New Orleans (the real ones)</a></h2>
+<p>Much of the game takes place in the actual French Quarter. The artists clearly did their homework. If you ever go to New Orleans, here are real places you will recognize.</p>
+<ul>
+  <li><b>Jackson Square</b> - the park in the middle of the Quarter, with the statue of Andrew Jackson on horseback.</li>
+  <li><b>St. Louis Cathedral</b> - faces the square. Three spires.</li>
+  <li><b>St. Louis Cemetery No. 1</b> - old above-ground tombs. The city buried its dead above ground because of the high water table.</li>
+  <li><b>The French Quarter</b> - iron balconies, narrow streets, courtyards.</li>
+  <li><b>Marie Laveau</b> - the famous "Voodoo Queen" of 19th century New Orleans, whose name still comes up everywhere in the city.</li>
+</ul>
+<p>The story invents its own characters and plot. The geography and the folklore are real enough to make you want to visit.</p>
+
+<hr>
+
+<h2><a name="lore">Schattenj&auml;ger Lore</a></h2>
+<p>The German word <i>Schattenj&auml;ger</i> means "shadow hunter." In the game, the Knight family has an ancient role of this kind, and Gabriel finds out about it as the story goes on.</p>
+
+<p><b>Spoiler:</b> <span class="spoiler" tabindex="0" role="button" aria-label="Spoiler, click to reveal">Gabriel is supposed to be the next one in a long line of Schattenj&auml;gers, and the dream he keeps having is part of why. Rittersberg, in Germany, is where he learns the most.</span></p>
+
+<p>Part of the fun is that the game mixes real German and Louisiana folklore. Look things up in a library if you can. (The library, not the Net. Not everything is on the Net yet.)</p>
+
+<hr>
+
+<h2><a name="hints">Hint Line</a></h2>
+<p>Stuck? These start vague and get more specific. Click a hint to show or hide it.</p>
+
+<h3>General advice</h3>
+<ul>
+  <li><a href="#hints" data-hint="h1">Hint 1</a>
+    <div class="hint-body" id="h1" hidden>Talk to everyone about everything. When you go somewhere new, go back and talk to the same people again. They often have new things to say.</div></li>
+  <li><a href="#hints" data-hint="h2">Hint 2</a>
+    <div class="hint-body" id="h2" hidden>Look at everything. Then look at it again with the Eye icon. The game does not always tell you what matters.</div></li>
+  <li><a href="#hints" data-hint="h3">Hint 3</a>
+    <div class="hint-body" id="h3" hidden>Keep your inventory in mind. If something was handed to you, it is probably for a reason, even if that reason is five days away.</div></li>
+  <li><a href="#hints" data-hint="h4">Hint 4</a>
+    <div class="hint-body" id="h4" hidden>Save often, and in more than one slot. Sierra games are famous for this advice, and the advice is correct.</div></li>
+  <li><a href="#hints" data-hint="h5">Hint 5</a>
+    <div class="hint-body" id="h5" hidden>If you cannot find anything left to do on a day, you have probably missed a conversation. Go back through the Quarter and talk to people.</div></li>
+</ul>
+
+<p>I do not post a full walkthrough because it takes the fun out. If you are truly stuck, write me and tell me which day you are on.</p>
+
+<hr>
+
+<h2><a name="faq">Frequently Asked Questions</a></h2>
+<dl>
+  <dt>Q: Is there a sequel?</dt>
+  <dd>A: Nothing official. The ending leaves plenty of room, and I really hope so.</dd>
+
+  <dt>Q: Can I play it on a Macintosh?</dt>
+  <dd>A: Not that I know of. It is a DOS game.</dd>
+
+  <dt>Q: Does it run in Windows?</dt>
+  <dd>A: It is a DOS program. Several people run it from the DOS prompt and say it works fine. Exit Windows first if you are low on memory.</dd>
+
+  <dt>Q: I have no sound.</dt>
+  <dd>A: Check that your sound card is configured in the install program. Most trouble is with the IRQ and DMA settings. Reading the manual is not fun but it works.</dd>
+
+  <dt>Q: Is it scary?</dt>
+  <dd>A: It is dark and has some grim moments, but it is more suspense than gore. It is meant for older players.</dd>
+
+  <dt>Q: Where can I buy it?</dt>
+  <dd>A: Software stores, or order direct from Sierra.</dd>
+
+  <dt>Q: Can I put your picture on my page?</dt>
+  <dd>A: I drew the banner myself, so yes, but please link back. Anything from the game itself belongs to Sierra, so ask them.</dd>
+</dl>
+
+<hr>
+
+<h2><a name="sys">System Requirements</a></h2>
+<p>From the box, as best I remember:</p>
+<pre>
+  Computer ....... IBM PC or compatible, 386 or better
+  Memory ......... 640K base plus extended memory
+  Display ........ VGA, 256 colors
+  Sound .......... AdLib, Sound Blaster, Roland, and others
+  Input .......... Keyboard, mouse recommended
+  Disk space ..... Hard drive required
+</pre>
+<p class="small">Check the box for your version. I am not responsible if your 386 starts smoking.</p>
+
+<hr>
+
+<h2><a name="links">Other Places on the Net</a></h2>
+<p>This is the part of the page where people usually put links. I have only heard of a few places, and I do not want to send you to a dead address, so here is where to look instead:</p>
+<ul>
+  <li><b>Usenet:</b> the adventure game newsgroups, for discussion and hints.</li>
+  <li><b>Sierra's online service:</b> the company has its own network where players can talk to each other.</li>
+{{BBS}}
+  <li><b>Archie and Gopher:</b> search for "gabriel knight" and see what turns up.</li>
+</ul>
+<p>If you have a Gabriel Knight page too, write to me and I will add a link.</p>
+
+<hr>
+
+<h2><a name="guest">Guestbook</a></h2>
+<p>I would love to have a real guestbook, but my account does not allow forms yet. For now, please send me email at the address below. I read every message, and I answer most of them.</p>
+{{GUEST}}
+
+<hr>
+
+<address>
+{{ADDR}}
+</address>
+
+<p class="small"><i>Gabriel Knight and all related characters are trademarks of Sierra On-Line. This is an unofficial fan page, made with love, and is not affiliated with or endorsed by Sierra On-Line.</i></p>
+
+  
+{{FOOT}}
+`;
+const HBGK_JS=String.raw`
+(function () {
+  /* ---------- banner: strict 16-colour EGA palette, Bayer-dithered, drawn at 320x96 ---------- */
+  var c = document.getElementById('banner');
+  var g = c.getContext('2d');
+  var W = c.width, H = c.height;
+  var E = {
+    black: '#000000', blue: '#0000aa', magenta: '#aa00aa', ltmagenta: '#ff55ff',
+    gray: '#aaaaaa', dkgray: '#555555', yellow: '#ffff55', white: '#ffffff', red: '#aa0000', brown: '#aa5500'
+  };
+  var bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  function px(x, y, col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); }
+  function rect(x, y, w, h, col) { g.fillStyle = col; g.fillRect(x, y, w, h); }
+
+  // sky: black to blue to magenta, dithered
+  var bands = [E.black, E.blue, E.magenta, E.ltmagenta];
+  for (var y = 0; y < H; y++) {
+    var t = Math.min(1, y / (H * 0.9));
+    var f = t * 3, i = Math.min(2, Math.floor(f)), frac = f - i;
+    for (var x = 0; x < W; x++) {
+      var th = (bayer[y & 3][x & 3] + 0.5) / 16;
+      px(x, y, frac > th ? bands[i + 1] : bands[i]);
+    }
+  }
+
+  var seed = 11;
+  function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  for (var s = 0; s < 36; s++) px(Math.floor(rnd() * W), Math.floor(rnd() * 34), s % 3 ? E.white : E.gray);
+
+  // moon
+  var mx = 256, my = 28, mr = 13;
+  for (var yy = -mr - 2; yy <= mr + 2; yy++) {
+    for (var xx = -mr - 2; xx <= mr + 2; xx++) {
+      var d = Math.sqrt(xx * xx + yy * yy);
+      if (d <= mr) px(mx + xx, my + yy, (d > mr - 3 && ((xx + yy) & 1) === 0) ? E.gray : E.yellow);
+      else if (d <= mr + 2 && ((xx + yy) & 1) === 0) px(mx + xx, my + yy, E.gray);
+    }
+  }
+  px(mx - 4, my - 3, E.gray); px(mx + 3, my + 4, E.gray); px(mx + 5, my - 5, E.gray);
+
+  function spire(cx, base, w, h, col) {
+    for (var k = 0; k < h; k++) {
+      var half = Math.max(0, Math.round((w / 2) * (1 - k / h)));
+      rect(cx - half, base - k, half * 2 + 1, 1, col);
+    }
+  }
+  // cathedral
+  rect(58, 60, 54, 36, E.black);
+  rect(62, 52, 14, 10, E.black);
+  rect(94, 52, 14, 10, E.black);
+  spire(69, 52, 14, 20, E.black);
+  spire(101, 52, 14, 20, E.black);
+  rect(76, 42, 18, 20, E.black);
+  spire(85, 42, 18, 30, E.black);
+  rect(85, 6, 1, 6, E.black);
+  rect(84, 8, 3, 1, E.black);
+  [[66, 58], [73, 58], [97, 58], [104, 58], [82, 52], [88, 52]].forEach(function (p) { rect(p[0], p[1], 2, 3, E.yellow); });
+  rect(83, 70, 4, 8, E.yellow);
+
+  // row houses with iron balconies
+  function house(x, w, h, roofH) {
+    rect(x, H - h, w, h, E.dkgray);
+    for (var k = 0; k < roofH; k++) rect(x + k, H - h - roofH + k, w - k * 2, 1, E.black);
+    var cols = Math.floor((w - 4) / 6);
+    for (var cx = 0; cx < cols; cx++) {
+      var wx = x + 3 + cx * 6;
+      rect(wx, H - h + 5, 3, 5, rnd() > 0.45 ? E.yellow : E.black);
+      rect(wx - 1, H - h + 11, 5, 1, E.black);
+      for (var bx = 0; bx < 5; bx += 2) px(wx - 1 + bx, H - h + 12, E.black);
+    }
+  }
+  var x0 = 0;
+  while (x0 < 58) { var w1 = 14 + Math.floor(rnd() * 6); house(x0, w1, 34 + Math.floor(rnd() * 12), 4); x0 += w1 + 1; }
+  x0 = 112;
+  while (x0 < W) { var w2 = 14 + Math.floor(rnd() * 8); house(x0, w2, 30 + Math.floor(rnd() * 14), 4); x0 += w2 + 1; }
+
+  [20, 128, 196, 290].forEach(function (lx) {
+    rect(lx, H - 22, 1, 22, E.black);
+    rect(lx - 1, H - 25, 3, 3, E.yellow);
+  });
+
+  // title
+  g.textBaseline = 'top';
+  g.textAlign = 'center';
+  g.font = 'bold 15px "Courier New", Courier, monospace';
+  g.fillStyle = E.black; g.fillText('GABRIEL KNIGHT', 161, 3);
+  g.fillStyle = E.yellow; g.fillText('GABRIEL KNIGHT', 160, 2);
+  g.font = 'bold 8px "Courier New", Courier, monospace';
+  g.fillStyle = E.black; g.fillText('SINS OF THE FATHERS', 161, 19);
+  g.fillStyle = E.white; g.fillText('SINS OF THE FATHERS', 160, 18);
+
+  /* ---------- hints ---------- */
+  document.querySelectorAll('a[data-hint]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var el = document.getElementById(a.getAttribute('data-hint'));
+      if (el) el.hidden = !el.hidden;
+    });
+  });
+
+  /* ---------- spoiler bars ---------- */
+  document.querySelectorAll('.spoiler').forEach(function (s) {
+    function toggle() { s.classList.toggle('shown'); }
+    s.addEventListener('click', toggle);
+    s.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+  });
+
+  /* ---------- fan art plates: small EGA scenes ---------- */
+  (function () {
+    var P = { black: '#000000', blue: '#0000aa', magenta: '#aa00aa', ltmag: '#ff55ff', gray: '#aaaaaa', dkgray: '#555555', yellow: '#ffff55', white: '#ffffff', brown: '#aa5500', green: '#00aa00', cyan: '#00aaaa' };
+    var bay = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+    function ctx(id) { var c = document.getElementById(id); return c ? c.getContext('2d') : null; }
+    function fill(g, x, y, w, h, col) { g.fillStyle = col; g.fillRect(x, y, w, h); }
+    function sky(g, W, H, bands, limit) {
+      for (var y = 0; y < H; y++) {
+        var t = Math.min(1, y / (H * limit)), f = t * (bands.length - 1), i = Math.min(bands.length - 2, Math.floor(f)), fr = f - i;
+        for (var x = 0; x < W; x++) fill(g, x, y, 1, 1, fr > (bay[y & 3][x & 3] + 0.5) / 16 ? bands[i + 1] : bands[i]);
+      }
+    }
+    var sd = 5;
+    function r() { sd = (sd * 9301 + 49297) % 233280; return sd / 233280; }
+
+    // Plate 1: tombs by moonlight
+    var a = ctx('art1');
+    if (a) {
+      sky(a, 160, 96, [P.black, P.blue, P.magenta], 0.7);
+      for (var s = 0; s < 18; s++) fill(a, Math.floor(r() * 160), Math.floor(r() * 30), 1, 1, P.white);
+      for (var yy = -9; yy <= 9; yy++) for (var xx = -9; xx <= 9; xx++) if (xx * xx + yy * yy <= 64) fill(a, 120 + xx, 20 + yy, 1, 1, (xx + yy) % 5 === 0 ? P.gray : P.yellow);
+      fill(a, 0, 70, 160, 26, P.dkgray);
+      for (var gx = 0; gx < 160; gx += 2) fill(a, gx, 70 + (gx % 4 ? 0 : 1), 1, 1, P.black);
+      function tomb(x, y, w, h) {
+        fill(a, x, y, w, h, P.white);
+        fill(a, x - 2, y - 3, w + 4, 3, P.gray);
+        fill(a, x + 2, y + 5, w - 4, 1, P.gray);
+        fill(a, x + w - 3, y, 3, h, P.gray);
+        fill(a, x + Math.floor(w / 2) - 2, y + 9, 4, h - 9, P.dkgray);
+      }
+      tomb(14, 44, 30, 30); tomb(60, 38, 34, 36); tomb(108, 48, 28, 26);
+      fill(a, 52, 60, 1, 14, P.black);
+      fill(a, 0, 78, 160, 18, P.black);
+      for (var k = 0; k < 40; k++) fill(a, Math.floor(r() * 160), 78 + Math.floor(r() * 18), 2, 1, P.dkgray);
+    }
+
+    // Plate 2: bookshop window in the rain
+    var b = ctx('art2');
+    if (b) {
+      sky(b, 160, 96, [P.black, P.blue], 1);
+      fill(b, 0, 0, 160, 96, P.blue);
+      fill(b, 0, 0, 160, 14, P.black);
+      fill(b, 12, 18, 136, 62, P.black);
+      fill(b, 16, 22, 128, 54, P.yellow);
+      for (var sx = 16; sx < 144; sx += 2) for (var sy = 22; sy < 76; sy += 2) if (((sx + sy) / 2) % 3 === 0) fill(b, sx, sy, 1, 1, P.brown);
+      var cols = [P.brown, P.green, P.blue, P.magenta, P.cyan, P.dkgray, P.brown];
+      function shelf(y, x0, x1) {
+        fill(b, x0, y + 14, x1 - x0, 2, P.black);
+        var x = x0 + 1;
+        while (x < x1 - 4) { var w = 3 + Math.floor(r() * 3), h = 8 + Math.floor(r() * 6); fill(b, x, y + 14 - h, w, h, cols[Math.floor(r() * cols.length)]); fill(b, x, y + 14 - h, 1, h, P.white); x += w + 1; }
+      }
+      shelf(22, 18, 142); shelf(40, 18, 142); shelf(58, 18, 142);
+      fill(b, 12, 18, 136, 2, P.white);
+      fill(b, 76, 18, 2, 62, P.black);
+      fill(b, 20, 6, 120, 8, P.brown);
+      fill(b, 22, 8, 116, 4, P.yellow);
+      for (var lx = 26; lx < 134; lx += 6) fill(b, lx, 9, 3, 2, P.black);
+      fill(b, 0, 82, 160, 14, P.black);
+      fill(b, 0, 84, 160, 1, P.dkgray);
+      for (var rd = 0; rd < 70; rd++) { var rx = Math.floor(r() * 160), ry = Math.floor(r() * 96); fill(b, rx, ry, 1, 3, P.gray); }
+      for (var pl = 0; pl < 12; pl++) fill(b, 4 + pl * 13, 88 + (pl % 2) * 3, 5, 1, P.yellow);
+    }
+
+    // Plate 3: gas lamp, iron balcony
+    var c3 = ctx('art3');
+    if (c3) {
+      sky(c3, 160, 96, [P.black, P.blue, P.magenta, P.ltmag], 0.95);
+      for (var s2 = 0; s2 < 14; s2++) fill(c3, Math.floor(r() * 160), Math.floor(r() * 26), 1, 1, P.white);
+      fill(c3, 0, 60, 160, 36, P.black);
+      fill(c3, 0, 58, 160, 3, P.black);
+      for (var bx = 0; bx < 160; bx += 4) { fill(c3, bx, 62, 1, 20, P.black); fill(c3, bx + 1, 62 + (bx % 8 ? 6 : 10), 2, 2, P.black); }
+      fill(c3, 0, 62, 160, 1, P.dkgray); fill(c3, 0, 82, 160, 2, P.dkgray);
+      for (var sw = 0; sw < 160; sw += 8) { fill(c3, sw, 74, 4, 1, P.dkgray); fill(c3, sw + 2, 70, 1, 4, P.dkgray); }
+      fill(c3, 79, 32, 2, 30, P.black);
+      fill(c3, 74, 26, 12, 3, P.black);
+      fill(c3, 76, 14, 8, 12, P.yellow);
+      fill(c3, 76, 14, 8, 1, P.black); fill(c3, 75, 13, 10, 1, P.black); fill(c3, 77, 11, 6, 2, P.black); fill(c3, 79, 9, 2, 2, P.black);
+      fill(c3, 79, 17, 2, 6, P.white);
+      for (var gy = -12; gy <= 12; gy++) for (var gx2 = -14; gx2 <= 14; gx2++) { var dd = Math.sqrt(gx2 * gx2 + gy * gy * 1.4); if (dd > 7 && dd < 14 && ((gx2 + gy) & 1) === 0) fill(c3, 80 + gx2, 20 + gy, 1, 1, dd < 10 ? P.yellow : P.magenta); }
+    }
+  })();
+
+  /* ---------- quiz ---------- */
+  document.getElementById('quizbtn').addEventListener('click', function () {
+    var counts = { g: 0, r: 0, m: 0 }, answered = 0;
+    ['q1', 'q2', 'q3', 'q4'].forEach(function (q) {
+      var el = document.querySelector('input[name="' + q + '"]:checked');
+      if (el) { counts[el.value] += 1; answered += 1; }
+    });
+    var out = document.getElementById('quizout');
+    if (answered < 4) { out.textContent = 'Please answer all four questions. (I will wait.)'; return; }
+    var best = 'g';
+    if (counts.r > counts[best]) best = 'r';
+    if (counts.m > counts[best]) best = 'm';
+    var msg = {
+      g: 'You are GABRIEL. You are curious, charming, and a little reckless. You have a great story and a bad habit of walking into the wrong building. You should eat something that is not powdered sugar.',
+      r: 'You are GRACE. You read the instructions, you keep the receipts, and you are always right. Everyone around you would be lost without you, and some of them know it.',
+      m: 'You are MOSELY. You have seen it all and you will see it again tomorrow. You are tired, you are fair, and you do not want to hear about the snake.'
+    };
+    out.textContent = msg[best];
+  });
+
+})();
+`;
+
+/* ---------- Sam's household: always in the city ----------
+   Sam (synths, Gabriel Knight, gardening; SysOp of the MEGAzine BBS), Emma, Emmy, Maya and Everett live in a
+   family apartment in every city. They are placed after the city is built, so nobody else changes, and they
+   stay put (no move-outs or life events). Only Sam has a HomeBlocks page. */
+const SAMFAM_LAST='Lindqvist';
+function samFamily(C){
+  let best=null,bh=0;
+  for(const u of C.units){if(u.kind!=='res'||u.mega||u.n<4||!u.rooms||!u.rooms.some(r=>r.type==='kids')||u.people.includes(C.kev))continue;
+    const h=hash(u.id,C.seed,4401);if(!best||h<bh){best=u;bh=h}}
+  if(!best)return;const u=best,r=mulberry32(hash(C.seed,4402,u.id));
+  C.people=C.people.filter(p=>!u.people.includes(p));u.people=[];u.pets=[];
+  const ref=dayOf(2026,9,24),saveDay=GEN.day,saveBase=GEN.base;GEN.day=C.born;GEN.base=null;
+  const mk=(arch,first,age,look,o={})=>{const p=mkPerson(C,u,arch,r,{last:SAMFAM_LAST});p.first=first;p.bd=ref-Math.round((age+.3)*YR);p.bday=doyOf(p.bd);
+    p.age=Math.max(0,Math.floor(ageAt(p,C.born)));Object.assign(p,look,o);p.samFam=true;p.arc=null;p.dateG=null;return p};
+  const sam=mk('creative','Sam',46,{longHair:false,skirt:false},{job:'SysOp, MEGAzine BBS',workAct:'computer',traits:['musical','easygoing']});
+  sam.likes=Object.assign(sam.likes||{},{synth:true,modular:true});sam.hobbies=['synth','synth','computer','water','water','read','tv'];sam.mbase=.4;
+  mk('worker','Emma',45,{longHair:true},{job:'',traits:[]});
+  mk('kid','Emmy',14,{longHair:true,skirt:false},{traits:[]});mk('kid','Maya',11,{longHair:true,skirt:false},{traits:[]});mk('kid','Everett',5,{longHair:false,skirt:false},{traits:[]});
+  GEN.day=saveDay;GEN.base=saveBase;
+  Object.assign(u,{vacant:false,mates:false,rel:'steady',relSince:ref-Math.round(18*YR),baby:false,due:undefined,babyName:undefined,fam:SAMFAM_LAST,plants:true,spooky:true,rw:{},evc:null,cast:null,guests:null});
+  delete u.eras;u.era=null;u.hist=[[ref-Math.round(6*YR),`The ${plural(SAMFAM_LAST)} moved in.`]];
+  fitHousehold(u);C.sam=sam;C.samUnit=u;
+}
+const hbIsSam=p=>typeof city!=='undefined'&&city&&city.sam===p;
+
+/* ---------- how loud the megaZINE buzz is: tracks megaZINE's real readership ----------
+   megazine.org publishes aggregate visit counts. The share of pages that mention megaZINE grows with
+   visits over the last 90 days (never below 7%), and the BBS share follows (never below 5%). */
+HB.buzz={z:7,b:5};
+try{const c=JSON.parse(localStorage.getItem('big-apple-sam/buzz')||'null');if(c&&c.z>=7)HB.buzz={z:c.z,b:c.b}}catch(e){}
+function hbBuzzFetch(){
+  if(typeof fetch!=='function')return;
+  fetch('https://megazine.org/stats/stats.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{if(!j)return;
+    const visits=+j.total||0,bbs=((j.paths||[]).find(p=>/septic-tankz|bbs/i.test(p.path))||{}).count||0;
+    const z=Math.round(Math.max(7,Math.min(40,visits/20))*10)/10,b=Math.round(Math.max(5,Math.min(30,z*.7+bbs*.25))*10)/10;
+    if(z!==HB.buzz.z||b!==HB.buzz.b){HB.buzz={z,b};HB.idx=null}
+    try{localStorage.setItem('big-apple-sam/buzz',JSON.stringify({z,b,at:Date.now()}))}catch(e){}}).catch(()=>{});
+}
+
+/* ---------- Sam's page: The Gabriel Knight Home Page (moved over from his old school account) ---------- */
+HBMOD.unshift(
+  {k:'samsynth',f:'synths.html',nav:()=>'My Synths',pri:20,when:(s)=>s.kind==='gk',page(s,F,r){
+    return`<h1>My Synths</h1><p>When I am not looking after the BBS, I am patching. Mostly late at night, mostly with headphones on.</p>
+    <ul><li>A modular case that keeps getting bigger</li><li>A grid controller with 128 buttons that light up</li><li>A small music computer that runs scripts I write myself</li><li>Far too many patch cables</li></ul>
+    <p>Things I am working on: a drone instrument played by the weather, a plucked-string sequencer, and something that turns radio noise into chords.</p><p><a href="${hbUrl(s)}">Back to the Gabriel Knight page</a></p>`}},
+  {k:'samgarden',f:'garden.html',nav:()=>'My Garden',pri:19,when:(s)=>s.kind==='gk',page(s,F,r){
+    return`<h1>My Garden</h1>${hbPic(hbPhoto('garden',s.id),'the window boxes',200)}<p>Window boxes, a fire escape full of pots, and a cottage garden I keep planning in my head. Tomatoes did well this year. The basil did not survive the kids.</p>
+    <p>Someday: a dry stone wall. I have read three books about it.</p><p><a href="${hbUrl(s)}">Back to the Gabriel Knight page</a></p>`}});
+function hbGK(s,F){
+  const bbs='https://samuelling.github.io/BBS/',g=hbUrl(s,'guestbook.html');
+  const body=HBGK_BODY.replace('{{TOP}}',`<p><b>Note:</b> I moved this page over from my old school account to HomeBlocks. I did not change a thing, except I finally have a <a href="${g}">guestbook</a>. Also see <a href="${hbUrl(s,'synths.html')}">my synths</a>, <a href="${hbUrl(s,'garden.html')}">my garden</a>, and <a href="${bbs}">the MEGAzine BBS</a>, where I am the SysOp.</p>`)
+    .replace('{{BBS}}',`<li><b>The MEGAzine BBS:</b> <a href="${bbs}">dial in</a> and ask the sysop (that's me) about the adventure game file area.</li>`)
+    .replace('{{GUEST}}',`<p><b>Update:</b> HomeBlocks has guestbooks! <a href="${g}">Sign mine here.</a> I read every entry.</p>`)
+    .replace('{{ADDR}}',`Page maintained by Sam, a fellow Schattenj&auml;ger and SysOp of <a href="${bbs}">the MEGAzine BBS</a><br><tt>schattenjaeger (at) homeblocks.com</tt><br>Last updated 31-Jan-1994`)
+    .replace('{{FOOT}}',`<hr><p class="small">You are visitor number ${hbCounter(s,F)}. <a href="${HBROOT}">Back to HomeBlocks</a> | <a href="${HBROOT}${s.nb.id}/">${hbE(s.nb.nm)} Neighborhood</a></p>`);
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Gabriel Knight Home Page</title><style>${HBGK_CSS}
+  .ctr span{display:inline-block;background:#000;color:#20ff20;font:bold 14px "Courier New",monospace;padding:1px 3px;margin:0 1px}</style></head><body class="doc">${body}<script>${HBGK_JS}<\/script></body></html>`;
+  return{title:'Gabriel Knight Home Page',html,s,file:'index.html'};
+}
+
 /* ---------- the HomeBlocks portal, directories, search and errors ---------- */
 const HBAPP='https://samuelling.github.io/Big-Apple-Sam/';
 function hbTitleOf(x){if(!x.title)x.title=hbTitle(x,hbFacts(x,F0()));return x.title}
@@ -4073,9 +4739,11 @@ function hbShow(url){
 function hbExtUrl(url){const m=String(url).match(/^https?:\/\/(?:www\.)?homeblocks\.com(\/[^#]*)?/i);return HBAPP+'web/#'+cityCode()+(m?(m[1]||'/'):'!'+url)}
 function hbSetLoc(url){const i=hbEl('wUrl');i.value=url;i.setAttribute('value',url);hbEl('wUrlTxt').textContent=url}
 function hbNavBtns(){hbEl('wBack').disabled=HB.hi<=0;hbEl('wFwd').disabled=HB.hi>=HB.hist.length-1}
+/* same-page links: a srcdoc frame can't navigate to its own #fragment, so scroll there by hand */
+function hbJump(doc,h){const n=decodeURIComponent(h.slice(1));if(!n){doc.scrollingElement.scrollTo(0,0);return}const el=doc.getElementById(n)||doc.querySelector(`[name="${CSS.escape(n)}"]`);if(el)el.scrollIntoView()}
 function hbHook(){
   const fr=hbEl('wFrame'),doc=fr.contentDocument;if(!doc||!doc.body)return;HB.doc=doc;HB.imgs=[...doc.querySelectorAll('img[data-s]')];
-  doc.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href]');if(!a)return;e.preventDefault();const h=a.getAttribute('href');
+  doc.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href]');if(!a||e.defaultPrevented)return;const h=a.getAttribute('href');e.preventDefault();if(h.startsWith('#')){hbJump(doc,h);return}
     if(h==='midi:play'){if(HB.cur&&HB.cur.res.s)hbMidiPlay(HB.cur.res.s);return}if(h==='midi:stop'){hbMidiStop();return}
     if(/^https?:\/\/(www\.)?(megazine\.org|samuelling\.github\.io)\//i.test(h)){window.open(h.replace(/^http:/,'https:'),'_blank','noopener');return}hbGo(h)});
   doc.addEventListener('mouseover',e=>{const a=e.target.closest&&e.target.closest('a[href]');hbEl('wStat').textContent=a?(/^midi:/.test(a.getAttribute('href'))?'Play MIDI':a.getAttribute('href')):'Document: Done'});
@@ -4109,7 +4777,7 @@ function hbBoot(){
   dragWin(hbEl('web'),hbEl('wTb'));
   hbEl('webBtn').addEventListener('click',()=>{if(HB.open&&!mini.web)hbClose();else if(HB.open){mini.web=false;hbEl('web').hidden=false;renderIcons()}else hbOpen(HBROOT)});
   hbEl('pbody').addEventListener('click',e=>{const a=e.target.closest('[data-hb]');if(!a)return;e.preventDefault();hbOpenPerson(+a.dataset.hb)});
-  hbEl('wThrob').src=hbSprite('globe').fr[0];
+  hbEl('wThrob').src=hbSprite('globe').fr[0];hbBuzzFetch();
   setInterval(hbAnimate,80);
 }
 

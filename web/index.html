@@ -47,7 +47,7 @@ function go(href){
 }
 function hook(){
   const doc=$('f').contentDocument;if(!doc||!doc.body)return;W$.doc=doc;W$.imgs=[...doc.querySelectorAll('img[data-s]')];
-  doc.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href]');if(!a)return;const h=a.getAttribute('href');
+  doc.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href]');if(!a||e.defaultPrevented)return;const h=a.getAttribute('href');if(h.startsWith('#')){e.preventDefault();hbJump(doc,h);return}
     if(e.metaKey||e.ctrlKey||e.shiftKey){if(/homeblocks\.com/i.test(h)){e.preventDefault();window.open(location.pathname+toHash(h),'_blank','noopener')}return}
     e.preventDefault();if(h==='midi:play'){if(W$.cur.res.s)hbMidiPlay(W$.cur.res.s);return}if(h==='midi:stop'){hbMidiStop();return}go(h)});
   doc.addEventListener('submit',e=>{e.preventDefault();const f=e.target,fd=new FormData(f);
@@ -72,10 +72,10 @@ async function start(){
   const mine=st&&st.seed===want.seed&&st.born===want.born;
   W$.sim0=mine?st.sim+(st.paused?0:(Date.now()-st.at)/60000):localNow();W$.t0=Date.now();simMin=W$.sim0;
   step('Building the city...',60);await new Promise(r=>setTimeout(r,30));
-  city=genCity(want.seed,want.born);markParlors(city);addFrontage(city);pickKevin(city);addMega(city);
+  city=genCity(want.seed,want.born);markParlors(city);addFrontage(city);pickKevin(city);addMega(city);samFamily(city);
   const L=Math.floor(simMin/1440);for(const u of city.units)if(u.eras&&!u.mega)syncEra(u,L);refreshAges(L);kevinCheck();
   if(!st){try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed:1,paused:false}))}catch(e){}}
-  W$.code=cityCode();HB.standalone=W$.code;
+  W$.code=cityCode();HB.standalone=W$.code;hbBuzzFetch();
   step('Document: Done',100);
   $('f').addEventListener('load',hook);$('load').hidden=true;$('f').hidden=false;
   show(fromHash(),false);
