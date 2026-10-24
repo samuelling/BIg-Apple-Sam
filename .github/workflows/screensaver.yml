@@ -89,7 +89,7 @@ jobs:
           codesign --verify --strict --verbose=2 "Big Apple Sam.saver"
           ditto -c -k --keepParent "Big Apple Sam.saver" "$RUNNER_TEMP/saver.zip"
           notarize "$RUNNER_TEMP/saver.zip"
-          xcrun stapler staple "Big Apple Sam.saver"
+          for k in 1 2 3 4; do xcrun stapler staple "Big Apple Sam.saver" && break; [ $k = 4 ] && exit 1; echo "Stapling failed, retrying in 20s"; sleep 20; done
           xcrun stapler validate "Big Apple Sam.saver"
 
       - name: Package (.dmg and .zip)
@@ -107,7 +107,7 @@ jobs:
           codesign --force --timestamp --keychain "$KC" --sign "$SIGN_ID" Big-Apple-Sam-Mac.dmg
           xcrun notarytool submit Big-Apple-Sam-Mac.dmg --key "$RUNNER_TEMP/notary.p8" --key-id "$NOTARY_KEY_ID" \
             --issuer "$NOTARY_ISSUER_ID" --wait --timeout 30m
-          xcrun stapler staple Big-Apple-Sam-Mac.dmg
+          for k in 1 2 3 4; do xcrun stapler staple Big-Apple-Sam-Mac.dmg && break; [ $k = 4 ] && exit 1; echo "Stapling failed, retrying in 20s"; sleep 20; done
           spctl -a -vvv -t open --context context:primary-signature Big-Apple-Sam-Mac.dmg
 
       - name: Clean up signing material
