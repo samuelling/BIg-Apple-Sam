@@ -156,7 +156,11 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
 .wbar .sp{flex:1}
 #wThrob{width:32px;height:32px;image-rendering:pixelated;border:1px solid var(--ink);background:#000}
 #wLoc{display:flex;align-items:center;gap:6px;padding:3px 6px 5px;background:var(--face);border-bottom:1px solid var(--ink);flex:none;margin:0}
-#wUrl{flex:1;width:auto;min-width:0;user-select:text}
+.wurl{position:relative;flex:1 1 200px;min-width:0;height:21px;box-sizing:border-box;background:var(--paper);border:1px solid;border-color:var(--shadow) var(--hi) var(--hi) var(--shadow);box-shadow:inset 1px 1px var(--ink)}
+#wUrlTxt{position:absolute;left:5px;right:4px;top:0;line-height:19px;color:var(--ink);font:13px var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+#wUrl{position:absolute;inset:0;width:100%;height:100%;box-sizing:border-box;margin:0;border:0;box-shadow:none;background:transparent;color:var(--ink);-webkit-text-fill-color:var(--ink);-webkit-user-select:text;user-select:text;opacity:0;-webkit-appearance:none;appearance:none}
+#wUrl:focus{opacity:1;background:var(--paper);outline:none}
+.wurl:focus-within #wUrlTxt{visibility:hidden}
 .wview{flex:1;min-height:0;background:#fff;display:flex}
 #wFrame{flex:1;width:100%;height:100%;border:0;background:#fff}
 .wst{display:flex;align-items:center;gap:8px;padding:2px 6px;background:var(--face);border-top:1px solid var(--ink);font-size:12px;flex:none}
@@ -222,7 +226,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
   <div class="in">
     <div class="tb" id="wTb"><button class="sys" id="wClose" aria-label="Close" title="Close"></button><span class="tt" id="wTitle">NetSurfer</span><button class="mm min" id="wMin" aria-label="Minimize" title="Minimize"></button><button class="mm max" id="wMax" aria-label="Maximize" title="Maximize"></button></div>
     <div class="wbar"><button class="btn" id="wBack" title="Back">&#9668; Back</button><button class="btn" id="wFwd" title="Forward">Forward &#9658;</button><button class="btn" id="wHome" title="HomeBlocks home">Home</button><button class="btn" id="wReload">Reload</button><button class="btn" id="wFind" title="Show this person's window in the city" disabled>Find Window</button><button class="btn" id="wPop" title="Open this page in a real browser tab">New Window</button><span class="sp"></span><img id="wThrob" alt=""></div>
-    <form id="wLoc"><label class="lbl" for="wUrl">Location:</label><input class="fld" id="wUrl" spellcheck="false" autocomplete="off"><button class="btn" type="submit">Go</button></form>
+    <form id="wLoc"><label class="lbl" for="wUrl">Location:</label><span class="wurl"><span id="wUrlTxt" aria-hidden="true"></span><input class="fld" id="wUrl" spellcheck="false" autocomplete="off" value="http://www.homeblocks.com/"></span><button class="btn" type="submit">Go</button></form>
     <div class="wview"><iframe id="wFrame" title="Web page"></iframe></div>
     <div class="wst"><span id="wStat">Document: Done</span><span class="wprog"><span id="wProg"></span></span></div>
   </div>
@@ -3174,6 +3178,7 @@ const HBS={
   bike:{w:20,h:13,n:2,ms:180,d(P,f){for(const x of[4,15]){P.ring(x,8,4,'#202020');P.line(x,8,x+(f?3:-3),8+(f?2:-2),'#909090')}P.line(4,8,9,8,'#d02020');P.line(9,8,13,3,'#d02020');P.line(15,8,12,3,'#d02020');P.line(9,8,8,3,'#d02020');P.r(7,2,3,1,'#202020');P.r(12,2,3,1,'#202020')}},
   cake:{w:16,h:16,n:3,ms:160,d(P,f){P.r(1,9,14,7,'#f0d0e0');P.r(1,9,14,2,'#ffffff');for(let k=0;k<3;k++){P.r(4+k*4,5,1,4,'#80c0ff');P.px(4+k*4,3+((f+k)%2),'#ffb000');P.px(4+k*4,4,'#ff6000')}}},
   tv:{w:18,h:15,n:3,ms:160,d(P,f){P.r(1,2,16,11,'#504030');P.r(3,4,10,7,['#8080ff','#80ff80','#ff8080'][f]);P.r(14,5,2,2,'#c0c0c0');P.line(6,2,3,0,'#202020');P.line(10,2,13,0,'#202020');P.r(3,13,2,2,'#303030');P.r(13,13,2,2,'#303030')}},
+  ball:{w:9,h:9,n:1,ms:1000,d(P,f,o){const c=o.c||'#ff2020';P.disc(4,4,4,hbMix(c,'#000000',.45));P.disc(4,4,3,c);P.disc(3,3,1,hbMix(c,'#ffffff',.6));P.px(3,2,'#ffffff')}},
   camera:{w:18,h:13,n:3,ms:300,d(P,f){P.r(1,3,16,9,'#303034');P.r(3,1,5,2,'#303034');P.disc(9,7,3,'#808090');P.disc(9,7,1,'#203040');P.r(13,4,3,2,f===0?'#ffffff':'#c0c0c0');if(f===0){P.px(15,1,'#ffff80');P.px(17,2,'#ffff80')}}}
 };
 function hbSprite(name,o={}){
@@ -3289,7 +3294,7 @@ function hbSite(p,u,L){
   const v=hbVoice(p,u,tags,hbR(p,2));
   const rings=[];for(const k of ['spooky','novel','marathon','grief','homesick','heartbreak','dating','insomnia','theremin','newlywed','baby','kid','cat','dog','guitar','synth','fish','film','retro','stargaze','carni','knit','coffee','paint','yoga','computer','science','night','parent','retiree','student','a foodie','food','plants','cycle','lonely','music'])
     if(tags.has(k)&&HBRINGS[k]&&!rings.includes(HBRINGS[k])&&rings.length<2)rings.push(HBRINGS[k]);
-  return{p,u,nb,sub,num,tags,v,rings,path:`/${nb.id}/${sub}/${num}/`,id:p.id};
+  const site={p,u,nb,sub,num,tags,v,rings,path:`/${nb.id}/${sub}/${num}/`,id:p.id};site.kind=hbKind(site);return site;
 }
 const HB={open:false,hist:[],hi:-1,cur:null,idx:null,idxL:-1,idxSeed:-1,anim:0,midi:null,trail:[],loadT:0};
 function hbIndex(){
@@ -3331,15 +3336,15 @@ const hbPickN=(r,a,n)=>{const c=a.slice(),o=[];while(o.length<n&&c.length)o.push
 const hbCap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 
 /* ---------- theme: how the page looks ---------- */
-const HBPAL=[['#ffff00','#00ffff','#ff80ff'],['#00ff00','#ffff00','#ff8000'],['#ffffff','#80c0ff','#c0a0ff'],['#ff80c0','#ffff80','#80ffff'],['#c0c0ff','#ffd080','#ff8080']];
-const HBPALL=[['#000000','#0000ee','#551a8b'],['#202060','#a00000','#600060'],['#3a1a00','#006000','#804000'],['#400040','#0000c0','#800080'],['#003030','#a03000','#205050']];
+const HBPAL=[['#ff0000','#00ff00','#ffff00'],['#00ffff','#ff00ff','#ffffff'],['#ffff00','#00ffff','#ff80ff'],['#00ff00','#ffff00','#ff8000'],['#ffffff','#80c0ff','#c0a0ff'],['#ff80c0','#ffff80','#80ffff'],['#c0c0ff','#ffd080','#ff8080']];
+const HBPALL=[['#800000','#0000ff','#008000'],['#000080','#ff0000','#800080'],['#000000','#0000ee','#551a8b'],['#202060','#a00000','#600060'],['#3a1a00','#006000','#804000'],['#400040','#0000c0','#800080'],['#003030','#a03000','#205050']];
 function hbTheme(s){
   const r=hbR(s.p,3),v=s.v,nb=s.nb,T=k=>s.tags.has(k);
   let tile=hbPick(r,nb.t);if(v.old&&r()<.6)tile=hbPick(r,['lace','parchment','clouds','marble']);if(v.quiet&&r()<.5)tile=hbPick(r,['stars','galaxy','denim','stucco']);
   if(v.kid)tile=hbPick(r,['confetti','checker','clouds','stars','tiedye']);
   const tcol=T('cat')||T('dog')?hbPick(r,['#c8a070','#a0a0a0','#e0a0c0']):hbPick(r,['#d03030','#3050c0','#30a050','#a040c0','#c08020']);
   const tl=hbTile(tile,tcol,s.num%7+1);
-  const dark=tl.dark&&tile!=='flames';
+  const dark=tl.dark;
   const pal=dark?hbPick(r,HBPAL):hbPick(r,HBPALL);
   let font=hbPick(r,nb.f);if(v.kid||(v.loud&&r()<.5))font='Comic Sans MS';if(v.old)font=hbPick(r,['Times New Roman','Arial']);if(v.formal&&r()<.5)font='Times New Roman';
   const busy=tile==='tiedye'||tile==='confetti'||tile==='checker'||tile==='flames'||tile==='camo'||tile==='plaid'||tile==='brick'||tile==='money'||tile==='circuit'||tile==='binary';
@@ -3350,7 +3355,14 @@ function hbTheme(s){
     hr:v.old?'hr':hbPick(r,['rainbow','hr','hr3d','dots','sprites']),
     music:!v.quiet||r()<.3,marquee:!v.old&&!v.formal&&r()<.6,counter:r()<.9,cons:(T('messy')||T('restless')||v.kid||v.young)&&r()<.75||r()<.15,
     trail:(v.sparkle||v.kid||T('cheerful'))&&r()<.6,awards:r()<.45,mail:r()<.8,size:v.old?4:3,
-    spr:hbPickN(r,nb.s,3)};
+    spr:hbPickN(r,nb.s,3),
+    gfx:!v.old&&r()<.3?hbPick(r,[['#ffff00','#ff6000','#800000'],['#80ffff','#0040ff','#000040'],['#ffffff','#a0a0a0','#000000'],['#ff80ff','#8000ff','#200040'],['#80ff80','#008000','#003000'],['#ffd080','#c06000','#402000']]):null,
+    align:v.old||v.formal?'left':r()<.3?'center':'left',bullet:!v.old&&r()<.4?hbPick(r,['#ff2020','#2060ff','#20c020','#ffd000','#c040ff','#00c0c0']):null,
+    splash:!v.kid&&s.kind!=='construction'&&r()<.12,linkdeco:r()<.2};
+  if(r()<.28&&!v.old)th.font=hbPick(r,['Trebuchet MS','Arial Narrow','Monotype Corsiva','Brush Script MT','Courier New','Lucida Console','Tahoma','Century Gothic','Verdana']);
+  if(s.kind==='construction'){th.cons=true;th.awards=false;th.music=r()<.3}
+  if(s.kind==='hobby'&&HBHOB[s.hob]&&r()<.6){const t2=hbTile(hbPick(r,HBHOB[s.hob].tile),null,s.num%5+1);th.tile='x';th.tl=t2;th.dark=t2.dark;const pl=t2.dark?hbPick(r,HBPAL):hbPick(r,HBPALL);th.ink=pl[0];th.link=pl[1];th.vlink=pl[2];if(th.layout==='side')th.layout='center'}
+  if(s.kind==='business'){th.marquee=false;th.cons=false;th.trail=false}
   if(th.panel&&th.dark!==(hbLum(th.panel)<.45)){const p2=th.dark?HBPAL:HBPALL;const q=hbLum(th.panel)<.45?hbPick(r,HBPAL):hbPick(r,HBPALL);th.ink=q[0];th.link=q[1];th.vlink=q[2]}
   return th;
 }
@@ -3455,6 +3467,7 @@ function hbHouse(p,F,v){
   return a.join(' ');
 }
 function hbTitle(s,F){
+  if(s.kind&&s.kind!=='about'){const t=hbKindTitle(s,F);if(t)return t}
   const r=hbR(s.p,4),v=s.v,fn=F.first,ln=F.last,nb=s.nb.id;
   if(v.kid&&s.p.age>=13)return hbPick(r,[`${fn}'s Page`,`${fn.toLowerCase()}'s room. KEEP OUT`,`${fn}'s Zone`,`~*~${fn}~*~`]);
   if(v.kid)return hbPick(r,[`${fn}'s KOOL Page`,`~${fn}'s Page~`,`${fn.toUpperCase()}'S WEB SITE`,`${fn}'s Awesome Page!!!`]);
@@ -3596,7 +3609,7 @@ const HBMOD=[
 ];
 
 /* the pages a site has, in nav order */
-function hbMods(s,F){const m=HBMOD.filter(x=>x.when(s,F)).sort((a,b)=>b.pri-a.pri||hash(s.id,a.k.length)%3-1);return m.slice(0,s.v.kid?2:s.v.old?3:4)}
+function hbMods(s,F){if(s.kind==='construction')return[];const m=HBMOD.filter(x=>x.when(s,F)&&!(s.kind==='family'&&x.k==='family')).sort((a,b)=>b.pri-a.pri||hash(s.id,a.k.length)%3-1);return m.slice(0,s.v.kid?2:s.v.old?3:4)}
 
 /* ---------- assembling a page ---------- */
 const HBGBKEY='big-apple-sam/guestbooks';
@@ -3671,14 +3684,16 @@ function hbGbPage(s,F){const ents=hbGuestbook(s,F),th=s.th;
 
 function hbPage(s,file){
   const L=F0(),F=hbFacts(s,L);s.F=F;s.title=s.title||hbTitle(s,F);const th=s.th=s.th||hbTheme(s),v=s.v,r=hbR(s.p,40+file.length);
-  const mods=hbMods(s,F),nav=[['index.html','Home']].concat(mods.map(m=>[m.f,m.nav(F)]),[['guestbook.html','Guestbook'],['links.html','Links']]);
+  if(s.kind==='construction')F.updated=F.created;
+  const home=th.splash?'main.html':'index.html';if(th.splash&&file==='index.html')return hbSplash(s,F);if(th.splash&&file==='main.html')file='index.html';
+  const mods=hbMods(s,F),nav=[[home,'Home']].concat(mods.map(m=>[m.f,m.nav(F)]),[['guestbook.html','Guestbook']],s.kind==='construction'?[]:[['links.html','Links']]);
   let body='';const mod=mods.find(m=>m.f===file);
-  if(file==='index.html')body=hbIndexBody(s,F,mods,r);
+  if(file==='index.html')body=(HBKIND[s.kind]||hbIndexBody)(s,F,mods,r);
   else if(file==='guestbook.html')body=hbGbPage(s,F);
   else if(file==='links.html')body=`<center>${hbHead(th,hbSay(v,'Cool Links',r),r,5)}</center><ul>${hbLinks(s,F,hbR(s.p,41)).map(x=>`<li>${x}`).join('')}</ul>${s.rings.map(g=>hbRing(s,g)).join('<br>')}`;
   else if(mod)body=mod.page(s,F,r);
   else return null;
-  const navH=nav.map(([f,t])=>f===file?`<b>${hbE(t)}</b>`:`<a href="${hbUrl(s,f)}">${hbE(t)}</a>`);
+  const navH=nav.map(([f,t])=>(f===file||(f==='main.html'&&file==='index.html'))?`<b>${hbE(t)}</b>`:`<a href="${hbUrl(s,f)}">${hbE(t)}</a>`);
   const foot=`${hbHr(th,s)}<center><font size="2">${th.counter?`You are visitor number ${hbCounter(s,F)}<br>`:''}${th.mail?`${hbImg('mail',{sc:1})} <a href="mailto:${hbE((F.first+'_'+F.last).toLowerCase().replace(/[^a-z_]/g,''))}@homeblocks.com">Email me!</a><br>`:''}
     This page was last updated on ${hbDate(F.updated)}.<br>${v.old?'Best viewed with your glasses on.':hbPick(r,['Best viewed at 800x600 in 256 colors.','Best viewed with your eyes.','This page is best viewed at 640x480.','Made with Notepad and love.'])}<br>
     <a href="${HBROOT}">${'&#9668;'} Back to HomeBlocks</a> | <a href="${HBROOT}${s.nb.id}/">${hbE(s.nb.nm)} Neighborhood</a></font></center>`;
@@ -3693,7 +3708,9 @@ function hbPage(s,file){
   const bg=th.tl.grad?`background:${th.tl.base} url(${th.tl.url}) repeat-x`:`background:${th.tl.base} url(${th.tl.url})`;
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>${hbE(title)}</title><style>
   body{${bg};color:${th.ink};font-family:"${th.font}",serif;margin:${th.layout==='side'?'10px 10px 10px 0':'12px'};font-size:${th.size===4?17:15}px}
-  a{color:${th.link}}a:visited{color:${th.vlink}}a.sn{color:#ffffff;font-weight:bold}
+  a{color:${th.link}${th.linkdeco?';text-decoration:none':''}}a:visited{color:${th.vlink}}a:hover{color:${th.linkdeco?th.vlink:th.link}}a.sn{color:#ffffff;font-weight:bold}
+  ${th.bullet?`ul{list-style-image:url(${hbSprite('ball',{c:th.bullet}).fr[0]})}`:''}
+  ${th.align==='center'?'body{text-align:center}ul,ol{display:inline-block;text-align:left}table{margin-left:auto;margin-right:auto}':''}
   img.spr,img.ph{image-rendering:pixelated;vertical-align:middle}
   .blink{animation:bl 1s steps(1) infinite}@keyframes bl{50%{visibility:hidden}}
   .ctr span{display:inline-block;background:#000;color:#20ff20;font:bold 15px "Courier New",monospace;padding:1px 3px;margin:0 1px;border:1px solid #606060}
@@ -3703,6 +3720,14 @@ function hbPage(s,file){
   </style></head><body>${main}</body></html>`;
   return{title,html,s,file};
 }
+function hbSplash(s,F){const th=s.th,R=hbR(s.p,90),tl=th.tl;
+  const bg=tl.grad?`background:${tl.base} url(${tl.url}) repeat-x`:`background:${tl.base} url(${tl.url})`;
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${hbE(s.title)}</title><style>body{${bg};color:${th.ink};font-family:"${th.font}",serif;margin:0}a{color:${th.link}}img.spr{image-rendering:pixelated;vertical-align:middle}.blink{animation:bl 1s steps(1) infinite}@keyframes bl{50%{visibility:hidden}}</style></head>
+  <body><table width="100%" height="96%"><tr><td align="center" valign="middle"><table cellpadding="24" border="3" bgcolor="${th.dark?'#000000':'#ffffff'}"><tr><td align="center"><font color="${th.dark?'#ffffff':'#000000'}">${th.spr.map(n=>hbImg(n,{sc:3})).join(' ')}<br><br>${hbHead(Object.assign({},th,{dark:th.dark,panel:th.dark?'#000000':'#ffffff'}),s.title,R,7)}<br><br>
+  <font size="2">${hbE(hbSay(s.v,hbPick(R,['Welcome!','You have found it.','Please wipe your feet.','Abandon all hope, ye who enter here (just kidding)']),R))}</font><br><br>
+  <a href="${hbUrl(s,'main.html')}"><font size="6" face="Arial Black,Arial"><b>${R()<.5?'<span class="blink">ENTER</span>':'ENTER'}</b></font></a><br><br>${hbImg(th.spr[0]||'star',{sc:1})}<br>
+  <font size="1">${hbE(hbPick(R,['Best viewed at 800x600','Turn your speakers on!','Requires a 4.0 browser or better','This site uses frames. Just kidding.']))}</font></font></td></tr></table></td></tr></table></body></html>`;
+  return{title:s.title,html,s,file:'index.html'}}
 function hbIndexBody(s,F,mods,r){
   const v=s.v,th=s.th,p=s.p,R=hbR(s.p,50);const sayp=t=>t?`<p>${hbSay(v,t,R)}</p>`:'';
   const greet=v.kid&&p.age>=13?hbPick(R,['hey. welcome to my page.','Welcome to my page!','sup. you found my page.']):v.kid?'HI!!! WELCOME TO MY PAGE!!!':v.old?hbPick(R,['Hello and welcome.','Welcome to my page.']):v.quiet?'hi. you found my page.':v.loud?'HI!!! WELCOME TO MY HOMEPAGE!!!':v.sparkle?'Welcome, traveler.':v.formal?'Welcome, and thank you for visiting.':hbPick(R,['Hi! Welcome to my page.','Hello and welcome to my little corner of the Web!','Hey, thanks for stopping by.']);
@@ -3718,21 +3743,188 @@ function hbIndexBody(s,F,mods,r){
   if(th.cons)h+=`<p align="center">${hbImg('cons',{sc:2})}<br><font size="2">${hbSay(v,'This page is under construction. Please come back soon!',R)}</font> ${hbImg('cone')}</p>`;
   if(th.marquee)h+=`<marquee scrollamount="${4+hash(s.id,9)%5}" behavior="${R()<.3?'alternate':'scroll'}"><font size="4" color="${th.link}">${hbE(hbSay(v,hbPick(R,[`Welcome to ${F.first}'s page!!!`,'Thanks for stopping by!',`Greetings from the ${F.bld}!`,'Sign my guestbook!!!','Under construction (forever)!']),R))}</font></marquee>`;
   h+=hbHr(th,s);
-  h+=`<h2>${hbSay(v,'About Me',R)}</h2>${th.music?`<table align="right" cellpadding="8"><tr><td>${hbMidiBox(s)}</td></tr></table>`:''}<p>${about}</p>`;
+  h+=`${hbH(s,'About Me',R)}${th.music?`<table align="right" cellpadding="8"><tr><td>${hbMidiBox(s)}</td></tr></table>`:''}<p>${about}</p>`;
   h+=sayp([job,tr.filter(Boolean).join(' '),arc].filter(Boolean).join(' '));
   if(F.p.arc==='dating'&&F.L>=p.arcS&&!v.formal)h+=`<p>${hbImg('heart')} ${hbSay(v,'P.S. I met someone. More soon.',R)}</p>`;
-  if(mods.length)h+=`<h3>${hbSay(v,'On this site',R)}</h3><ul>${mods.map(m=>`<li>${m.f==='memorial.html'||R()<.5?'':hbImg('newb',{sc:1})+' '}<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`).join('')}<li><a href="${hbUrl(s,'guestbook.html')}">Sign my guestbook!</a></ul>`;
-  if(ints.length)h+=`<h3>${hbSay(v,'My Interests',R)}</h3><ul>${ints.slice(0,7).map(x=>`<li>${hbE(hbSay(v,x,R))}`).join('')}</ul>`;
-  if(fav.length&&R()<.75)h+=`<h3>${hbSay(v,'Favorite Things',R)}</h3><table border="1" cellpadding="4">${fav.map(([a,b])=>`<tr><td><b>${a}</b></td><td>${hbE(b)}</td></tr>`).join('')}</table>`;
+  if(mods.length)h+=`${hbH(s,'On this site',R,3)}<ul>${mods.map(m=>`<li>${m.f==='memorial.html'||R()<.5?'':hbImg('newb',{sc:1})+' '}<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`).join('')}<li><a href="${hbUrl(s,'guestbook.html')}">Sign my guestbook!</a></ul>`;
+  if(ints.length)h+=`${hbH(s,'My Interests',R,3)}<ul>${ints.slice(0,7).map(x=>`<li>${hbE(hbSay(v,x,R))}`).join('')}</ul>`;
+  if(fav.length&&R()<.75)h+=`${hbH(s,'Favorite Things',R,3)}<table border="1" cellpadding="4">${fav.map(([a,b])=>`<tr><td><b>${a}</b></td><td>${hbE(b)}</td></tr>`).join('')}</table>`;
   if(!v.quiet&&R()<.5)h+=`<h3>Quote of the Day</h3><p><i>"${hbE(q[0])}"</i><br>&mdash; ${hbE(q[1])}</p>`;
-  if(F.hist.length>1&&(v.formal||v.old||R()<.4))h+=`<h3>${hbSay(v,'My Timeline',R)}</h3><ul>${F.hist.map(([d,t])=>`<li><b>${fmtMonth(d)}</b>: ${hbE(t)}`).join('')}</ul>`;
-  const lk=hbLinks(s,F,hbR(s.p,41));h+=`<h3>${hbSay(v,'Cool Links',R)}</h3><ul>${lk.slice(0,5).map(x=>`<li>${x}`).join('')}</ul>`;
+  if(F.hist.length>1&&(v.formal||v.old||R()<.4))h+=`${hbH(s,'My Timeline',R,3)}<ul>${F.hist.map(([d,t])=>`<li><b>${fmtMonth(d)}</b>: ${hbE(t)}`).join('')}</ul>`;
+  const lk=hbLinks(s,F,hbR(s.p,41));h+=`${hbH(s,'Cool Links',R,3)}<ul>${lk.slice(0,5).map(x=>`<li>${x}`).join('')}</ul>`;
   h+=sayp(v.kid?'SIGN MY GUESTBOOK!!! PLEEEASE':v.old?'Thank you for visiting my page. Please sign the guest book.':v.quiet?'sign the guestbook if you want. or don\'t.':v.loud?'Thanks for stopping by!!! Sign my guestbook!!!':'Thanks for visiting! Please sign my guestbook before you go.');
   h+=`<p align="center"><a href="${hbUrl(s,'guestbook.html')}">Sign</a> | <a href="${hbUrl(s,'guestbook.html')}">View</a> my guestbook</p>`;
   for(const g of s.rings)h+=hbRing(s,g)+'<br>';
   if(th.awards)h+=hbAwards(s,R);
   return h;
 }
+
+/* ---------- what kind of site someone made ----------
+   Most people wrote an "about me" page. Others built a shrine to a hobby, a family page with a
+   holiday letter, an online diary, an ad for a side business, a fan page, a list of links, or
+   put up a title and an Under Construction sign and never came back. */
+const HBHOB={
+  guitar:{t:['{F}\'s Guitar Tab Archive','The Six-String Page','{F}\'s Guitar Corner'],spr:'guitar',tile:['wood','notes'],intro:'Welcome to my guitar page! I have been playing for {y} years and I still learn something every week.',
+    gear:['A secondhand acoustic with a crack in the back (it still sounds great)','A tiny practice amp that buzzes','About 40 picks, somehow always missing when I need one','A capo I borrowed in {yr0} and never gave back','A tuner that clips onto the headstock'],
+    tips:['Practice ten minutes every day instead of two hours on Sunday.','Your fingertips WILL hurt. Then they won\'t.','Learn the G, C and D chords and you can play half the songs ever written.','Change your strings more often than you think.'],
+    faq:[['What kind of guitar should I buy?','The one that feels good in your hands.'],['Can you teach me?','Sign my guestbook and ask!']]},
+  synth:{t:['{F}\'s Synth Patch Library','Oscillator Heaven','Knobs & Wires'],spr:'note',tile:['circuit','galaxy'],intro:'This page is all about synthesizers. If you like knobs, you are in the right place.',
+    gear:['An old analog monosynth I found at a yard sale','A drum machine with a broken hi-hat','Way too many patch cables','A four-track tape recorder','Headphones (for the neighbors\' sake)'],
+    tips:['Start with one oscillator and one filter. Learn those first.','Save your patches on paper. Trust me.','The best sounds come from mistakes.'],faq:[['Is it hard?','Making a sound is easy. Making a GOOD sound takes forever.']]},
+  knit:{t:['The Knitting Nook','{F}\'s Yarn Basket','Purl Jam: A Knitting Page'],spr:'heart',tile:['lace','gingham','plaid'],intro:'Welcome, fellow knitters! Pull up a chair. This page is full of patterns, tips and pictures of things I made.',
+    gear:['Bamboo needles (my favorites)','A yarn stash that is officially out of control','A row counter I never remember to click','My grandmother\'s crochet hook'],
+    tips:['Always knit a test swatch. I never do, and look where it gets me.','Count your stitches at the end of every row.','Wool from the bargain bin is fine for learning.'],faq:[['How long does a sweater take?','For me? About a year and a half.']]},
+  coffee:{t:['Coffee Snob Central','The Daily Grind','{F}\'s Coffee Page'],spr:'coffee',tile:['wood','checker'],intro:'I take my coffee seriously. Maybe too seriously. This page is for everyone who has ever smelled a bag of beans in the store.',
+    gear:['A hand-crank burr grinder','A kitchen scale that measures to the tenth of a gram','A kettle with a skinny spout','A thermos older than my nephew'],
+    tips:['Grind right before you brew.','Water just off the boil, not boiling.','Never, ever store beans in the freezer. (Okay, sometimes.)'],faq:[['How many cups a day?','Next question.']]},
+  stargaze:{t:['Stargazing from the {fl}th Floor','{F}\'s Night Sky','Light Pollution Be Damned'],spr:'star',tile:['stars','galaxy'],intro:'You can see more stars from the city than you think. Here is what I have spotted from my fire escape.',
+    gear:['A small reflecting telescope','Binoculars (honestly better for beginners)','A red flashlight so my eyes stay adjusted','A star chart from the library sale'],
+    tips:['Let your eyes adjust for 20 minutes.','The moon is the easiest thing to look at and the most beautiful.','Jupiter\'s moons change position every night. Draw them!'],faq:[['Can you really see stars in the city?','A few dozen on a good night. Planets are easy.']]},
+  film:{t:['Darkroom Diaries','{F}\'s Photo Gallery','Silver & Light'],spr:'camera',tile:['stars','checker'],intro:'I shoot black and white film and develop it myself. The bathroom smells like chemicals and I would not have it any other way.',
+    gear:['A 35mm camera older than me','A light meter I don\'t trust','A developing tank and three thermometers','A clothesline for drying negatives'],
+    tips:['Shoot a whole roll of one subject. You will see it differently by frame 36.','Temperature matters more than time.','Label your negatives. Future you will thank you.'],faq:[['Why not just use a digital camera?','Ask me again after you smell fixer.']]},
+  retro:{t:['{F}\'s Retro Game Shrine','Insert Coin','The 8-Bit Hall of Fame'],spr:'joystick',tile:['checker','stars','confetti'],intro:'This page is a shrine to the games I grew up on. Grab a joystick and stay a while.',
+    gear:['Two consoles from the 80s (both still work if you blow on the cartridges)','A box of cartridges','A joystick with a sticky fire button','A tiny TV just for gaming'],
+    tips:['Blowing on the cartridge does not actually do anything. Do it anyway.','Always check behind the waterfall.','The boss has a pattern. Learn the pattern.'],faq:[['What is your high score?','See my High Scores page. I am very proud.']]},
+  fish:{t:['{F}\'s Aquarium Corner','Tank Talk','Life Under Glass'],spr:'fish',tile:['water','clouds'],intro:'I have kept fish for {y} years. This page is about my tank, the fish who live in it, and everything I learned the hard way.',
+    gear:['A 20-gallon tank in the living room','A filter that hums all night','A heater, a light and a bag of gravel','A net that the fish have learned to fear'],
+    tips:['Cycle your tank before you add fish. Please.','Overfeeding is the number one killer.','Change 20% of the water every week.'],faq:[['Do fish recognize you?','Mine swim to the front when I walk in. You decide.']]},
+  plants:{t:['The Houseplant Jungle','{F}\'s Window Garden','Green Thumbs Only'],spr:'plant',tile:['leaves','clouds'],intro:'My apartment has more plants than furniture. Here is how I keep them (mostly) alive.',
+    gear:['A watering can shaped like an elephant','A spray bottle for the ferns','Too many pots, not enough windowsill','A grow light for the dark corner'],
+    tips:['More plants die from too much water than too little.','Rotate them so they grow straight.','Talk to them. It can\'t hurt.'],faq:[['How many plants do you have?','I stopped counting at 40.']]},
+  carni:{t:['The Carnivorous Plant Society (Membership: 1)','Feed Me!','{F}\'s Bog Garden'],spr:'plant',tile:['leaves'],intro:'Venus flytraps, pitcher plants, sundews. My plants eat bugs and I could not be prouder.',
+    gear:['A fish tank turned into a bog','Distilled water ONLY','A sundew that catches every fruit fly in the kitchen'],
+    tips:['Never use tap water.','Don\'t poke the flytrap to watch it close. It wears it out.','They need way more light than you think.'],faq:[['Will it eat my finger?','No. It will try, though.']]},
+  cycle:{t:['Two Wheels in the City','{F}\'s Cycling Page','Pedal Power'],spr:'bike',tile:['plate','denim'],intro:'I ride my bike everywhere. Rain, snow, bridges. Here are my routes, my gear and my opinions about taxis.',
+    gear:['A ten-speed I rebuilt myself','Two locks (you know why)','A bell nobody hears','Reflective everything'],
+    tips:['Ride like you\'re invisible, because to cars you are.','Fenders are not optional in this city.','Learn to fix a flat. It takes ten minutes.'],faq:[['Isn\'t it dangerous?','Less than you think. More than I tell my mother.']]},
+  yoga:{t:['Inner Peace','{F}\'s Yoga Space','Breathe In, Breathe Out'],spr:'yinyang',tile:['clouds','stucco'],intro:'Welcome. Take a deep breath. This page is about yoga, slowing down and finding a little calm in a loud city.',
+    gear:['A mat that has seen better days','Two foam blocks','A candle that smells like "ocean"','A cassette of rain sounds'],
+    tips:['Don\'t compare your pose to anyone else\'s.','Five minutes counts.','The hardest part is showing up.'],faq:[['Can I do yoga in a tiny apartment?','I do it between the couch and the radiator.']]},
+  read:{t:['{F}\'s Book Reviews','The Bookshelf','Between the Covers'],spr:'book',tile:['parchment','marble','wood'],intro:'I read about {n} books a year. Here are my reviews, my ratings and my unpopular opinions.',
+    gear:['A library card with a hole worn in it','A bookshelf held up by more books','Bookmarks (receipts, mostly)'],tips:['Life is too short to finish a book you hate.','Used bookstores are better than new ones.','Always carry a book. Lines are reading time.'],faq:[['What should I read next?','See my reviews below!']],reviews:true},
+  game:{t:['{F}\'s Game Zone','Level Up!','Press Start'],spr:'joystick',tile:['checker','confetti','stars'],intro:'Video games are my life. Here are my favorites, my high scores and my cheat codes.',
+    gear:['A console under the TV','A controller with a sticky button','A strategy guide with the pages falling out'],tips:['Save often.','Read the manual. Seriously.','Talk to every character.'],faq:[['What\'s the best game ever?','Ask me tomorrow, the answer changes.']]},
+  paint:{t:['{F}\'s Art Studio','Brushstrokes','The Easel'],spr:'palette',tile:['tiedye','stucco','marble'],intro:'I paint in the corner of my living room by the window. Here is some of my work and what I\'ve learned.',
+    gear:['A tin of watercolors','Acrylics for when I\'m feeling brave','An easel that wobbles','A coffee can full of brushes'],tips:['Paint what you see, not what you think you see.','Ugly paintings teach you the most.','Clean your brushes. I mean it.'],faq:[['Do you sell your paintings?','Make me an offer!']],gallery:true},
+  computer:{t:['{F}\'s Cyber Den','The Bit Bucket','Hacker\'s Haven (Legal Stuff Only)'],spr:'computer',tile:['binary','circuit','graph'],intro:'I build my own computers and write little programs. This page was hand-coded in a text editor, thank you very much.',
+    gear:['A tower PC I built myself','A 28.8 modem (soon 56K!)','Three keyboards, two of them working','A shoebox of floppy disks'],tips:['Back up your files. Then back them up again.','Never open an attachment from a stranger.','Read the manual before you call tech support.'],faq:[['Can you fix my computer?','Probably. Will I? Bring snacks.']],soft:true},
+  theremin:{t:['The Theremin Page (Yes, Really)','Spooky Sounds','Hands Off: A Theremin Page'],spr:'ufo',tile:['galaxy','stars'],intro:'The theremin is an instrument you play without touching. It sounds like a flying saucer. I love it.',
+    gear:['A theremin I built from a kit','A small amp','Neighbors who think I am summoning ghosts'],tips:['Stand perfectly still.','Your whole body changes the pitch, even breathing.'],faq:[['How does it work?','Magic. Okay, electricity. Basically magic.']]},
+  exercise:{t:['{F}\'s Fitness Page','No Pain, No Gain','Get Fit With {F}'],spr:'runner',tile:['checker','denim','plate'],intro:'Getting in shape, one push-up at a time. Here\'s my routine, my progress and my excuses.',
+    gear:['A set of hand weights','An aerobics tape from the drugstore','Sneakers with too many miles on them'],tips:['Drink water!','Rest days are part of the plan.','Start small. Seriously.'],faq:[['How do you stay motivated?','I don\'t. I just go.']]}
+};
+const HBBIZ=[[/seamstress/,'Alterations by {F}','Hems, zippers, wedding dresses. 40 years of experience.'],[/translator/,'{F} {L} Translation Services','Documents, letters and menus. Fast, accurate, friendly.'],
+  [/illustrator|comic/,'{F} {L}: Illustration & Design','Portfolio, rates and contact info.'],[/crossword/,'Puzzles by {F}','Custom crosswords for birthdays, weddings and apologies.'],[/baker|pastry/,'{F}\'s Custom Cakes','Birthdays, weddings and Tuesdays. Order two days ahead!'],
+  [/programmer/,'{L} Software','Shareware for your PC. Small, fast and (mostly) bug free.'],[/jingle|songwriter/,'{F} {L} Music','Jingles, songs and music for any occasion.'],[/typesetter/,'{L} Type & Print','Business cards, wedding invitations and flyers.'],
+  [/travel agent/,'{F}\'s Travel Deals','Cruises, flights and getaways. Call me before you book!'],[/jazz pianist/,'Piano Lessons with {F}','All ages, all levels. 50 years of playing.'],[/architect/,'{L} Design Studio','Renovations, additions and dream houses.'],[/accountant|bookkeep/,'{L} Tax & Bookkeeping','Tax season is coming. Don\'t panic. Call me.']];
+const HBFANSHOW=['The {N} Files','Late Night at the {N}','{A} Heights','Captain {N}','The {N} Family','{A} Detectives'];
+function hbKind(s){
+  const r=hbR(s.p,70),T=k=>s.tags.has(k),v=s.v,p=s.p;if(v.kid)return r()<.25?'construction':'about';
+  const hob=Object.keys(HBHOB).filter(k=>T(k));const biz=!p.kid&&HBBIZ.find(([re])=>re.test(p.job||''));
+  const w=[['about',3],['construction',v.young||T('messy')||T('restless')?.9:v.old?.2:.45],['links',.25],['fan',.3]];
+  if(hob.length)w.push(['hobby',2.2+(T('bookish')||T('tidy')?.6:0)]);
+  if(T('parent')||(s.v.old&&T('sentimental'))||(T('newlywed')&&T('sentimental')))w.push(['family',T('parent')?2.6:1.2]);
+  if(T('melancholy')||T('insomnia')||T('heartbreak')||T('dreamy')||T('grief')||(v.young&&T('romantic')))w.push(['diary',1.1]);
+  if(biz)w.push(['business',1.4]);
+  let tot=w.reduce((a,x)=>a+x[1],0),q=r()*tot;for(const[k,x]of w){q-=x;if(q<=0){if(k==='hobby')s.hob=hbPick(r,hob);if(k==='business')s.biz=biz;return k}}return'about';
+}
+function hbFill(t,s,F){const p=s.p;return t.replace(/\{F\}/g,p.first).replace(/\{L\}/g,p.last).replace(/\{y\}/g,2+hash(p.id,71)%15).replace(/\{n\}/g,20+hash(p.id,72)%60).replace(/\{fl\}/g,(F?F.u.f+2:12)).replace(/\{yr0\}/g,new Date(((F?F.L:20000)-900)*864e5).getUTCFullYear())}
+function hbKindTitle(s,F){const r=hbR(s.p,73),p=s.p;
+  switch(s.kind){case'hobby':return hbFill(hbPick(r,HBHOB[s.hob].t),s,F);case'family':return hbPick(r,[`The ${plural(p.last)} Home Page`,`The ${p.last} Family`,`Welcome to the ${p.last} House!`]);
+    case'construction':return hbPick(r,[`${p.first}'s Page (UNDER CONSTRUCTION)`,'My First Web Page!!!',`${p.first}'s Home Page`,`Coming Soon: ${p.first}'s Page`]);
+    case'diary':return hbPick(r,[`${p.first}'s Online Journal`,'Dear Diary...',`${p.first.toLowerCase()}'s notebook`,'Thoughts From Apartment '+(F?F.u.f+2+F.u.letter:'')]);
+    case'business':return hbFill(s.biz[1],s,F);case'fan':s.fan=s.fan||hbFanName(s);return`The Unofficial ${s.fan} Fan Page`;case'links':return hbPick(r,[`${p.first}'s Hotlist`,`${p.first}'s Favorite Places on the Web`,'Cool Links!!!'])}
+  return null}
+function hbFanName(s){const r=hbR(s.p,74);return r()<.5?hbBand(r):hbPick(r,HBFANSHOW).replace('{N}',hbPick(r,HBNOUN)).replace('{A}',hbPick(r,HBADJ))}
+/* graphic headers: words drawn as an image, the way people made section titles in paint programs */
+function hbGfxText(txt,c1,c2,sh){const key=['gt',txt,c1,c2,sh].join('|');let t=HBG.tile.get(key);if(t)return t;
+  const s=String(txt).toUpperCase().slice(0,28),sc=3,w=s.length*4*sc+6,h=5*sc+6,cv=hbCv(w,h),ctx=cv.getContext('2d'),P=hbPen(ctx);
+  if(sh)P.text(s,4,4,sh,sc);const g=ctx.createLinearGradient(0,2,0,2+5*sc);g.addColorStop(0,c1);g.addColorStop(1,c2);
+  for(let k=0;k<s.length;k++){const gl=FONT3[s[k]]||FONT3[' '];for(let rr=0;rr<5;rr++)for(let q=0;q<3;q++)if(gl[rr][q]){ctx.fillStyle=g;ctx.fillRect(2+(k*4+q)*sc,2+rr*sc,sc,sc)}}
+  t={url:cv.toDataURL(),w,h};HBG.tile.set(key,t);return t}
+function hbH(s,txt,R,lvl=2){const th=s.th,v=s.v;txt=hbSay(v,txt,R);
+  if(th.gfx){const t=hbGfxText(txt,th.gfx[0],th.gfx[1],th.gfx[2]);return`<p${th.align==='center'?' align="center"':''}><img src="${t.url}" width="${t.w*1.5|0}" height="${t.h*1.5|0}" alt="${hbE(txt)}" class="ph"></p>`}
+  return`<h${lvl}>${hbE(txt)}</h${lvl}>`}
+function hbUl(a){return`<ul>${a.map(x=>`<li>${x}`).join('')}</ul>`}
+
+/* ---------- the different kinds of homepage ---------- */
+function hbKConstruction(s,F,mods,r){const v=s.v,R=hbR(s.p,80);
+  const soon=hbPickN(R,['My Pictures','About Me','My Favorite Links','My Family','My Cat','Poems','My Music','Guestbook (coming soon!!)','Chat Room','My Collection','Jokes Page','Recipes'],3+Math.floor(R()*3));
+  return`<center>${hbHead(s.th,s.title,R)}<br><br>${hbImg('cons',{sc:3})}<br>${hbImg('cone')} ${hbImg('cone')} ${hbImg('cone')}<br><br>
+  <font size="4">${hbSay(v,R()<.5?`Welcome to my page! It's not done yet but check back soon!`:`This page is under construction. I'm still learning HTML!`,R)}</font>
+  <p>${hbSay(v,'COMING SOON:',R)}</p>${hbUl(soon.map(x=>`<a href="${hbUrl(s,x.toLowerCase().replace(/[^a-z]+/g,'')+'.html')}">${hbE(x)}</a>`))}
+  <p><table border="2" width="140" height="100"><tr><td align="center"><font size="1">[IMAGE]</font></td></tr></table><font size="1">(this is supposed to be a picture of me)</font></p>
+  ${R()<.5?`<p>${hbE(hbSay(v,`My name is ${F.first}. I live in the ${F.bld}.`,R))}</p>`:''}<p><font size="2">Started ${hbDate(F.created)}.</font></p></center>`}
+function hbKHobby(s,F,mods,r){const H=HBHOB[s.hob],v=s.v,R=hbR(s.p,81),fl=t=>hbE(hbSay(v,hbFill(t,s,F),R));
+  let h=`<center>${hbImg(H.spr)} ${hbHead(s.th,s.title,R)} ${hbImg(H.spr)}</center>`;
+  if(s.th.marquee)h+=`<marquee><font color="${s.th.link}" size="4"><b>${fl(hbPick(R,['Welcome to the best page on the Web about '+(HBINT[s.hob]||s.hob).toLowerCase().replace(/ \(.*/,'')+'!','Updated every week (sort of)!','Thanks for visiting!']))}</b></font></marquee>`;
+  h+=hbHr(s.th,s)+`<p>${fl(H.intro)} ${hbE(hbSay(v,`My name is ${F.first} and I live in the ${F.bld}.`,R))}</p>`;
+  h+=hbH(s,'How I Got Started',R)+`<p>${fl(hbPick(R,['It started as a way to fill the evenings. Now it fills all of them.','A friend got me into it {y} years ago. I have not been the same since.','I saw it on TV and thought, I could do that. I could not, at first. Now I can, mostly.','Honestly? I was bored one winter.']))}</p>`;
+  h+=hbH(s,s.hob==='fish'||s.hob==='plants'||s.hob==='carni'?'What I Have':'My Gear',R)+hbUl(hbPickN(R,H.gear,Math.min(H.gear.length,4)).map(fl));
+  if(H.reviews)h+=hbH(s,'Recent Reviews',R)+`<table border="1" cellpadding="5">${Array.from({length:4},()=>{const st=1+Math.floor(R()*5);return`<tr><td><i>${hbE(hbBook(R))}</i></td><td>${'&#9733;'.repeat(st)}${'&#9734;'.repeat(5-st)}</td><td>${hbE(hbPick(R,['Couldn\'t put it down.','The ending made me throw it across the room.','Slow start, worth it.','I don\'t know what I just read.','Better than the movie.','Read it on the train twice.']))}</td></tr>`}).join('')}</table>`;
+  if(H.gallery)h+=hbH(s,'Recent Work',R)+`<center>${[0,1,2].map(k=>hbPic(hbPhoto('paint',s.id*7+k),hbPick(R,['Untitled','Morning Light','The Window','Rooftops']),120)).join('')}</center>`;
+  if(H.soft)h+=hbH(s,'My Software',R)+hbUl(Array.from({length:3},()=>`<b>${hbE(hbPick(R,['ZAPPER','TINYCALC','DISKSWEEP','CLOCKIT','MAZEGEN','NOTEPAD+']))}${(1+R()*3).toFixed(1)}.ZIP</b> (${20+Math.floor(R()*300)}K) &mdash; ${hbE(hbPick(R,['a little utility I wrote','a game for DOS','a screen clock','freeware, enjoy']))}`));
+  h+=hbH(s,'Tips for Beginners',R)+`<ol>${hbPickN(R,H.tips,Math.min(3,H.tips.length)).map(t=>`<li>${fl(t)}`).join('')}</ol>`;
+  h+=hbH(s,'F.A.Q.',R)+H.faq.map(([q,a])=>`<p><b>Q: ${fl(q)}</b><br>A: ${fl(a)}</p>`).join('');
+  if(mods.length)h+=hbH(s,'More on this site',R)+hbUl(mods.map(m=>`<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`));
+  const lk=hbLinks(s,F,hbR(s.p,41));h+=hbH(s,'Other Pages Like This One',R)+hbUl(lk.slice(0,5));
+  h+=`<p align="center"><a href="${hbUrl(s,'guestbook.html')}">Sign my guestbook</a> and tell me about YOUR ${hbE((HBINT[s.hob]||s.hob).toLowerCase().replace(/ \(.*/,'').replace(/^my /,''))}!</p>`;
+  for(const g of s.rings)h+=hbRing(s,g)+'<br>';return h}
+function hbKFamily(s,F,mods,r){const v=s.v,R=hbR(s.p,82),p=s.p,L=F.L,fam=[p].concat(F.partner?[F.partner]:[],F.kids);
+  let h=`<center>${hbImg('house')} ${hbHead(s.th,s.title,R)} ${hbImg('heart')}</center>`+hbHr(s.th,s);
+  h+=`<p align="center">${hbE(hbSay(v,hbPick(R,['Welcome to our little corner of the Internet!','Welcome, friends and family!','Hello from the '+F.bld+'!']),R))}</p>`;
+  h+=hbH(s,'Meet the Family',R)+`<center>${fam.map(m=>hbPic(hbPhoto('me',m.id,{c:m.cK||'#3050c0',skin:m.cS}),`${m.first}${m.kid?', '+m.age:''}`,m.kid?90:110)).join('')}${F.pets.map(a=>hbPic(hbPhoto('pet',s.id,{c:a.col,dog:a.kind==='dog'}),a.name+' ('+a.kind+')',90)).join('')}</center>`;
+  h+=hbUl(fam.map(m=>`<b>${hbWho(m)}</b>${m===p?' (that\'s me!)':''}: ${hbE(m.kid?`${m.age} years old, ${(m.traits[0]||'a handful')}.`:(m.job?hbCap(m.job)+'.':'')+(m.traits.length?' '+hbCap(m.traits[0])+'.':''))}`));
+  const yr=new Date(L*864e5).getUTCFullYear(),news=(F.u.hist||[]).filter(([d])=>d<=L&&d>L-420).map(([,t])=>t);
+  const dear=[`Dear friends and family,`,`What a year it has been here in ${F.aptS}!`];
+  for(const t of news.slice(-4))dear.push(t);
+  for(const k of F.kids)dear.push(`${k.first} is ${k.age} now and ${hbPick(R,['growing like a weed','into everything','reading everything in sight','learning to ride a bike','losing teeth left and right'])}.`);
+  if(F.due!==null)dear.push(`And we have big news: a baby is on the way!`);
+  if(p.arc){const a=hbArc(p,F,R);if(a)dear.push(a)}
+  dear.push(hbPick(R,['We hope this finds you well.','Come visit! The couch folds out.','Write back soon!']),`Love,`,`${hbList(fam.filter(m=>!m.kid).map(m=>m.first))}${F.kids.length?' and the kids':''}`);
+  h+=hbH(s,`Our ${yr} Family Letter`,R)+`<table width="90%" align="center" cellpadding="14" border="1" bgcolor="${s.th.dark?'#202030':'#fffff0'}"><tr><td><font color="${s.th.dark?'#ffffff':'#000000'}">${dear.map(x=>`<p>${hbE(x)}</p>`).join('')}</font></td></tr></table>`;
+  h+=hbH(s,'Family Recipes',R)+hbUl(hbPickN(R,HBFOOD,3).map(x=>hbE(hbCap(x.replace(/^my /,'')))));
+  if(mods.length)h+=hbH(s,'More',R)+hbUl(mods.map(m=>`<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`));
+  h+=`<p align="center">${hbImg('heart')} <a href="${hbUrl(s,'guestbook.html')}">Sign our guestbook!</a> ${hbImg('heart')}</p>`;for(const g of s.rings)h+=hbRing(s,g)+'<br>';return h}
+function hbKDiary(s,F,mods,r){const v=s.v,R=hbR(s.p,83),p=s.p,L=F.L;let h=`<center>${hbHead(s.th,s.title,R)}</center><p align="center"><i>${hbE(hbSay(v,hbPick(R,['Mostly for me. Partly for you.','Nobody reads this, which is why I can write it.','Thoughts, in no particular order.']),R))}</i></p>`+hbHr(s.th,s);
+  const B={heartsick:['Bad day. Didn\'t want to get out of bed.','Cried on the train. Nobody noticed, which was worse.','Listened to the same sad song eleven times.','Couldn\'t eat. Couldn\'t sleep. Wrote this instead.','Everything reminds me of everything.'],
+    low:['Gray day. Gray mood.','Ate cereal for dinner. Again.','Didn\'t answer the phone. Didn\'t want to.','Rain all day. Fitting.','Stayed in. Watched the windows across the street.','Tired in a way sleep doesn\'t fix.'],
+    'a little blue':['Kind of a nothing day.','Missed something I can\'t name.','Walked the long way home just to be outside.','The apartment felt too quiet tonight.','Made tea, forgot about it, made more tea.'],
+    okay:['Normal day. Work, dinner, TV.','The radiator clanked all night.','Did laundry. Lost a sock. The usual.','Nothing to report. Which is fine.','Somebody upstairs is learning the trumpet.','Bought a plant. We\'ll see.'],
+    content:['Good day! The bakery had the good bread.','Called my mom. That was nice.','Finished a book on the fire escape.','Cooked a real dinner. With vegetables!','Long walk in the park. Leaves are turning.'],
+    cheerful:['Great day. Sun came out at lunch.','Laughed so hard at something on TV I snorted.','A stranger complimented my coat.','Found five dollars in an old jacket!','Danced in the kitchen. Nobody saw (I hope).'],
+    'over the moon':['BEST DAY. Can\'t even explain.','Everything is wonderful and I don\'t trust it.','I keep smiling at nothing.','Called everyone I know just to say hi.']};const used=new Set();
+  const pick=a=>{const c=a.filter(x=>!used.has(x));const x=hbPick(R,c.length?c:a);used.add(x);return x};
+  for(let k=0;k<6;k++){const d=L-k*2-hash(p.id,k)%2;const mw=moodWord(moodOf(p,d));const ev=(F.u.hist||[]).find(([dd])=>dd===d);
+    h+=`<p><b>${hbDate(d)}</b> <font size="2">(mood: ${hbE(mw)})</font><br>${hbE(hbSay(v,ev?ev[1]+' '+hbPick(R,['Big day.','Still thinking about it.','Life, huh?']):pick(B[mw]||B.okay)+(k===2&&p.arc?' '+hbArc(p,F,R):''),R))}</p>`}
+  h+=`<p><a href="${hbUrl(s,'guestbook.html')}">${hbE(hbSay(v,'Leave a note in my guestbook',R))}</a></p>`;
+  if(mods.length)h+=hbUl(mods.map(m=>`<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`));return h}
+function hbKBusiness(s,F,mods,r){const R=hbR(s.p,84),p=s.p;const sub=hbFill(s.biz[2],s,F);
+  return`<center>${hbHead(s.th,s.title,R,7)}<br><font size="4"><i>${hbE(sub)}</i></font>${hbHr(s.th,s)}</center>
+  <table width="90%" align="center" border="2" cellpadding="10"${s.th.panel?'':` bgcolor="${s.th.dark?'#101030':'#ffffff'}"`}><tr><td><font color="${s.th.dark&&!s.th.panel?'#ffffff':s.th.ink}">
+  <p><b>About us:</b> ${hbE(`${p.first} ${p.last} has been in business for ${3+hash(p.id,85)%25} years, working out of ${F.apt}.`)} ${hbE(hbPick(R,['No job too small!','Satisfaction guaranteed.','Family owned and operated.','Ask about our discount for neighbors!']))}</p>
+  <p><b>Rates:</b> ${hbE(hbPick(R,['Very reasonable. Call for a quote.','Starting at $15.','First consultation free!','Cheaper than you think.']))}</p>
+  <p><b>Hours:</b> ${hbE(hbPick(R,['Mon-Fri 9-5, Sat by appointment','Evenings and weekends','Whenever I\'m home (which is a lot)']))}</p>
+  <p><b>Contact:</b> <a href="mailto:${hbE(p.last.toLowerCase().replace(/[^a-z]/g,''))}@homeblocks.com">${hbE(p.last.toLowerCase().replace(/[^a-z]/g,''))}@homeblocks.com</a> or knock on ${hbE(F.aptS)}.</p></font></td></tr></table>
+  <center><p>${hbImg('newb',{sc:2})} <b>${hbE(hbPick(R,['10% off for first-time customers!','Now taking orders for the holidays!','Gift certificates available!']))}</b></p></center>
+  <h3>What customers are saying</h3>${hbFriends(s,F,R,3).map(x=>`<p><i>"${hbE(hbPick(R,['Fantastic work and so fast!','Would recommend to anyone.','Knew exactly what I wanted before I did.','Five stars. Six if I could.']))}"</i> &mdash; ${hbE(x.p.first)}, ${hbE(x.u.b.name)}</p>`).join('')}
+  ${mods.length?hbUl(mods.map(m=>`<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`)):''}`}
+function hbKFan(s,F,mods,r){const R=hbR(s.p,86),fan=s.fan||(s.fan=hbFanName(s)),band=!/Files|Late Night|Heights|Captain|Family|Detectives/.test(fan),v=s.v;
+  const items=band?Array.from({length:6},()=>hbSong(R)):Array.from({length:6},(x,k)=>`Season ${1+(k>>1)}, Episode ${1+k%3}: "${hbSong(R)}"`);
+  return`<center>${hbImg(band?'disc':'tv')} ${hbHead(s.th,s.title,R)} ${hbImg(band?'note':'star')}<br><font size="2">${hbE(hbSay(v,'This page is not affiliated with anybody. I just really like them.',R))}</font></center>${hbHr(s.th,s)}
+  <p>${hbE(hbSay(v,`Welcome, fellow fans! I have been a fan of ${fan} since ${new Date((F.L-365*(3+hash(s.id,87)%10))*864e5).getUTCFullYear()}. This is the biggest ${fan} page on HomeBlocks (it might be the only one).`,R))}</p>
+  ${hbH(s,band?'Discography':'Episode Guide',R)}<ol>${items.map(x=>`<li>${hbE(x)}`).join('')}</ol>
+  ${hbH(s,'Fun Facts',R)}${hbUl(hbPickN(R,['They almost broke up in the first year.','There is a hidden message if you play it backwards (there isn\'t).','I saw them live once. Best night of my life.','The lead singer is from this city!','I own every single thing they ever made. Even the bad stuff.'],3).map(x=>hbE(x)))}
+  <p>${hbImg('newb',{sc:1})} <b>${hbE(hbSay(v,'Join my mailing list! (Sign the guestbook with your email.)',R))}</b></p>
+  ${mods.length?hbUl(mods.map(m=>`<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`)):''}`}
+function hbKLinks(s,F,mods,r){const R=hbR(s.p,88),v=s.v;const fr=hbFriends(s,F,R,10);
+  return`<center>${hbHead(s.th,s.title,R)}<p>${hbE(hbSay(v,'The best stuff on the Web, hand picked by me. Updated whenever I find something cool.',R))}</p></center>${hbHr(s.th,s)}
+  ${hbH(s,'My Neighbors\' Pages',R)}${hbUl(fr.slice(0,6).map(x=>`<a href="${hbUrl(x)}">${hbE(hbTitleOf(x))}</a> ${hbImg('newb',{sc:1})}`))}
+  ${hbH(s,'Fun Stuff',R)}${hbUl(hbPickN(R,HBFAKE,6).map(([t,d])=>`<a href="http://${d}/">${hbE(t)}</a> &mdash; ${hbE(hbPick(R,['a classic','you have to see this','I laughed for an hour','useful!','weird but good']))}`))}
+  ${hbH(s,'Search the Web',R)}<form data-search="1"><input name="q" size="24"> <input type="submit" value="Search HomeBlocks"></form>
+  ${s.rings.map(g=>hbRing(s,g)).join('<br>')}<p><a href="${hbUrl(s,'guestbook.html')}">Know a cool site? Tell me in my guestbook!</a></p>`}
+const HBKIND={construction:hbKConstruction,hobby:hbKHobby,family:hbKFamily,diary:hbKDiary,business:hbKBusiness,fan:hbKFan,links:hbKLinks};
 
 /* ---------- the HomeBlocks portal, directories, search and errors ---------- */
 const HBAPP='https://samuelling.github.io/Big-Apple-Sam/';
@@ -3828,7 +4020,7 @@ function hbGo(url,mode){
   if(mode!=='back'&&mode!=='reload'){HB.hist=HB.hist.slice(0,HB.hi+1);HB.hist.push(url);HB.hi=HB.hist.length-1}
   hbMidiStop();const host=(url.match(/^[a-z]+:\/\/([^\/?#]+)/i)||[,''])[1]||'mail';
   const st=hbEl('wStat'),pg=hbEl('wProg'),t0=performance.now(),dur=mode==='reload'?250:220+Math.random()*520;HB.loading=t0;
-  st.textContent=`Contacting host: ${host}...`;pg.style.width='0%';hbEl('wUrl').value=url;hbNavBtns();
+  st.textContent=`Contacting host: ${host}...`;pg.style.width='0%';hbSetLoc(url);hbNavBtns();
   const tick=()=>{if(HB.loading!==t0)return;const k=(performance.now()-t0)/dur;pg.style.width=Math.min(100,k*100)+'%';
     if(k<.35)st.textContent=`Contacting host: ${host}...`;else if(k<1)st.textContent=`Transferring data from ${host}...`;
     if(k<1)requestAnimationFrame(tick);else hbShow(url)};requestAnimationFrame(tick);
@@ -3836,12 +4028,13 @@ function hbGo(url,mode){
 function hbShow(url){
   let res;try{res=hbRoute(url)}catch(e){console.error(e);res=hbErr('Error','Something went wrong loading this page.')}
   HB.loading=0;HB.cur={url,res};const fr=hbEl('wFrame');HB.doc=null;fr.srcdoc=res.html;
-  hbEl('wTitle').textContent=`NetSurfer - [${res.title}]`;hbEl('wStat').textContent='Document: Done';hbEl('wProg').style.width='0%';
+  hbEl('wTitle').textContent=`NetSurfer - [${res.title}]`;hbSetLoc(url);hbEl('wStat').textContent='Document: Done';hbEl('wProg').style.width='0%';
   if(res.s&&res.file==='index.html'){const g=hbGbLoad(),k=city.seed+':'+res.s.id+':v';g[k]=(g[k]||0)+1;hbGbSave(g)}
   hbEl('wFind').disabled=!res.s;hbNavBtns();
 }
 /* the same page in a real browser tab, on the standalone HomeBlocks site */
 function hbExtUrl(url){const m=String(url).match(/^https?:\/\/(?:www\.)?homeblocks\.com(\/[^#]*)?/i);return HBAPP+'web/#'+cityCode()+(m?(m[1]||'/'):'!'+url)}
+function hbSetLoc(url){const i=hbEl('wUrl');i.value=url;i.setAttribute('value',url);hbEl('wUrlTxt').textContent=url}
 function hbNavBtns(){hbEl('wBack').disabled=HB.hi<=0;hbEl('wFwd').disabled=HB.hi>=HB.hist.length-1}
 function hbHook(){
   const fr=hbEl('wFrame'),doc=fr.contentDocument;if(!doc||!doc.body)return;HB.doc=doc;HB.imgs=[...doc.querySelectorAll('img[data-s]')];
@@ -3871,7 +4064,10 @@ function hbBoot(){
   hbEl('wFind').addEventListener('click',()=>{const s=HB.cur&&HB.cur.res.s;if(!s)return;const u=s.u;mini.web=true;hbMidiStop();hbEl('web').hidden=true;renderIcons();
     if(AP.on)apStop();select(u);follow=true;flyTo(u.x0+u.n*CW/2,u.wy+RH/2,clamp(W*.55/(Math.max(3,u.n)*CW),DET1()*1.4,Math.min(sMax,H*.3/RH)),1400);renderPanel()});
   hbEl('wPop').addEventListener('click',()=>{if(HB.cur)window.open(hbExtUrl(HB.cur.url),'_blank','noopener')});
-  hbEl('wLoc').addEventListener('submit',e=>{e.preventDefault();hbGo(hbEl('wUrl').value)});
+  hbEl('wLoc').addEventListener('submit',e=>{e.preventDefault();const v=hbEl('wUrl').value;hbGo(v);hbEl('wUrl').blur()});
+  hbEl('wUrl').addEventListener('focus',e=>setTimeout(()=>e.target.select(),0));
+  hbEl('wUrl').addEventListener('blur',()=>{if(HB.cur&&!HB.loading)hbSetLoc(HB.cur.url)});
+  hbSetLoc(HBROOT);
   dragWin(hbEl('web'),hbEl('wTb'));
   hbEl('webBtn').addEventListener('click',()=>{if(HB.open&&!mini.web)hbClose();else if(HB.open){mini.web=false;hbEl('web').hidden=false;renderIcons()}else hbOpen(HBROOT)});
   hbEl('pbody').addEventListener('click',e=>{const a=e.target.closest('[data-hb]');if(!a)return;e.preventDefault();hbOpenPerson(+a.dataset.hb)});
