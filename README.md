@@ -42,6 +42,7 @@ Every adult in the city (and every kid 8 and up) has a homepage, the way people 
 - **The 90s bits:** tiled backgrounds, animated pixel GIFs, Under Construction signs, marquees, blinking text, hit counters, awards, a MIDI player that plays a tune written for that page, sparkle cursor trails, and webrings that link everyone who shares an interest.
 - **Guestbooks** are signed by their neighbors and ring-mates, each in their own voice. You can sign them too; your entries are saved in this browser.
 - **Find Window** flies the camera to the person whose page you're reading.
+- **In a real browser.** HomeBlocks also runs on its own at [samuelling.github.io/Big-Apple-Sam/web/](https://samuelling.github.io/Big-Apple-Sam/web/). Every page has its own address, like `web/#bod5nr-g09/Heartland/Porch/4412/`, so you can bookmark it, use Back and Forward, or send a link; the code at the front says which city. Without a code it shows the city saved in your browser. **New Window** in NetSurfer opens the page you're on there, and guestbook entries show up in both places.
 
 Pages change as lives change, a new city gets a whole new web, and the people in the cyberpunk mega towers aren't on it.
 

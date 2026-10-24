@@ -221,7 +221,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
 <div id="web" class="win" hidden>
   <div class="in">
     <div class="tb" id="wTb"><button class="sys" id="wClose" aria-label="Close" title="Close"></button><span class="tt" id="wTitle">NetSurfer</span><button class="mm min" id="wMin" aria-label="Minimize" title="Minimize"></button><button class="mm max" id="wMax" aria-label="Maximize" title="Maximize"></button></div>
-    <div class="wbar"><button class="btn" id="wBack" title="Back">&#9668; Back</button><button class="btn" id="wFwd" title="Forward">Forward &#9658;</button><button class="btn" id="wHome" title="HomeBlocks home">Home</button><button class="btn" id="wReload">Reload</button><button class="btn" id="wFind" title="Show this person's window in the city" disabled>Find Window</button><span class="sp"></span><img id="wThrob" alt=""></div>
+    <div class="wbar"><button class="btn" id="wBack" title="Back">&#9668; Back</button><button class="btn" id="wFwd" title="Forward">Forward &#9658;</button><button class="btn" id="wHome" title="HomeBlocks home">Home</button><button class="btn" id="wReload">Reload</button><button class="btn" id="wFind" title="Show this person's window in the city" disabled>Find Window</button><button class="btn" id="wPop" title="Open this page in a real browser tab">New Window</button><span class="sp"></span><img id="wThrob" alt=""></div>
     <form id="wLoc"><label class="lbl" for="wUrl">Location:</label><input class="fld" id="wUrl" spellcheck="false" autocomplete="off"><button class="btn" type="submit">Go</button></form>
     <div class="wview"><iframe id="wFrame" title="Web page"></iframe></div>
     <div class="wst"><span id="wStat">Document: Done</span><span class="wprog"><span id="wProg"></span></span></div>
@@ -3735,6 +3735,7 @@ function hbIndexBody(s,F,mods,r){
 }
 
 /* ---------- the HomeBlocks portal, directories, search and errors ---------- */
+const HBAPP='https://samuelling.github.io/Big-Apple-Sam/';
 function hbTitleOf(x){if(!x.title)x.title=hbTitle(x,hbFacts(x,F0()));return x.title}
 function hbCreatedOf(x){if(x.created===undefined)x.created=hbFacts(x,F0()).created;return x.created}
 function hbDoc(title,body,css=''){return`<!doctype html><html><head><meta charset="utf-8"><title>${hbE(title)}</title><style>body{margin:0;background:#ffffff;color:#000;font:13px Verdana,Arial,sans-serif}a{color:#0000cc}a:visited{color:#551a8b}
@@ -3742,7 +3743,7 @@ function hbDoc(title,body,css=''){return`<!doctype html><html><head><meta charse
 function hbMast(sub){return`<table width="100%" cellpadding="6" cellspacing="0" bgcolor="#003399"><tr><td><a href="${HBROOT}" style="text-decoration:none">${hbImg('house',{sc:2})} <font face="Arial Black,Arial" size="6" color="#ffcc00"><b>Home</b></font><font face="Arial Black,Arial" size="6" color="#ffffff"><b>Blocks</b></font></a>${sub?` <font color="#ffffff" size="4" face="Arial">&raquo; ${sub}</font>`:''}</td>
   <td align="right"><form data-search="1" style="margin:0"><input name="q" size="22"> <input type="submit" value="Search"></form></td></tr></table>
   <table width="100%" cellpadding="3" cellspacing="0" bgcolor="#ffcc00"><tr><td><font size="2" face="Arial"><b>Free homesteads for every block in the city!</b></font></td><td align="right"><font size="2" face="Arial"><a href="${HBROOT}">Home</a> | <a href="${HBROOT}new">New Homesteads</a> | <a href="${HBROOT}rings">Webrings</a> | <a href="${HBROOT}help">Help</a></font></td></tr></table>`}
-function hbFootP(){const y=new Date(F0()*864e5).getUTCFullYear();return`<hr><center><font size="1" face="Arial">&copy; 1996-${y} HomeBlocks. All homesteads are the property of their residents. HomeBlocks is not responsible for blinking text.</font></center>`}
+function hbFootP(){const y=new Date(F0()*864e5).getUTCFullYear();return`<hr><center><font size="1" face="Arial">&copy; 1996-${y} HomeBlocks. All homesteads are the property of their residents. HomeBlocks is not responsible for blinking text.${HB.standalone?`<br><a href="${HBAPP}#city-${HB.standalone}">See the city these people live in</a>`:''}</font></center>`}
 function hbSiteRow(x,extra=''){return`<li><a href="${hbUrl(x)}"><b>${hbE(hbTitleOf(x))}</b></a> <font size="1" color="#606060">by ${hbE(x.p.first)}${x.p.kid?'':' '+hbE(x.p.last)} &middot; ${hbE(x.nb.nm)}/${hbE(x.sub)}/${x.num}${extra}</font>`}
 function hbBanner(r){const ads=[['WIN A FREE 56K MODEM!!!','Click the duck to win!','#ff0000','#ffff00'],['Are you the 1,000,000th visitor?','Click here to claim your prize','#000080','#ffffff'],['LEARN HTML TODAY','Make a homepage in 24 days!','#008000','#ffffff'],['Lonely? Bored? Hungry?','Pizza delivered in 30 minutes or less','#800000','#ffff80']];
   const a=hbPick(r,ads),d=hbPick(r,HBFAKE)[1];return`<p align="center"><a href="http://${d}/" style="text-decoration:none"><table width="468" height="60" cellpadding="4" bgcolor="${a[2]}" style="border:2px outset #ccc"><tr><td align="center"><font face="Arial Black,Arial" size="4" color="${a[3]}"><span class="blink">${hbE(a[0])}</span></font><br><font face="Arial" size="2" color="${a[3]}">${hbE(a[1])}</font></td></tr></table></a><font size="1">advertisement</font></p>`}
@@ -3839,6 +3840,8 @@ function hbShow(url){
   if(res.s&&res.file==='index.html'){const g=hbGbLoad(),k=city.seed+':'+res.s.id+':v';g[k]=(g[k]||0)+1;hbGbSave(g)}
   hbEl('wFind').disabled=!res.s;hbNavBtns();
 }
+/* the same page in a real browser tab, on the standalone HomeBlocks site */
+function hbExtUrl(url){const m=String(url).match(/^https?:\/\/(?:www\.)?homeblocks\.com(\/[^#]*)?/i);return HBAPP+'web/#'+cityCode()+(m?(m[1]||'/'):'!'+url)}
 function hbNavBtns(){hbEl('wBack').disabled=HB.hi<=0;hbEl('wFwd').disabled=HB.hi>=HB.hist.length-1}
 function hbHook(){
   const fr=hbEl('wFrame'),doc=fr.contentDocument;if(!doc||!doc.body)return;HB.doc=doc;HB.imgs=[...doc.querySelectorAll('img[data-s]')];
@@ -3867,6 +3870,7 @@ function hbBoot(){
   hbEl('wReload').addEventListener('click',()=>{if(HB.cur)hbGo(HB.cur.url,'reload')});
   hbEl('wFind').addEventListener('click',()=>{const s=HB.cur&&HB.cur.res.s;if(!s)return;const u=s.u;mini.web=true;hbMidiStop();hbEl('web').hidden=true;renderIcons();
     if(AP.on)apStop();select(u);follow=true;flyTo(u.x0+u.n*CW/2,u.wy+RH/2,clamp(W*.55/(Math.max(3,u.n)*CW),DET1()*1.4,Math.min(sMax,H*.3/RH)),1400);renderPanel()});
+  hbEl('wPop').addEventListener('click',()=>{if(HB.cur)window.open(hbExtUrl(HB.cur.url),'_blank','noopener')});
   hbEl('wLoc').addEventListener('submit',e=>{e.preventDefault();hbGo(hbEl('wUrl').value)});
   dragWin(hbEl('web'),hbEl('wTb'));
   hbEl('webBtn').addEventListener('click',()=>{if(HB.open&&!mini.web)hbClose();else if(HB.open){mini.web=false;hbEl('web').hidden=false;renderIcons()}else hbOpen(HBROOT)});
