@@ -146,6 +146,27 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
 #dlg p{margin:0}
 #dlg .btns{display:flex;justify-content:center;gap:12px;padding:12px 16px 14px}
 #dlg .btn{min-width:78px}
+/* NetSurfer, the HomeBlocks browser */
+#web{left:50%;top:50%;transform:translate(-50%,-50%);width:min(880px,calc(100vw - 24px));height:min(660px,calc(100vh - 24px));z-index:15}
+#web .in{height:100%;box-sizing:border-box}
+#web.maxed{left:0!important;top:0!important;transform:none!important;width:100vw!important;height:100vh!important}
+.wbar{display:flex;align-items:center;gap:4px;padding:4px 6px;background:var(--face);border-bottom:1px solid var(--shadow);flex:none}
+.wbar .btn{padding:2px 8px;min-height:21px;font-size:12px}
+.wbar .btn:disabled{color:var(--shadow);text-shadow:1px 1px var(--hi)}
+.wbar .sp{flex:1}
+#wThrob{width:32px;height:32px;image-rendering:pixelated;border:1px solid var(--ink);background:#000}
+#wLoc{display:flex;align-items:center;gap:6px;padding:3px 6px 5px;background:var(--face);border-bottom:1px solid var(--ink);flex:none;margin:0}
+#wUrl{flex:1;width:auto;min-width:0;user-select:text}
+.wview{flex:1;min-height:0;background:#fff;display:flex}
+#wFrame{flex:1;width:100%;height:100%;border:0;background:#fff}
+.wst{display:flex;align-items:center;gap:8px;padding:2px 6px;background:var(--face);border-top:1px solid var(--ink);font-size:12px;flex:none}
+#wStat{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wprog{width:120px;height:10px;border:1px solid;border-color:var(--shadow) var(--hi) var(--hi) var(--shadow);background:var(--paper)}
+#wProg{display:block;height:100%;width:0;background:var(--title)}
+.hbl{font-weight:normal;font-size:12px;margin-left:6px;color:#0000a8;text-decoration:underline;cursor:pointer;background:none;border:0;padding:0;font-family:inherit}
+.hbl:hover{color:#c00000}
+.saver #web,.auto #web{display:none!important}
+@media (max-width:640px){#web{width:100vw;height:100vh;left:0;top:0;transform:none}}
 </style>
 
 </head>
@@ -173,6 +194,7 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
       <div class="row">
         <button class="btn" id="when" hidden>Back to now</button>
         <button class="btn" id="checkBtn" title="C">Following</button>
+        <button class="btn" id="webBtn" title="W: everyone's home pages">HomeBlocks</button>
         <button class="btn" id="new">New city&hellip;</button>
       </div>
       <div class="row"><label class="chk"><input type="checkbox" id="nightLock"><span>Always night</span></label></div>
@@ -194,6 +216,15 @@ fieldset.grp legend{font-weight:bold;padding:0 3px}
     <div class="tb" id="fTb"><button class="sys" id="fClose" aria-label="Close" title="Close"></button><span class="tt">Following</span></div>
     <div class="bd" id="fbody"></div>
     <div class="ft"><button class="btn" id="fNext">Visit next</button><button class="btn" id="fDone">Close</button></div>
+  </div>
+</div>
+<div id="web" class="win" hidden>
+  <div class="in">
+    <div class="tb" id="wTb"><button class="sys" id="wClose" aria-label="Close" title="Close"></button><span class="tt" id="wTitle">NetSurfer</span><button class="mm min" id="wMin" aria-label="Minimize" title="Minimize"></button><button class="mm max" id="wMax" aria-label="Maximize" title="Maximize"></button></div>
+    <div class="wbar"><button class="btn" id="wBack" title="Back">&#9668; Back</button><button class="btn" id="wFwd" title="Forward">Forward &#9658;</button><button class="btn" id="wHome" title="HomeBlocks home">Home</button><button class="btn" id="wReload">Reload</button><button class="btn" id="wFind" title="Show this person's window in the city" disabled>Find Window</button><span class="sp"></span><img id="wThrob" alt=""></div>
+    <form id="wLoc"><label class="lbl" for="wUrl">Location:</label><input class="fld" id="wUrl" spellcheck="false" autocomplete="off"><button class="btn" type="submit">Go</button></form>
+    <div class="wview"><iframe id="wFrame" title="Web page"></iframe></div>
+    <div class="wst"><span id="wStat">Document: Done</span><span class="wprog"><span id="wProg"></span></span></div>
   </div>
 </div>
 <div id="icons"></div>
@@ -2491,7 +2522,8 @@ function renderPanel0(){
   const nowLab=p=>nowLabel(p,t);
   const line=p=>{const nx=nextSeg(p,t);const who=p.kid?`${p.first}, ${p.age}`:`${p.first} ${p.last}, ${p.age}`;
     const bio=[p.traits.join(', '),arcText(p,L)].filter(Boolean).join('; ');
-    return `<div class="who"><div class="nm">${esc(who)}</div>${p.job?`<div class="jb">${esc(p.job)}</div>`:''}${bio&&u.kind==='res'?`<div class="bio">${esc(bio.charAt(0).toUpperCase()+bio.slice(1))}.</div>`:''}`+
+    const hbOk=u.kind==='res'&&!u.mega&&(!p.kid||p.age>=8);
+    return `<div class="who"><div class="nm">${esc(who)}${hbOk?`<button class="hbl" data-hb="${p.id}" title="Open ${esc(p.first)}'s home page">Home page</button>`:''}</div>${p.job?`<div class="jb">${esc(p.job)}</div>`:''}${bio&&u.kind==='res'?`<div class="bio">${esc(bio.charAt(0).toUpperCase()+bio.slice(1))}.</div>`:''}`+
       (u.kind==='res'?`<div class="md">Mood today: ${moodWord(moodOf(p,L))}</div>`:'')+
       `<div class="now">${esc(nowLab(p))}</div>${nx?`<div class="nx">then ${esc(lc(label(p,nx.act,nx)))} at ${fmtTime(nx.s)}</div>`:''}</div>`};
   if(u.kind==='office'){
@@ -2556,13 +2588,15 @@ function toggleFollowing(on){flwOpen=on===undefined?!flwOpen:on;flwT=0;renderFol
 function nextFav(){if(!favs.length)return;favI=(favI+1)%favs.length;const u=city.units[favs[favI].id];if(u)visitFav(u)}
 function select(u){sel=u;if(!u)follow=false;else{mini.panel=false;const f=favOf(u);if(f){follow=true;if(!favGone(f,u))f.seen=Math.floor(simMin/1440)}}renderIcons();renderPanel()}
 /* Windows 3.1 bits: minimize to desktop icons, maximize, drag by the title bar */
-const mini={hud:false,panel:false};
+const mini={hud:false,panel:false,web:false};
 const ICON_CITY='<svg viewBox="0 0 32 32" shape-rendering="crispEdges" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" fill="#000080" stroke="#000"/><rect x="23" y="4" width="5" height="5" fill="#fff6c0"/><rect x="25" y="4" width="3" height="3" fill="#000080"/><rect x="3" y="13" width="8" height="18" fill="#202036"/><rect x="12" y="7" width="9" height="24" fill="#2e2e4a"/><rect x="22" y="16" width="8" height="15" fill="#202036"/><rect x="5" y="15" width="2" height="2" fill="#ffd36b"/><rect x="5" y="23" width="2" height="2" fill="#ffd36b"/><rect x="14" y="10" width="2" height="2" fill="#ffd36b"/><rect x="17" y="14" width="2" height="2" fill="#ffd36b"/><rect x="14" y="22" width="2" height="2" fill="#ffd36b"/><rect x="17" y="26" width="2" height="2" fill="#5d7fd0"/><rect x="24" y="19" width="2" height="2" fill="#ffd36b"/><rect x="27" y="25" width="2" height="2" fill="#ffd36b"/><rect x="8" y="5" width="1" height="1" fill="#fff"/><rect x="19" y="3" width="1" height="1" fill="#fff"/></svg>';
 const ICON_APT='<svg viewBox="0 0 32 32" shape-rendering="crispEdges" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" fill="#3b2925" stroke="#000"/><rect x="4" y="5" width="24" height="20" fill="#1a1010"/><rect x="5" y="6" width="22" height="18" fill="#e8c27a"/><rect x="5" y="22" width="22" height="2" fill="#7a5535"/><rect x="19" y="10" width="5" height="4" fill="#ffe9a6"/><rect x="21" y="14" width="1" height="8" fill="#3a3530"/><rect x="10" y="11" width="3" height="3" fill="#5a3a20"/><rect x="10" y="13" width="3" height="2" fill="#e6b48c"/><rect x="9" y="15" width="5" height="4" fill="#d8473f"/><rect x="10" y="19" width="1" height="3" fill="#2a3a6a"/><rect x="12" y="19" width="1" height="3" fill="#2a3a6a"/><rect x="3" y="26" width="26" height="2" fill="#6a5a50"/></svg>';
+const ICON_WEB='<svg viewBox="0 0 32 32" shape-rendering="crispEdges" aria-hidden="true"><rect x=".5" y=".5" width="31" height="31" fill="#c0c0c0" stroke="#000"/><rect x="3" y="3" width="26" height="5" fill="#000080"/><rect x="3" y="9" width="26" height="20" fill="#fff"/><circle cx="16" cy="19" r="8" fill="#1848c8"/><path d="M11 15h4v3h-3zM17 20h5v3h-4zM14 23h3v3h-3z" fill="#28b048"/><rect x="5" y="4" width="3" height="3" fill="#fff"/></svg>';
 function aptShort(u){return u.kind==='office'?`${u.tenant} ${u.f+2}`:`Apt ${u.f+2}${u.letter}`}
 function renderIcons(){
   const el=document.getElementById('icons');if(!el)return;let h='';
   if(mini.hud)h+=`<button class="ico" data-w="hud" title="Restore">${ICON_CITY}<span>Big Apple Sam</span></button>`;
+  if(mini.web&&HB.open)h+=`<button class="ico" data-w="web" title="Restore">${ICON_WEB}<span>NetSurfer</span></button>`;
   if(mini.panel&&sel)h+=`<button class="ico" data-w="panel" title="Restore">${ICON_APT}<span>${esc(sel.box?(sel.s?sel.s.name:sel.b.name):aptShort(sel))}</span></button>`;
   el.innerHTML=h;document.getElementById('hud').hidden=mini.hud;
 }
@@ -3047,6 +3081,801 @@ function startCity(seed,born){
 }
 function wake(){lastWake=performance.now();document.body.classList.remove('idle')}
 
+/* ============================================================
+   HomeBlocks: a free-homepage service from the late 90s where every
+   resident has a page in their own voice. Pages are generated on demand
+   from the city seed and each person's id, traits, job, interests,
+   household and history, so a new city gets a new web. Residents of the
+   cyberpunk mega towers never signed up.
+   ============================================================ */
+/* ---------- pixel graphics: sprites and tiled backgrounds ---------- */
+const HBG={spr:new Map(),tile:new Map()};
+function hbCv(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c}
+function hbPen(ctx){
+  const P={
+    r(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h))},
+    px(x,y,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),1,1)},
+    disc(cx,cy,rad,c){ctx.fillStyle=c;for(let y=-rad;y<=rad;y++){const w=Math.round(Math.sqrt(Math.max(0,rad*rad-y*y)));ctx.fillRect(Math.round(cx-w),Math.round(cy+y),2*w+1,1)}},
+    oval(cx,cy,rx,ry,c){ctx.fillStyle=c;for(let y=-ry;y<=ry;y++){const w=Math.round(rx*Math.sqrt(Math.max(0,1-(y*y)/(ry*ry))));ctx.fillRect(Math.round(cx-w),Math.round(cy+y),2*w+1,1)}},
+    ring(cx,cy,rad,c){for(let a=0;a<64;a++){const t=a/64*Math.PI*2;P.px(cx+Math.cos(t)*rad,cy+Math.sin(t)*rad,c)}},
+    line(x0,y0,x1,y1,c){x0=Math.round(x0);y0=Math.round(y0);x1=Math.round(x1);y1=Math.round(y1);
+      const dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let e=dx+dy;
+      for(let g=0;g<400;g++){P.px(x0,y0,c);if(x0===x1&&y0===y1)break;const e2=2*e;if(e2>=dy){e+=dy;x0+=sx}if(e2<=dx){e+=dx;y0+=sy}}},
+    text(s,x,y,c,sc=1){s=String(s).toUpperCase();for(let k=0;k<s.length;k++){const g=FONT3[s[k]]||FONT3[' '];
+      for(let rr=0;rr<5;rr++)for(let q=0;q<3;q++)if(g[rr][q])P.r(x+(k*4+q)*sc,y+rr*sc,sc,sc,c)}},
+    map(rows,pal,ox=0,oy=0){rows.forEach((row,y)=>{for(let x=0;x<row.length;x++){const c=pal[row[x]];if(c)P.px(ox+x,oy+y,c)}})}
+  };return P}
+/* sprites: {w,h,n frames,ms per frame,d(P,frame,o)}; o is an options object (colors) */
+const HBS={
+  globe:{w:16,h:16,n:8,ms:140,d(P,f){P.disc(8,8,7,'#1848c8');
+    const land=['..##....###.....','.####..#####....','..###...####..#.','...#.....##..###','....##.......##.','...####.....#...','....###....###..','.....#.....##...'];
+    for(let y=0;y<15;y++)for(let x=0;x<15;x++){const dx=x-7,dy=y-7;if(dx*dx+dy*dy>48)continue;const row=land[(y>>1)%8];if(row[(x+f*2)%16]==='#')P.px(x+1,y+1,'#28b048')}
+    P.px(5,4,'#fff');P.px(4,5,'#fff');P.ring(8,8,7,'#002080')}},
+  mail:{w:18,h:14,n:8,ms:120,d(P,f,o){const k=Math.abs(Math.cos(f/8*Math.PI*2)),w=Math.max(2,Math.round(16*k)),x0=9-w/2;
+    P.r(x0,2,w,10,o.c||'#f0f0f0');P.r(x0,2,w,1,'#000');P.r(x0,11,w,1,'#000');P.r(x0,2,1,10,'#000');P.r(x0+w-1,2,1,10,'#000');
+    if(w>6){P.line(x0,2,9,7,'#000');P.line(x0+w-1,2,9,7,'#000');P.r(x0+w-5,3,3,3,'#d02020')}}},
+  newb:{w:26,h:11,n:2,ms:330,d(P,f){P.r(0,0,26,11,f?'#ffff00':'#ff0000');P.text('NEW!',3,3,f?'#ff0000':'#ffff00',1)}},
+  cons:{w:120,h:16,n:4,ms:150,d(P,f){for(let x=-16;x<136;x+=8){for(let y=0;y<16;y++){const xx=x+y/2+f*2;P.r(xx,y,4,1,'#000')}}
+    P.r(0,0,120,16,'rgba(0,0,0,0)');P.r(4,3,112,10,'#ffd800');P.text('UNDER CONSTRUCTION',6,5,'#000',1)},bg:'#ffd800'},
+  cone:{w:14,h:16,n:2,ms:400,d(P,f){P.r(1,14,12,2,'#202020');for(let y=0;y<13;y++){const w=2+Math.round(y*.75);P.r(7-w/2,y+1,w,1,(y>>2)%2?'#ffffff':'#ff7000')}if(f)P.r(6,0,2,2,'#ffff60')}},
+  rainbow:{w:200,h:6,n:6,ms:140,d(P,f){for(let x=0;x<200;x++){const h=((x*3+f*30)%360);P.r(x,0,1,6,`hsl(${h},100%,50%)`)}}},
+  flame:{w:14,h:20,n:4,ms:110,d(P,f){const R=mulberry32(f*97+5);for(let y=0;y<20;y++){const t=y/20,w=Math.max(0,Math.round(6*Math.sin(t*Math.PI*.95)+R()*2-1));
+    const c=t<.35?'#ffe060':t<.7?'#ff8000':'#d02000';P.r(7-w+Math.round(R()*2-1),19-y,w*2,1,c)}}},
+  sparkle:{w:11,h:11,n:4,ms:160,d(P,f,o){const c=o.c||'#ffffff',s=[1,3,5,3][f];for(let k=-s;k<=s;k++){P.px(5+k,5,c);P.px(5,5+k,c)}if(f===2){P.px(4,4,c);P.px(6,6,c);P.px(4,6,c);P.px(6,4,c)}}},
+  heart:{w:11,h:10,n:2,ms:420,d(P,f,o){const c=o.c||'#ff2060';const m=f?['...........','..##...##..','.####.####.','.#########.','..#######..','...#####...','....###....','.....#.....']:
+    ['.##.....##.','####...####','###########','###########','.#########.','..#######..','...#####...','....###....','.....#.....'];P.map(m,{'#':c},0,f?1:0);P.px(2,f?3:2,'#fff')}},
+  note:{w:12,h:16,n:4,ms:180,d(P,f,o){const c=o.c||'#000',y=[0,-1,0,1][f]+2;P.r(7,y,1,9,c);P.r(8,y,3,1,c);P.r(9,y+1,2,1,c);P.oval(5,y+10,2,2,c)}},
+  cat:{w:16,h:13,n:2,ms:500,d(P,f,o){const c=o.c||'#303030';const m=['..#...#.........','..##.##.........','..#####.........','..#g#g#.........','..##p##.........','...###..........','..#####.........','.#######......#.','.########....#..','.#########..#...','.###########....','.##.##.##.##....'];
+    const m2=m.map(r=>r.slice(0,12)+'....');if(f){m2[6]=m2[6].slice(0,12)+'.##.';m2[7]=m2[7].slice(0,12)+'#...';m2[8]=m2[8].slice(0,12)+'#...';m2[9]=m2[9].slice(0,12)+'#...'}
+    P.map(f?m2:m,{'#':c,g:'#60e060',p:'#ff90a0'},0,1)}},
+  dog:{w:18,h:13,n:2,ms:240,d(P,f,o){const c=o.c||'#a06830';const m=['.##...............','####..............','#k###.............','######............','.#####............','..####...........#','..###############.','..###############.','..##############..','..###.......###...','..##.........##...','..##.........##...'];
+    const t=f?['.................#','................#.']:['..................','.................#'];const mm=m.slice();mm[4]=mm[4].slice(0,16)+t[0].slice(16);mm[5]=mm[5].slice(0,16)+t[1].slice(16);
+    P.map(mm,{'#':c,k:'#000'},0,1);P.px(0,3,'#000')}},
+  fish:{w:16,h:10,n:4,ms:200,d(P,f,o){const c=o.c||'#ff9020',x=[0,1,2,1][f];P.oval(7+x,5,5,3,c);const tw=f%2?1:0;P.line(1+x,2+tw,3+x,5,c);P.line(1+x,8-tw,3+x,5,c);P.r(1+x,2+tw,1,7-2*tw,c);P.px(10+x,4,'#000');P.px(14,1+(f%3),'#a0e0ff')}},
+  ghost:{w:14,h:16,n:4,ms:200,d(P,f){const y=[0,1,2,1][f];P.disc(7,6+y,6,'#f4f4f4');P.r(1,6+y,13,7,'#f4f4f4');for(let x=1;x<14;x+=4)P.r(x+(f%2),13+y,2,2,'#f4f4f4');P.r(4,5+y,2,3,'#000');P.r(8,5+y,2,3,'#000')}},
+  pumpkin:{w:16,h:14,n:3,ms:180,d(P,f){P.oval(8,8,7,5,'#ff7a00');P.oval(8,8,3,5,'#ff9a20');P.r(7,1,2,3,'#3a8020');const g=['#ffe040','#ffb000','#fff080'][f];
+    P.r(4,6,2,2,g);P.r(10,6,2,2,g);P.r(5,10,6,1,g);P.px(6,11,g);P.px(9,11,g)}},
+  bat:{w:18,h:10,n:2,ms:200,d(P,f){const c='#201828';P.disc(9,5,2,c);if(f){P.line(9,4,1,1,c);P.line(9,4,17,1,c);P.line(1,1,4,5,c);P.line(17,1,14,5,c)}else{P.line(9,5,1,8,c);P.line(9,5,17,8,c);P.line(1,8,5,5,c);P.line(17,8,13,5,c)}P.px(8,4,'#ff3030');P.px(10,4,'#ff3030')}},
+  ufo:{w:20,h:14,n:4,ms:160,d(P,f){const y=[0,1,2,1][f];P.oval(10,4+y,4,3,'#a0e0ff');P.oval(10,7+y,9,2,'#a0a0b0');for(let k=0;k<4;k++)P.px(4+k*4,7+y,k===f?'#ffff00':'#ff3030');if(f%2)for(let k=0;k<4;k++)P.r(7+k,10+y+k,7-2*k+1,1,'rgba(255,255,140,.6)')}},
+  rocket:{w:12,h:20,n:3,ms:120,d(P,f){P.r(4,3,4,11,'#e8e8e8');P.r(5,1,2,2,'#e8e8e8');P.px(5,0,'#d02020');P.px(6,0,'#d02020');P.r(5,6,2,2,'#2080ff');P.r(2,11,2,4,'#d02020');P.r(8,11,2,4,'#d02020');
+    const L=[3,5,4][f];for(let k=0;k<L;k++)P.r(5-(k<2?0:0),14+k,2,1,k<2?'#ffe060':'#ff6000')}},
+  candle:{w:8,h:18,n:3,ms:150,d(P,f){P.r(2,8,4,10,'#f4f0e0');P.px(4,7,'#202020');const x=[0,1,0][f];P.r(3+x,3,2,4,'#ffb000');P.r(3+x,4,1,2,'#fff080');P.px(3+x,2,'#ff8000')}},
+  coffee:{w:14,h:16,n:3,ms:240,d(P,f){P.r(2,8,8,7,'#f0f0f0');P.r(3,8,6,2,'#5a3010');P.r(10,9,2,1,'#f0f0f0');P.r(11,10,1,3,'#f0f0f0');P.r(10,13,2,1,'#f0f0f0');
+    for(let k=0;k<3;k++){const xx=4+k*2+((f+k)%2);P.px(xx,6-((f+k)%3),'#c0c0c0');P.px(xx,3-((f+k)%3),'#c0c0c0')}}},
+  book:{w:16,h:12,n:4,ms:260,d(P,f){P.r(0,2,16,9,'#7a2010');P.r(1,1,7,9,'#f8f4e8');P.r(8,1,7,9,'#f8f4e8');for(let k=0;k<4;k++){P.r(2,3+k*2,5,1,'#909090');P.r(9,3+k*2,5,1,'#909090')}
+    if(f>0&&f<3){const w=f===1?5:2;P.r(8,1,w,9,'#e8e0d0')}}},
+  computer:{w:18,h:16,n:4,ms:300,d(P,f){P.r(1,0,16,12,'#d8d0c0');P.r(3,2,12,8,'#103010');for(let k=0;k<3;k++){const w=[8,5,9][(k+f)%3];P.r(4,3+k*2,k===2?(f%2?w:0):w,1,'#40ff40')}P.r(6,12,6,1,'#a8a090');P.r(3,13,12,3,'#d8d0c0');P.px(14,14,'#30c030')}},
+  runner:{w:14,h:16,n:2,ms:180,d(P,f,o){const c=o.c||'#000';P.disc(8,2,2,c);P.line(8,4,7,10,c);if(f){P.line(7,10,4,15,c);P.line(7,10,11,14,c);P.line(8,6,4,8,c);P.line(8,6,12,5,c)}else{P.line(7,10,9,15,c);P.line(7,10,5,14,c);P.line(8,6,11,9,c);P.line(8,6,5,5,c)}}},
+  flower:{w:12,h:16,n:2,ms:500,d(P,f,o){const c=o.c||'#ff40a0',x=f?1:0;P.line(6,15,6+x,6,'#30a030');P.r(7,11,3,1,'#30a030');for(const[a,b]of[[0,-2],[2,0],[0,2],[-2,0]])P.disc(6+x+a,5+b,1,c);P.px(6+x,5,'#ffe040')}},
+  moon:{w:16,h:16,n:2,ms:600,d(P,f){P.disc(8,8,6,'#fff6c0');P.disc(11,6,5,'rgba(0,0,0,0)');const c=P;c.disc(11,6,5,'#000');P.px(1,1+f,'#fff');P.px(14,13-f,'#fff');P.px(13,2,f?'#fff':'#888')},bg:'#000'},
+  disc:{w:16,h:16,n:6,ms:110,d(P,f){P.disc(8,8,7,'#d8d8e0');for(let k=0;k<6;k++){const t=(k+f)/6*Math.PI;P.line(8,8,8+Math.cos(t)*7,8+Math.sin(t)*7,`hsl(${k*60},90%,70%)`)}P.disc(8,8,2,'#fff');P.px(8,8,'#808080')}},
+  reel:{w:16,h:16,n:4,ms:150,d(P,f){P.disc(8,8,7,'#404048');for(let k=0;k<5;k++){const t=k/5*Math.PI*2+f*.3;P.disc(8+Math.cos(t)*4,8+Math.sin(t)*4,1,'#101014')}P.disc(8,8,1,'#c0c0c0')}},
+  guitar:{w:20,h:12,n:2,ms:120,d(P,f){P.oval(5,6,4,4,'#c06020');P.oval(9,6,3,3,'#c06020');P.disc(6,6,1,'#301808');P.r(10,5,9,2,'#5a3010');P.r(18,4,2,4,'#3a2010');for(let k=0;k<2;k++)P.r(3,5+k,15,1,f&&k?'#ffffa0':'#e0e0e0')}},
+  palette:{w:16,h:13,n:2,ms:500,d(P,f){P.oval(8,6,7,5,'#e0c090');P.disc(11,8,1,'rgba(0,0,0,0)');P.r(10,7,3,2,'#c0a070');const cs=['#e02020','#2040e0','#f0d020','#20a040'];cs.forEach((c,k)=>P.disc(4+k*3,4+(k%2),1,c));P.line(12,12,15,2+f,'#704020')}},
+  clock:{w:16,h:16,n:12,ms:250,d(P,f){P.disc(8,8,7,'#f8f8f0');P.ring(8,8,7,'#000');const t=f/12*Math.PI*2-Math.PI/2;P.line(8,8,8+Math.cos(t)*5,8+Math.sin(t)*5,'#d02020');P.line(8,8,8,4,'#000')}},
+  yinyang:{w:16,h:16,n:8,ms:150,d(P,f){const a=f/8*Math.PI*2;for(let y=0;y<16;y++)for(let x=0;x<16;x++){const dx=x-7.5,dy=y-7.5,d2=dx*dx+dy*dy;if(d2>56)continue;
+    const rx=dx*Math.cos(a)+dy*Math.sin(a),ry=-dx*Math.sin(a)+dy*Math.cos(a);let w=ry<0;const t=(rx-3.75)**2+ry*ry,b=(rx+3.75)**2+ry*ry;if(t<14)w=true;if(b<14)w=false;if(t<2)w=false;if(b<2)w=true;P.px(x,y,w?'#fff':'#000')}}},
+  atom:{w:16,h:16,n:6,ms:120,d(P,f){for(let k=0;k<3;k++){const r=k*Math.PI/3;for(let a=0;a<40;a++){const t=a/40*Math.PI*2;const x=Math.cos(t)*7,y=Math.sin(t)*2.5;P.px(8+x*Math.cos(r)-y*Math.sin(r),8+x*Math.sin(r)+y*Math.cos(r),'#40a0ff')}
+    const t=(f/6+k/3)*Math.PI*2,x=Math.cos(t)*7,y=Math.sin(t)*2.5;P.disc(8+x*Math.cos(r)-y*Math.sin(r),8+x*Math.sin(r)+y*Math.cos(r),1,'#ffff40')}P.disc(8,8,1,'#ff4040')}},
+  coin:{w:14,h:14,n:6,ms:120,d(P,f){const w=Math.max(1,Math.round(6*Math.abs(Math.cos(f/6*Math.PI))));P.oval(7,7,w,6,'#f0c020');if(w>3)P.text('$',6,5,'#906000')}},
+  house:{w:16,h:16,n:3,ms:300,d(P,f){P.r(3,8,10,8,'#d8b080');for(let k=0;k<6;k++)P.r(2+k,8-k,12-2*k,1,'#b03020');P.r(7,11,3,5,'#704020');P.r(4,10,2,2,'#ffe080');P.r(11,10,2,2,'#ffe080');P.r(11,2,2,4,'#802010');for(let k=0;k<3;k++)P.px(12+((f+k)%2),1-k+ (k? 0:0)-0,'#c0c0c0')}},
+  bus:{w:22,h:12,n:2,ms:200,d(P,f,o){const c=o.c||'#f0c020';P.r(1,1,20,8,c);for(let k=0;k<5;k++)P.r(3+k*3,3,2,3,'#a0d0ff');P.r(18,3,2,5,'#a0d0ff');for(const x of[5,16]){P.disc(x,10,2,'#202020');P.px(x+(f?1:-1),10,'#c0c0c0')}}},
+  plane:{w:20,h:12,n:4,ms:150,d(P,f){const y=[0,1,0,-1][f]+5;P.r(2,y,15,2,'#e0e0e8');P.r(16,y,2,1,'#e0e0e8');P.line(8,y,5,y-4,'#c0c0d0');P.line(8,y+1,5,y+5,'#c0c0d0');P.line(3,y,2,y-3,'#c0c0d0');P.px(16,y,'#2060c0')}},
+  owl:{w:14,h:16,n:4,ms:350,d(P,f){P.oval(7,9,6,6,'#806040');P.r(2,2,2,3,'#806040');P.r(10,2,2,3,'#806040');const bl=f===3;P.disc(4,7,2,'#fff');P.disc(10,7,2,'#fff');if(!bl){P.px(4,7,'#000');P.px(10,7,'#000')}else{P.r(2,7,5,1,'#806040');P.r(8,7,5,1,'#806040')}P.px(7,9,'#ffb000')}},
+  trophy:{w:14,h:16,n:4,ms:200,d(P,f){P.r(3,1,8,6,'#f0c020');P.oval(7,6,4,3,'#f0c020');P.r(1,2,2,3,'#f0c020');P.r(11,2,2,3,'#f0c020');P.r(6,9,2,3,'#d0a010');P.r(3,12,8,3,'#704020');P.px(4+f*2,2,'#fff');P.px(4+f*2,3,'#fffbe0')}},
+  dove:{w:18,h:12,n:2,ms:300,d(P,f){P.oval(8,7,5,2,'#fafafa');P.disc(13,5,2,'#fafafa');P.px(15,5,'#f0a000');P.px(13,4,'#000');if(f){P.line(7,6,3,0,'#e8e8e8');P.line(9,6,6,0,'#e8e8e8')}else{P.line(7,7,2,11,'#e8e8e8');P.line(9,7,5,11,'#e8e8e8')}P.line(3,7,0,9,'#fafafa')}},
+  pencil:{w:18,h:8,n:2,ms:250,d(P,f){P.r(2,2,11,4,'#f0c020');P.r(13,2,2,4,'#e8a8a8');P.r(15,2,2,4,'#c0c0c0');P.line(0,4,2,2,'#e0c090');P.line(0,4,2,5,'#e0c090');P.px(0,4,'#202020');if(f)P.px(0,7,'#202020')}},
+  joystick:{w:14,h:16,n:2,ms:220,d(P,f){P.r(1,11,12,5,'#202020');P.r(2,12,10,3,'#404040');const x=f?2:-2;P.line(7,11,7+x,4,'#808080');P.disc(7+x,3,2,'#e02020');P.r(10,10,2,1,'#ffe040')}},
+  baby:{w:14,h:14,n:2,ms:200,d(P,f){const x=f?1:-1;P.line(4,12,8+x,5,'#f0a0c0');P.disc(9+x,4,3,'#a0d0ff');P.px(8+x,3,'#fff');P.disc(4,12,1,'#f0a0c0')}},
+  plant:{w:14,h:16,n:2,ms:500,d(P,f){P.r(3,11,8,5,'#c06030');P.r(2,10,10,2,'#d07040');const s=f?1:0;P.line(7,10,7,3,'#309030');P.oval(4,5+s,2,1,'#40b040');P.oval(10,4-s+1,2,1,'#40b040');P.oval(7,2,1,2,'#50c050')}},
+  snow:{w:11,h:11,n:4,ms:200,d(P,f){const c='#e8f4ff';for(let k=0;k<4;k++){const t=k/4*Math.PI+f*.2;P.line(5-Math.cos(t)*5,5-Math.sin(t)*5,5+Math.cos(t)*5,5+Math.sin(t)*5,c)}}},
+  skull:{w:12,h:13,n:2,ms:400,d(P,f){P.disc(6,5,5,'#f0f0e0');P.r(3,9,6,3,'#f0f0e0');P.r(3,4,2,2+f,'#000');P.r(7,4,2,2+f,'#000');P.px(6,7,'#000');for(let k=0;k<3;k++)P.px(4+k*2,11,'#000')}},
+  star:{w:13,h:13,n:2,ms:300,d(P,f,o){const c=f?'#ffffa0':(o.c||'#ffd000');P.r(6,0,1,13,c);P.r(0,6,13,1,c);P.r(5,2,3,9,c);P.r(2,5,9,3,c);P.r(4,4,5,5,c)}},
+  bike:{w:20,h:13,n:2,ms:180,d(P,f){for(const x of[4,15]){P.ring(x,8,4,'#202020');P.line(x,8,x+(f?3:-3),8+(f?2:-2),'#909090')}P.line(4,8,9,8,'#d02020');P.line(9,8,13,3,'#d02020');P.line(15,8,12,3,'#d02020');P.line(9,8,8,3,'#d02020');P.r(7,2,3,1,'#202020');P.r(12,2,3,1,'#202020')}},
+  cake:{w:16,h:16,n:3,ms:160,d(P,f){P.r(1,9,14,7,'#f0d0e0');P.r(1,9,14,2,'#ffffff');for(let k=0;k<3;k++){P.r(4+k*4,5,1,4,'#80c0ff');P.px(4+k*4,3+((f+k)%2),'#ffb000');P.px(4+k*4,4,'#ff6000')}}},
+  tv:{w:18,h:15,n:3,ms:160,d(P,f){P.r(1,2,16,11,'#504030');P.r(3,4,10,7,['#8080ff','#80ff80','#ff8080'][f]);P.r(14,5,2,2,'#c0c0c0');P.line(6,2,3,0,'#202020');P.line(10,2,13,0,'#202020');P.r(3,13,2,2,'#303030');P.r(13,13,2,2,'#303030')}},
+  camera:{w:18,h:13,n:3,ms:300,d(P,f){P.r(1,3,16,9,'#303034');P.r(3,1,5,2,'#303034');P.disc(9,7,3,'#808090');P.disc(9,7,1,'#203040');P.r(13,4,3,2,f===0?'#ffffff':'#c0c0c0');if(f===0){P.px(15,1,'#ffff80');P.px(17,2,'#ffff80')}}}
+};
+function hbSprite(name,o={}){
+  const key=name+'|'+(o.c||'');let s=HBG.spr.get(key);if(s)return s;const d=HBS[name];if(!d)return null;
+  const fr=[];for(let f=0;f<d.n;f++){const c=hbCv(d.w,d.h),ctx=c.getContext('2d');if(d.bg){ctx.fillStyle=d.bg;ctx.fillRect(0,0,d.w,d.h)}d.d(hbPen(ctx),f,o);fr.push(c.toDataURL())}
+  s={key,w:d.w,h:d.h,ms:d.ms,fr};HBG.spr.set(key,s);return s}
+/* an <img> for a sprite; the browser window swaps its frames */
+function hbImg(name,o={}){const s=hbSprite(name,o);if(!s)return'';const sc=o.sc||2,al=o.al?` align="${o.al}"`:'';
+  return `<img src="${s.fr[0]}" data-s="${esc0(s.key)}" width="${s.w*sc}" height="${s.h*sc}" alt=""${al} class="spr">`}
+
+/* tiled backgrounds; returns {url, ink, link, vlink, panel} */
+const HBTILE={
+  stars:{s:64,base:'#000010',d(P,R){for(let k=0;k<40;k++)P.px(R()*64,R()*64,R()<.2?'#ffff99':R()<.5?'#9999ff':'#ffffff');for(let k=0;k<3;k++){const x=R()*60+2,y=R()*60+2;P.px(x-1,y,'#bbbbff');P.px(x+1,y,'#bbbbff');P.px(x,y-1,'#bbbbff');P.px(x,y+1,'#bbbbff');P.px(x,y,'#fff')}}},
+  galaxy:{s:64,base:'#140028',d(P,R,c){for(let k=0;k<26;k++){const x=R()*64,y=R()*64,r=2+R()*7;for(const dx of[-64,0,64])for(const dy of[-64,0,64])P.disc(x+dx,y+dy,r,R()<.5?'rgba(120,40,180,.18)':'rgba(40,60,200,.16)')}for(let k=0;k<50;k++)P.px(R()*64,R()*64,R()<.3?'#ffccff':'#ffffff')}},
+  clouds:{s:96,base:'#6aa8f0',d(P,R){for(let k=0;k<9;k++){const x=R()*96,y=R()*96;for(let j=0;j<5;j++){const cx=x+j*5-10,cy=y+(R()*4-2),r=4+R()*5;for(const dx of[-96,0,96])for(const dy of[-96,0,96])P.disc(cx+dx,cy+dy,Math.round(r),'rgba(255,255,255,.75)')}}}},
+  marble:{s:64,base:'#e8e4dc',d(P,R,c){const col=c||'#9a9088';for(let y=0;y<64;y++)for(let x=0;x<64;x++){const v=Math.sin((x+16*Math.sin(y/64*Math.PI*2*2)+8*Math.sin(x/64*Math.PI*2*3))/64*Math.PI*2*3);if(v>.93)P.px(x,y,col);else if(v>.8)P.px(x,y,'rgba(150,140,130,.25)')}}},
+  parchment:{s:64,base:'#efe0b8',d(P,R){for(let k=0;k<420;k++)P.px(R()*64,R()*64,R()<.5?'rgba(160,120,60,.25)':'rgba(255,250,230,.6)');for(let k=0;k<5;k++){const x=R()*64,y=R()*64;for(const dx of[-64,0,64])for(const dy of[-64,0,64])P.disc(x+dx,y+dy,3+R()*4|0,'rgba(170,130,70,.08)')}}},
+  notebook:{s:24,w:1600,base:'#ffffff',d(P){for(let y=0;y<24;y+=12)P.r(0,y+11,1600,1,'#9cc0ee');P.r(70,0,1,24,'#ee8a8a');P.r(73,0,1,24,'#ee8a8a');for(const x of[30])P.disc(x,6,4,'#d8d8d8')},side:84},
+  graph:{s:20,base:'#f4fff4',d(P){P.r(0,0,20,1,'#b0d8b0');P.r(0,0,1,20,'#b0d8b0');P.r(0,10,20,1,'#d8f0d8');P.r(10,0,1,20,'#d8f0d8')}},
+  brick:{s:32,base:'#9a3a28',d(P){for(let y=0;y<32;y+=8){P.r(0,y,32,1,'#c8c0b0');const o=(y/8)%2?8:0;for(let x=o;x<32+16;x+=16)P.r(x%32,y,1,8,'#c8c0b0')}}},
+  wood:{s:64,base:'#a8743e',d(P,R){for(let y=0;y<64;y+=2){const s=Math.sin(y/64*Math.PI*2*3)*2;P.r(0,y,64,1,`rgba(90,50,20,${.1+.15*Math.abs(Math.sin(y*.7+s))})`)}for(let k=0;k<3;k++){const x=R()*64,y=R()*64;P.oval(x,y,4,2,'rgba(80,40,10,.35)')}}},
+  hearts:{s:40,base:'#ffd6ea',d(P,R,c){const col=c||'#ff6fae';for(const[x,y]of[[6,6],[26,26]]){P.disc(x,y,2,col);P.disc(x+4,y,2,col);for(let k=0;k<5;k++)P.r(x-2+k,y+1+k,9-2*k,1,col)}}},
+  paws:{s:48,base:'#fff4d8',d(P,R,c){const col=c||'#c8a070';for(const[x,y]of[[10,12],[34,36]]){P.oval(x,y,4,3,col);P.disc(x-4,y-5,1,col);P.disc(x-1,y-7,1,col);P.disc(x+2,y-7,1,col);P.disc(x+5,y-5,1,col)}}},
+  notes:{s:48,base:'#202040',d(P,R,c){const col=c||'#e0e0ff';for(const[x,y]of[[8,20],[32,44]]){P.r(x+3,y-10,1,10,col);P.r(x+4,y-10,4,1,col);P.oval(x+1,y,2,1,col)}P.r(20,6,1,9,col);P.oval(18,15,2,1,col)}},
+  flames:{s:32,base:'#000000',d(P,R){for(let x=0;x<32;x++){const h=8+Math.round(10*Math.abs(Math.sin(x*.4))+R()*5);for(let y=0;y<h;y++)P.px(x,31-y,y<h*.4?'#ff3000':y<h*.75?'#ff9000':'#ffe040')}}},
+  leaves:{s:48,base:'#2e6b2a',d(P,R){for(let k=0;k<7;k++){const x=R()*48,y=R()*48;for(const dx of[-48,0,48])for(const dy of[-48,0,48]){P.oval(x+dx,y+dy,4,2,R()<.5?'#3f8a36':'#4ea443');P.line(x+dx-4,y+dy,x+dx+4,y+dy,'#2a5a22')}}}},
+  water:{s:48,base:'#2a62b8',d(P){for(let y=4;y<48;y+=8)for(let x=0;x<48;x++)P.px(x,y+Math.round(2*Math.sin((x+y)/48*Math.PI*2*2)),'#6aa0e8')}},
+  checker:{s:32,base:'#ffffff',d(P,R,c){const col=c||'#000000';P.r(0,0,16,16,col);P.r(16,16,16,16,col)}},
+  gingham:{s:24,base:'#ffffff',d(P,R,c){const col=c||'#d03030';for(let y=0;y<24;y++)for(let x=0;x<24;x++){const a=(x<12)+(y<12);if(a)P.px(x,y,a===2?col:hbMix(col,'#ffffff',.55))}}},
+  tiedye:{s:64,base:'#000000',d(P){for(let y=0;y<64;y++)for(let x=0;x<64;x++){const v=Math.sin(x/64*Math.PI*2*2)+Math.sin(y/64*Math.PI*2*2)+Math.sin((x+y)/64*Math.PI*2);P.px(x,y,`hsl(${Math.round((v+3)*60)},90%,62%)`)}}},
+  plaid:{s:32,base:'#2a4a2a',d(P){P.r(0,8,32,6,'rgba(200,40,40,.55)');P.r(8,0,6,32,'rgba(200,40,40,.55)');P.r(0,22,32,2,'rgba(240,220,80,.6)');P.r(22,0,2,32,'rgba(240,220,80,.6)')}},
+  bats:{s:48,base:'#14081e',d(P){const c='#3a2050';for(const[x,y]of[[10,10],[34,34]]){P.disc(x,y,2,c);P.line(x,y,x-8,y-3,c);P.line(x,y,x+8,y-3,c);P.line(x-8,y-3,x-5,y+1,c);P.line(x+8,y-3,x+5,y+1,c)}P.px(24,20,'#ff8000')}},
+  binary:{s:48,base:'#000000',d(P,R){for(let y=1;y<48;y+=8)for(let x=1;x<48;x+=6)P.text(R()<.5?'0':'1',x,y,'#00a000')}},
+  circuit:{s:48,base:'#0a3a1a',d(P,R){for(let k=0;k<10;k++){let x=Math.floor(R()*48),y=Math.floor(R()*48);for(let s=0;s<3;s++){const h=R()<.5,l=4+Math.floor(R()*12);if(h){P.r(x,y,l,1,'#30a050');x+=l}else{P.r(x,y,1,l,'#30a050');y+=l}x%=48;y%=48}P.disc(x,y,1,'#d0b040')}}},
+  snow:{s:48,base:'#1a3a7a',d(P,R){for(let k=0;k<20;k++)P.px(R()*48,R()*48,'#ffffff');for(const[x,y]of[[12,12],[36,36]]){P.r(x-3,y,7,1,'#e8f4ff');P.r(x,y-3,1,7,'#e8f4ff');P.px(x-2,y-2,'#e8f4ff');P.px(x+2,y+2,'#e8f4ff');P.px(x-2,y+2,'#e8f4ff');P.px(x+2,y-2,'#e8f4ff')}}},
+  denim:{s:16,base:'#3a5a8a',d(P,R){for(let k=0;k<16;k++)P.line(k,0,k+16,16,R()<.5?'rgba(255,255,255,.08)':'rgba(0,0,0,.12)');for(let k=0;k<20;k++)P.px(R()*16,R()*16,'rgba(255,255,255,.18)')}},
+  confetti:{s:48,base:'#ffffff',d(P,R){for(let k=0;k<26;k++)P.r(R()*48,R()*48,2,1+Math.round(R()),`hsl(${Math.round(R()*360)},90%,55%)`)}},
+  money:{s:40,base:'#d8f0d0',d(P){P.text('$',6,6,'#70a060',2);P.text('$',26,26,'#70a060',2)}},
+  plate:{s:16,base:'#9a9aa2',d(P){P.line(2,6,6,2,'#d0d0d8');P.line(10,14,14,10,'#d0d0d8');P.line(3,6,7,2,'#606068');P.line(11,14,15,10,'#606068')}},
+  lace:{s:24,base:'#fbf3e4',d(P){P.ring(12,12,8,'#e8d8c0');P.ring(12,12,4,'#e8d8c0');for(const[x,y]of[[0,0],[24,0],[0,24],[24,24]])P.ring(x,y,4,'#e8d8c0')}},
+  sunset:{s:8,h:640,base:'#000000',d(P){for(let y=0;y<640;y++){const t=y/640;P.r(0,y,8,1,`hsl(${Math.round(280-t*250)},80%,${Math.round(25+t*35)}%)`)}},gradient:true},
+  stucco:{s:32,base:'#e8e0f0',d(P,R){for(let k=0;k<200;k++)P.px(R()*32,R()*32,R()<.5?'rgba(255,255,255,.7)':'rgba(120,100,150,.18)')}},
+  camo:{s:64,base:'#5a6a3a',d(P,R){for(let k=0;k<14;k++){const x=R()*64,y=R()*64,c=['#3a4a2a','#7a7a4a','#2a2a1a'][k%3];for(const dx of[-64,0,64])for(const dy of[-64,0,64])P.oval(x+dx,y+dy,3+R()*6|0,2+R()*4|0,c)}}},
+  stripe:{s:32,w:1600,base:'#ffffff',d(P,R,c){P.r(0,0,110,32,c||'#000080');for(let y=0;y<32;y+=8)P.r(110,y,4,4,c||'#000080')},side:128}
+};
+function hbMix(a,b,t){const pa=parseInt(a.slice(1),16),pb=parseInt(b.slice(1),16);const ch=s=>Math.round(((pa>>s)&255)*(1-t)+((pb>>s)&255)*t);return'#'+((1<<24)|(ch(16)<<16)|(ch(8)<<8)|ch(0)).toString(16).slice(1)}
+function hbLum(c){const n=parseInt(c.slice(1),16);return(.2126*((n>>16)&255)+.7152*((n>>8)&255)+.0722*(n&255))/255}
+function hbTile(kind,c,seed){
+  const key=kind+'|'+(c||'')+'|'+(seed||0);let t=HBG.tile.get(key);if(t)return t;const d=HBTILE[kind];
+  const w=d.w||d.s,h=d.h||d.s,cv=hbCv(w,h),ctx=cv.getContext('2d');ctx.fillStyle=d.base;ctx.fillRect(0,0,w,h);
+  d.d(hbPen(ctx),mulberry32((seed||1)*7919+kind.length),c);
+  const dark=hbLum(d.base)<.45;
+  t={url:cv.toDataURL(),dark,side:d.side||0,base:d.base,grad:!!d.gradient};HBG.tile.set(key,t);return t}
+
+/* ---------- who lives where on HomeBlocks ---------- */
+const HBHOST='www.homeblocks.com',HBROOT='http://'+HBHOST+'/';
+/* neighborhoods: tag weights decide who moves in; t = background tiles; s = sprites; f = fonts */
+const HBNB=[
+  {id:'SiliconAlley',nm:'Silicon Alley',ab:'Computers, code, modems and the information superhighway.',w:{computer:2,tech:3,retro:1.5,modular:1,drone:1,maker:2},subs:['Bitstream','Motherboard','Modem','Kilobyte','Mainframe','Pixel'],t:['binary','circuit','graph','stars','plate'],s:['computer','globe','mail'],f:['Courier New','Verdana','Arial']},
+  {id:'Marquee',nm:'Marquee',ab:'Movies, TV, cameras and the people who stay for the credits.',w:{film:3,darkroom:2,couch:1.2,filmjob:3},subs:['Matinee','Projector','DoubleFeature','Balcony','Popcorn'],t:['stars','checker','galaxy','stripe'],s:['reel','camera','tv','star'],f:['Impact','Arial Black','Times New Roman']},
+  {id:'SunsetStrip',nm:'Sunset Strip',ab:'Bands, gear, garage demos and late-night radio.',w:{guitar:2,synth:2.5,music:3,musical:2,theremin:2,dance:1},subs:['Amplifier','Encore','Feedback','Backstage','Vinyl','Riff'],t:['notes','flames','checker','galaxy'],s:['note','guitar','disc','flame'],f:['Impact','Comic Sans MS','Arial Black']},
+  {id:'Athens',nm:'Athens',ab:'Readers, writers, teachers and the eternally footnoted.',w:{read:.8,bookish:3,words:3,novel:3,law:1,science:.8},subs:['Agora','Library','Parthenon','Lyceum','Scroll'],t:['parchment','marble','lace','notebook'],s:['book','pencil','candle'],f:['Times New Roman','Georgia','Book Antiqua']},
+  {id:'Heartland',nm:'Heartland',ab:'Families, homes, recipes and pictures of the kids.',w:{parent:3,baby:3,newlywed:2,sentimental:1,knit:1.5},subs:['Porch','Meadow','Kitchen','Prairie','Picket'],t:['gingham','hearts','lace','clouds','plaid'],s:['house','heart','flower','baby'],f:['Comic Sans MS','Arial','Times New Roman']},
+  {id:'PawPrintPark',nm:'PawPrint Park',ab:'Cats, dogs and the people they allow to live with them.',w:{cat:3,dog:3},subs:['Kibble','Whisker','Fetch','Yarnball','Leash'],t:['paws','gingham','clouds'],s:['cat','dog','heart'],f:['Comic Sans MS','Arial']},
+  {id:'Area51',nm:'Area 51',ab:'Stargazers, night thinkers, and the truth, which is out there.',w:{stargaze:2,theremin:2,dreamy:2,insomnia:1,drone:1},subs:['Hangar','Roswell','Crater','Signal','Orbit'],t:['galaxy','stars'],s:['ufo','star','moon','rocket'],f:['Courier New','Verdana','Impact']},
+  {id:'CapeCanaveral',nm:'Cape Canaveral',ab:'Science, space and people with a lab coat somewhere.',w:{science:4,prof:3,stargaze:1,tech:1},subs:['Launchpad','Lab','Telescope','Countdown','Orbiter'],t:['graph','stars','galaxy'],s:['atom','rocket','globe'],f:['Arial','Verdana','Courier New']},
+  {id:'Colosseum',nm:'Colosseum',ab:'Runners, riders, lifters and weekend warriors.',w:{exercise:2,marathon:4,cycle:2,yoga:.8},subs:['Stadium','Track','Locker','Finish','Arena'],t:['checker','plate','denim','camo'],s:['runner','trophy','bike'],f:['Arial Black','Impact','Arial']},
+  {id:'LeftBank',nm:'Left Bank',ab:'Painters, poets, romantics and other dreamers.',w:{paint:2,art:3,romantic:2,poet:1},subs:['Atelier','Easel','Cafe','Garret','Bohemia'],t:['tiedye','stucco','hearts','marble'],s:['palette','flower','heart'],f:['Georgia','Comic Sans MS','Times New Roman']},
+  {id:'SupperClub',nm:'Supper Club',ab:'Cooks, bakers, coffee people and anyone who photographs dinner.',w:{food:3,'a foodie':3,coffee:2},subs:['Pantry','Skillet','Bakery','Espresso','Table'],t:['gingham','checker','wood'],s:['coffee','cake','heart'],f:['Comic Sans MS','Georgia','Arial']},
+  {id:'GraveyardShift',nm:'Graveyard Shift',ab:'For the people who work while the city sleeps.',w:{night:3,nightowl:1,insomnia:2,medic:1},subs:['Midnight','Overtime','Lamplight','3AM','Nightwatch'],t:['stars','galaxy','bats'],s:['moon','owl','clock'],f:['Verdana','Courier New','Arial']},
+  {id:'Greenhouse',nm:'Greenhouse',ab:'Gardens, houseplants, aquariums and other living things.',w:{plants:2,water:1,carni:3,fish:2.5},subs:['Terrarium','Fern','Reef','Seedling','Lagoon'],t:['leaves','water','clouds'],s:['plant','fish','flower'],f:['Verdana','Comic Sans MS','Georgia']},
+  {id:'LonelyHearts',nm:'Lonely Hearts',ab:'Love found, love lost, and poetry about both.',w:{heartbreak:4,dating:3,lonely:3,romantic:1,melancholy:1},subs:['Rain','Rose','Valentine','Candlelight','Moonlight'],t:['hearts','galaxy','stars'],s:['heart','candle','flower'],f:['Georgia','Times New Roman','Comic Sans MS']},
+  {id:'Serenity',nm:'Serenity',ab:'Calm, healing, remembrance and the long view.',w:{yoga:3,grief:3,easygoing:1,sentimental:.5},subs:['Garden','Dove','Lotus','Haven','Stillwater'],t:['clouds','stucco','marble','water'],s:['dove','yinyang','candle'],f:['Georgia','Verdana','Times New Roman']},
+  {id:'Wanderlust',nm:'Wanderlust',ab:'Travelers, expats, and anyone who misses somewhere.',w:{homesick:4,travel:3},subs:['Passport','Harbor','Compass','Postcard','Atlas'],t:['water','clouds','parchment'],s:['plane','globe','mail'],f:['Verdana','Georgia','Arial']},
+  {id:'SpookyHollow',nm:'Spooky Hollow',ab:'Haunted homepages. Every day is October 31st.',w:{spooky:4},subs:['Crypt','Cobweb','Cauldron','Lantern','Belfry'],t:['bats','flames','stars'],s:['ghost','pumpkin','bat','skull'],f:['Chiller','Impact','Courier New']},
+  {id:'MotorCity',nm:'Motor City',ab:'Drivers, riders, and people who know every route by heart.',w:{transit:3,guard:1.5},subs:['Garage','Depot','Junction','Turnpike','Pitstop'],t:['plate','checker','denim'],s:['bus','clock','star'],f:['Arial Black','Impact','Arial']},
+  {id:'WallStreet',nm:'Wall Street',ab:'Numbers people. Budgets, ledgers, and the market.',w:{money:3,law:1.5,tidy:1},subs:['Ledger','Ticker','Vault','Exchange','Dividend'],t:['money','marble','stripe','plate'],s:['coin','computer','globe'],f:['Times New Roman','Arial','Verdana']},
+  {id:'CampusQuad',nm:'Campus Quad',ab:'Dorm rooms, finals week and the student union.',w:{student:3},subs:['Dorm','Library','Commons','Finals','Quad'],t:['notebook','checker','confetti','denim'],s:['pencil','book','joystick','computer'],f:['Comic Sans MS','Arial','Verdana']},
+  {id:'SunnyAcres',nm:'Sunny Acres',ab:'Retirees, grandparents and the wisdom of experience.',w:{retiree:3,knit:1.5,sentimental:1},subs:['Rocking','Garden','Veranda','Porch','Harvest'],t:['lace','clouds','parchment','gingham'],s:['flower','house','dove'],f:['Times New Roman','Arial','Georgia']},
+  {id:'Arcade',nm:'Arcade',ab:'Video games, high scores, and kids who made their own page.',w:{retro:3,game:1.5,maker:2,kid:4},subs:['Joystick','Quarter','Level','Bonus','Pixel'],t:['checker','confetti','stars','galaxy'],s:['joystick','star','coin'],f:['Comic Sans MS','Arial Black','Courier New']}
+];
+const HBNBI=Object.fromEntries(HBNB.map(n=>[n.id,n]));
+/* webrings: tag -> ring */
+const HBRINGS={cat:'Cat Lovers of the City',dog:'Good Dog Webring',guitar:'Six-String Ring',synth:'Patch Cable Ring',novel:'Novelists in Progress',night:'Night Shift Ring',insomnia:'The 3 A.M. Club',
+  heartbreak:'Lonely Hearts Ring',dating:'Lonely Hearts Ring',marathon:'26.2 Ring',grief:'Remembrance Ring',homesick:'Far From Home Ring',knit:'Knit Wits',coffee:'Bean Counters Ring',
+  film:'Darkroom Ring',retro:'8-Bit Ring',stargaze:'Stargazers Ring',spooky:'Haunted Homepages',plants:'Green Thumbs Ring',carni:'Green Thumbs Ring',fish:'Tank Talk',yoga:'Inner Peace Ring',
+  parent:'Proud Parents Ring',newlywed:'Just Married Ring',baby:'Baby on Board',retiree:'Golden Years Ring',student:'Dorm Room Ring',paint:'Easel Ring','a foodie':'Kitchen Table Ring',food:'Kitchen Table Ring',
+  computer:'Homebrew Coders',theremin:'Theremin Players of America (all 4 of us)',cycle:'Two Wheels Ring',lonely:'Golden Years Ring',kid:'Kidz Klub Ring',science:'Mad Scientists Ring',music:'Six-String Ring'};
+const HBJOB=[[/nurse|orderly/,'medic'],[/driver|conductor|mail carrier|cab/,'transit'],[/accountant|bank|insurance|actuary|claims|bookkeep/,'money'],[/librar|teacher|translat|crossword|novel|typeset|stenograph/,'words'],
+  [/chef|cook|baker|pastry/,'food'],[/DJ|jingle|songwriter|music|pianist|record store/,'music'],[/illustrat|comic|art student/,'art'],[/programmer|systems|engineer|air traffic/,'tech'],[/film student/,'filmjob'],
+  [/professor|scientist|lab manager|chemist|biology/,'science'],[/architect|city planner|civil engineer/,'build'],[/security guard|fire captain/,'guard'],[/travel agent/,'travel'],[/law student|paralegal/,'law'],[/machinist|pressman/,'trade']];
+function hbTags(p,u,L){
+  const t=new Set();if(p.kid){t.add('kid');}else t.add(p.arch);
+  for(const x of p.traits||[])t.add(x);for(const h of p.hobbies||[])t.add(h);
+  if(p.likes)for(const k in p.likes)if(p.likes[k])t.add(k);
+  for(const[re,tag]of HBJOB)if(re.test(p.job||''))t.add(tag);
+  if(p.tvLove>=3)t.add('couch');if(p.nightOwl)t.add('nightowl');
+  for(const a of u.pets||[])t.add(a.kind);if(u.tank)t.add('fish');if(u.plants)t.add('plants');if(u.spooky)t.add('spooky');if(u.xmas)t.add('xmas');if(u.bike)t.add('cycle');
+  const ad=u.people.filter(x=>!x.kid),ks=u.people.filter(x=>x.kid);
+  if(!p.kid){if(ks.length||u.due!==undefined||u.baby)t.add('parent');if(u.due!==undefined||u.baby)t.add('baby');const r=relOf(u,L);if(r==='newlyweds')t.add('newlywed');
+    if(u.mates)t.add('roommate');if(ad.length===1&&!ks.length)t.add('alone');if(p.arc)t.add(p.arc);if(p.arc==='learning')t.add(p.learn)}
+  if(t.has('romantic')||t.has('melancholy'))t.add('poet');
+  return t;
+}
+function hbR(p,k){return srng(p.id,city.seed,4242,k)}
+/* one site per resident (adults, plus kids 8 and up), indexed by url */
+function hbEligible(p,u){return u&&u.kind==='res'&&!u.mega&&!u.vacant&&(!p.kid||p.age>=8)}
+function hbSite(p,u,L){
+  const r=hbR(p,1),tags=hbTags(p,u,L),sc={};
+  for(const nb of HBNB){let s=r()*1.4;for(const[k,v]of Object.entries(nb.w))if(tags.has(k))s+=v;sc[nb.id]=s}
+  let nb=HBNB[0];for(const n of HBNB)if(sc[n.id]>sc[nb.id])nb=n;
+  const sub=nb.subs[Math.floor(r()*nb.subs.length)],num=1000+hash(p.id,city.seed,4243)%9000;
+  const v=hbVoice(p,u,tags,hbR(p,2));
+  const rings=[];for(const k of ['spooky','novel','marathon','grief','homesick','heartbreak','dating','insomnia','theremin','newlywed','baby','kid','cat','dog','guitar','synth','fish','film','retro','stargaze','carni','knit','coffee','paint','yoga','computer','science','night','parent','retiree','student','a foodie','food','plants','cycle','lonely','music'])
+    if(tags.has(k)&&HBRINGS[k]&&!rings.includes(HBRINGS[k])&&rings.length<2)rings.push(HBRINGS[k]);
+  return{p,u,nb,sub,num,tags,v,rings,path:`/${nb.id}/${sub}/${num}/`,id:p.id};
+}
+const HB={open:false,hist:[],hi:-1,cur:null,idx:null,idxL:-1,idxSeed:-1,anim:0,midi:null,trail:[],loadT:0};
+function hbIndex(){
+  const L=Math.floor(simMin/1440);if(HB.idx&&HB.idxL===L&&HB.idxSeed===city.seed)return HB.idx;
+  const byUrl=new Map(),byId=new Map(),list=[],nb={},rings={};
+  for(const u of city.units){if(u.kind!=='res'||u.mega||u.vacant)continue;
+    for(const p of u.people){if(!hbEligible(p,u))continue;const s=hbSite(p,u,L);
+      while(byUrl.has(s.path)){s.num=s.num>=9999?1000:s.num+1;s.path=`/${s.nb.id}/${s.sub}/${s.num}/`}
+      byUrl.set(s.path,s);byId.set(p.id,s);list.push(s);(nb[s.nb.id]=nb[s.nb.id]||[]).push(s);for(const g of s.rings)(rings[g]=rings[g]||[]).push(s)}}
+  for(const k in rings)rings[k].sort((a,b)=>a.num-b.num||a.id-b.id);
+  HB.idx={byUrl,byId,list,nb,rings,L};HB.idxL=L;HB.idxSeed=city.seed;return HB.idx;
+}
+const hbUrl=(s,f)=>HBROOT+s.path.slice(1)+(f&&f!=='index.html'?f:'');
+
+/* ---------- voice: how someone writes ---------- */
+function hbVoice(p,u,tags,r){
+  const T=k=>tags.has(k);const age=p.age||30;
+  const v={kid:!!p.kid,old:age>=64||p.arch==='retiree',loud:T('cheerful')||T('sociable')||(T('restless')&&r()<.6)||(p.kid&&T('a chatterbox')),
+    quiet:T('a loner')||T('melancholy')||(p.kid&&T('shy')),formal:T('bookish')||T('tidy')||(age>=58&&r()<.7),typo:T('messy')||(p.arch==='student'&&r()<.35)||(p.kid&&r()<.6),
+    sparkle:T('dreamy')||(T('romantic')&&r()<.5),anxious:T('anxious'),romantic:T('romantic'),easy:T('easygoing'),young:age<27};
+  if(v.loud&&v.quiet){if(r()<.5)v.loud=false;else v.quiet=false}
+  if(v.formal&&v.typo&&!p.kid)v.typo=false;
+  v.emo=v.romantic?' <3':v.sparkle?' ~*~':v.loud?' :-)':v.anxious?' :-/':v.easy?' :)':v.kid?' :P':'';
+  return v;
+}
+const HBTYPO=[[/\bthe\b/g,'teh'],[/\breally\b/g,'realy'],[/\bdefinitely\b/g,'definately'],[/\ba lot\b/g,'alot'],[/\bbecause\b/g,'becuase'],[/\bweird\b/g,'wierd'],[/\breceive\b/g,'recieve'],[/\byou're\b/g,'your'],[/\bseparate\b/g,'seperate'],[/\bfriend\b/g,'freind']];
+/* apply a voice to plain text (no html) */
+function hbSay(v,s,r){
+  if(!s)return'';
+  if(v.typo){let n=0;for(const[re,to]of HBTYPO)if(n<2&&re.test(s)&&r()<.55){s=s.replace(re,to);n++}}
+  if(v.quiet){s=s.toLowerCase().replace(/\.(\s|$)/g,(m,a)=>r()<.35?'...'+a:'.'+a).replace(/!+/g,'.')}
+  else if(v.loud){s=s.replace(/!(\s|$)/g,(m,a)=>'!'.repeat(1+Math.floor(r()*3))+a).replace(/\.(\s|$)/g,(m,a)=>r()<.3?'!'+a:'.'+a)}
+  if(v.formal&&!v.quiet)s=s.replace(/!+/g,'.');
+  return s;
+}
+function hbSayHtml(v,h,r){return h.split(/(<[^>]+>)/).map(x=>x.startsWith('<')?x:hbSay(v,x,r)).join('')}
+const hbPick=(r,a)=>a[Math.floor(r()*a.length)];
+const hbPickN=(r,a,n)=>{const c=a.slice(),o=[];while(o.length<n&&c.length)o.push(c.splice(Math.floor(r()*c.length),1)[0]);return o};
+const hbCap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+
+/* ---------- theme: how the page looks ---------- */
+const HBPAL=[['#ffff00','#00ffff','#ff80ff'],['#00ff00','#ffff00','#ff8000'],['#ffffff','#80c0ff','#c0a0ff'],['#ff80c0','#ffff80','#80ffff'],['#c0c0ff','#ffd080','#ff8080']];
+const HBPALL=[['#000000','#0000ee','#551a8b'],['#202060','#a00000','#600060'],['#3a1a00','#006000','#804000'],['#400040','#0000c0','#800080'],['#003030','#a03000','#205050']];
+function hbTheme(s){
+  const r=hbR(s.p,3),v=s.v,nb=s.nb,T=k=>s.tags.has(k);
+  let tile=hbPick(r,nb.t);if(v.old&&r()<.6)tile=hbPick(r,['lace','parchment','clouds','marble']);if(v.quiet&&r()<.5)tile=hbPick(r,['stars','galaxy','denim','stucco']);
+  if(v.kid)tile=hbPick(r,['confetti','checker','clouds','stars','tiedye']);
+  const tcol=T('cat')||T('dog')?hbPick(r,['#c8a070','#a0a0a0','#e0a0c0']):hbPick(r,['#d03030','#3050c0','#30a050','#a040c0','#c08020']);
+  const tl=hbTile(tile,tcol,s.num%7+1);
+  const dark=tl.dark&&tile!=='flames';
+  const pal=dark?hbPick(r,HBPAL):hbPick(r,HBPALL);
+  let font=hbPick(r,nb.f);if(v.kid||(v.loud&&r()<.5))font='Comic Sans MS';if(v.old)font=hbPick(r,['Times New Roman','Arial']);if(v.formal&&r()<.5)font='Times New Roman';
+  const busy=tile==='tiedye'||tile==='confetti'||tile==='checker'||tile==='flames'||tile==='camo'||tile==='plaid'||tile==='brick'||tile==='money'||tile==='circuit'||tile==='binary';
+  const th={tile,tl,dark,ink:pal[0],link:pal[1],vlink:pal[2],font,
+    panel:busy||r()<.25?(dark?hbPick(r,['#000000','#000040','#200020']):hbPick(r,['#ffffff','#fffff0','#f0f8ff'])):'',
+    head:v.old?'plain':v.kid?'rainbow':v.loud?hbPick(r,['rainbow','shadow','blink','big']):v.quiet?'plain':v.sparkle?hbPick(r,['sparkle','rainbow']):hbPick(r,['shadow','plain','big','outline','rainbow']),
+    layout:tl.side?'side':v.old?'plain':hbPick(r,['center','center','table','side2','plain']),
+    hr:v.old?'hr':hbPick(r,['rainbow','hr','hr3d','dots','sprites']),
+    music:!v.quiet||r()<.3,marquee:!v.old&&!v.formal&&r()<.6,counter:r()<.9,cons:(T('messy')||T('restless')||v.kid||v.young)&&r()<.75||r()<.15,
+    trail:(v.sparkle||v.kid||T('cheerful'))&&r()<.6,awards:r()<.45,mail:r()<.8,size:v.old?4:3,
+    spr:hbPickN(r,nb.s,3)};
+  if(th.panel&&th.dark!==(hbLum(th.panel)<.45)){const p2=th.dark?HBPAL:HBPALL;const q=hbLum(th.panel)<.45?hbPick(r,HBPAL):hbPick(r,HBPALL);th.ink=q[0];th.link=q[1];th.vlink=q[2]}
+  return th;
+}
+
+/* ---------- what a resident has to say ---------- */
+const HBTRAIT={cheerful:["I'm pretty much always in a good mood.","My friends call me a ray of sunshine. (Their words!)"],melancholy:["I think too much.","Some days are gray. That's okay."],
+  anxious:["I worry a lot, but I'm working on it.","Yes, I checked the stove. Twice."],easygoing:["I'm pretty laid back.","Not much bothers me."],romantic:["I'm a hopeless romantic.","I still believe in love letters."],
+  clumsy:["I have broken more plates than I can count.","If there's something to trip over, I'll find it."],tidy:["I like things organized.","My spice rack is alphabetized."],messy:["My apartment is a disaster area.","I'll clean up someday."],
+  sentimental:["I keep every birthday card I've ever gotten.","I cry at commercials."],sociable:["I love meeting new people!","Never met a party I didn't like!"],'a loner':["I like my own company.","I'm not much for crowds."],
+  'a foodie':["I live to eat.","Ask me where to get the best dumplings in the city."],restless:["I can't sit still.","I always have six projects going."],dreamy:["I daydream a lot.","My head is in the clouds most of the time."],
+  bookish:["I always have a book with me.","If there's nothing else, I'll read the back of the cereal box."],musical:["I hum constantly.","Music is my life."],
+  giggly:["I laugh at everything."],shy:["I am shy but not on the computer."],fearless:["I am not scared of anything except maybe spiders."],sleepy:["I like naps."],curious:["I ask a LOT of questions."],'a chatterbox':["I talk a lot. Like a LOT."]};
+const HBINT={read:'Reading',guitar:'Playing guitar',computer:'Surfing the Net (obviously)',exercise:'Working out',yoga:'Yoga',knit:'Knitting',paint:'Painting',game:'Video games',dance:'Dancing around the apartment',
+  stargaze:'Looking at the stars',phone:'Talking on the phone for hours',tv:'TV (I know, I know)',fish:'My aquarium',water:'Houseplants',cycle:'Riding my bike',synth:'Synthesizers',modular:'Modular synths (ask me about patch cables)',
+  theremin:'The theremin (yes, really)',film:'Photography',darkroom:'Developing my own film',coffee:'Coffee. Lots of coffee.',retro:'Old video games',drone:'Flying my remote control plane',carni:'Carnivorous plants',
+  maker:'Making computer games with my kids',vacuum:'Vacuuming (it relaxes me, okay?)',play:'Playing',grade:'Grading papers (not by choice)'};
+const HBFOOD=['my grandmother\'s dumplings','a really good slice of pizza','pho','arepas','pierogi','jollof rice','bagels with everything','pad see ew','tamales','fried plantains','borscht','a perfect croissant',
+  'chicken soup','lasagna','curry','kimchi stew','biscuits and gravy','dim sum','pancakes on a Sunday','a cheeseburger, no pickles','empanadas','ramen at 2 AM'];
+const HBADJ=['Velvet','Paper','Electric','Lonesome','Broken','Midnight','Copper','Tin','Neon','Satellite','Quiet','Rusty','Northern','Glass','Wandering','Sunday','Hollow','Golden','Little','Crooked'];
+const HBNOUN=['Toaster','Lantern','Radio','Harbor','Pilot','Sparrow','Machine','Weatherman','Engine','Hymnal','Mailbox','Lighthouse','Telephone','Orchard','Elevator','Postcard','Subway','Rooftop','Kettle','Comet'];
+const hbPl=n=>/(s|x|ch|sh)$/.test(n)?n+'es':/y$/.test(n)?n+'s':n+'s';
+function hbBand(r){const a=hbPick(r,HBADJ),n=hbPick(r,HBNOUN);return hbPick(r,[`The ${a} ${hbPl(n)}`,`${a} ${n}`,`The ${hbPl(n)}`,`${hbPick(r,FIRST)} and the ${hbPl(n)}`])}
+function hbMovie(r){const a=hbPick(r,HBADJ),n=hbPick(r,HBNOUN);return hbPick(r,[`The Last ${n}`,`${a} ${n}`,`Return of the ${n}`,`Too Many ${hbPl(n)}`,`Midnight at the ${n}`,`The ${n} Who Knew Too Little`])}
+function hbBook(r){const a=hbPick(r,HBADJ),n=hbPick(r,HBNOUN);return hbPick(r,[`The ${n} Keeper`,`A ${a} Season`,`Letters to ${hbPick(r,FIRST)}`,`The Long ${n}`,`${a} Weather`,`What the ${n} Saw`])}
+function hbSong(r){const a=hbPick(r,HBADJ),n=hbPick(r,HBNOUN);return hbPick(r,[`${a} Morning`,`Song for ${hbPick(r,FIRST)}`,`Down by the ${n}`,`Three Chord ${n}`,`Ballad of the ${n}`,`${a} Blues`])}
+const HBQUOTE=[["Be kind. Everyone is carrying something heavy.","my grandmother"],["The early bird gets the worm, but the second mouse gets the cheese.","a fortune cookie"],["Nobody ever drowned in sweat.","my high school coach"],
+  ["Everything is temporary, especially the bus schedule.","a guy on the subway"],["If you can't be on time, bring snacks.","my mom"],["You miss 100% of the naps you don't take.","me"],["When in doubt, add garlic.","my uncle"],
+  ["The best view comes after the hardest climb.","a poster at the dentist"],["Measure twice, cut once.","my dad"],["Not all who wander are lost. Some are just looking for parking.","a bumper sticker"]];
+const HBFAKE=[['The Official Toast Fan Club','www.toastfans.com'],['Ask the Weather Wizard','www.weatherwiz.net'],["Dave's Barometer Collection",'www.davesbarometers.com'],['The Spoon Museum','www.spoonmuseum.org'],
+  ['FREE Screensavers!!!','www.free-savers.com'],['Learn HTML in 24 Days','www.html24.com'],['Cool Site of the Hour','www.coolsitehour.com'],['Recipes from Around the World','www.worldrecipes.net'],['Lighthouses of the World','www.lighthouseworld.org'],
+  ['The Unofficial Pigeon Fan Page','www.pigeonfans.org'],['The Bermuda Triangle Archive','www.triangle-archive.com'],['Jokes, Jokes, Jokes','www.jokejokejoke.com'],['The Hall of Lost Socks','www.lostsocks.org'],['Elevator Music Appreciation Society','www.muzaksociety.org']];
+const HBTZ={Lagos:'Africa/Lagos',Manila:'Asia/Manila','Kraków':'Europe/Warsaw',Oaxaca:'America/Mexico_City',Kerala:'Asia/Kolkata',Dublin:'Europe/Dublin',Accra:'Africa/Accra',Osaka:'Asia/Tokyo',Lisbon:'Europe/Lisbon',
+  'Port-au-Prince':'America/Port-au-Prince',Odesa:'Europe/Kyiv',Santiago:'America/Santiago',Busan:'Asia/Seoul',Palermo:'Europe/Rome'};
+const hbDate=L=>new Date(L*86400000).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric',timeZone:'UTC'});
+const hbDateS=L=>new Date(L*86400000).toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'2-digit',timeZone:'UTC'});
+const hbE=esc0;
+
+/* the facts a page is built from */
+function hbFacts(s,L){
+  const p=s.p,u=s.u,ad=u.people.filter(x=>!x.kid),ks=u.people.filter(x=>x.kid),others=ad.filter(x=>x!==p);
+  const bn=u.b.name.replace(/^The /,'');const F={p,u,L,first:p.first,last:p.last,age:p.age,rel:relOf(u,L),apt:`${bn}, Apt ${u.f+2}${u.letter}`,aptS:`Apt ${u.f+2}${u.letter}`,bld:bn,
+    partner:null,mates:[],kids:[],parents:[],sibs:[],pets:u.pets||[],tank:u.tank,baby:hasBaby(u,L)?u.babyName:null,due:u.due!==undefined&&L<u.due?u.due-L:null,babyName:u.babyName};
+  if(p.kid){F.parents=ad;F.sibs=ks.filter(x=>x!==p)}
+  else{if(u.mates)F.mates=others;else if(others.length===1)F.partner=others[0];else F.mates=others;if(!u.mates)F.kids=ks}
+  F.since=u.relSince!==undefined?Math.max(1,Math.floor((L-u.relSince)/YR)):null;
+  /* when this person moved in, and so when the page went up */
+  const hist=(u.hist||[]).filter(h=>h[0]<=L);let mv=hist.length?hist[0][0]:L-400;
+  for(const[d,t]of hist)if(t.includes(p.first)&&/moved in|took the spare room|moved in with/.test(t))mv=d;
+  if(p.kid)mv=Math.max(mv,p.bd+Math.round(8*YR));
+  F.moved=mv;F.created=Math.min(L-3,mv+20+hash(p.id,city.seed,4250)%240);
+  F.updated=Math.max(F.created,L-hash(p.id,city.seed,L>>4,4251)%(s.v.old?120:30));
+  F.hist=hist.filter(([d,t])=>t.includes(p.first)||(F.partner&&t.includes(F.partner.first))||/Baby .* was born|turned four/.test(t)).slice(-8);
+  return F;
+}
+const hbLink=(s,txt)=>s?`<a href="${hbUrl(s)}">${hbE(txt)}</a>`:hbE(txt);
+function hbWho(x){const s=HB.idx&&HB.idx.byId.get(x.id);return hbLink(s,x.first)}
+function hbList(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1]}
+function hbJob(p,F,v,r){
+  const j=p.job||'';if(!j||p.kid)return'';
+  if(p.arc==='jobhunt'&&F.L<p.hired)return`Right now I'm between jobs. I used to be ${art(j)}. If you're hiring, see my resume!`;
+  if(p.arch==='retiree'){const y=Math.max(18,Math.min(45,p.age-24-hash(p.id,3)%8));return`I'm retired now. I spent ${y} years as ${art(j.replace(/^retired /,''))}, and I don't miss the commute.`}
+  if(/vision scientist/.test(j))return`I'm a vision scientist, which means I study how the brain turns light into the world you see. There's an illusion on my research page that will mess with you.`;
+  if(/professor of neuroscience/.test(j))return`I'm a professor of neuroscience. I study the brain, mostly by staring at pictures of it.`;
+  if(/professor of psychology/.test(j))return`I teach psychology at the university. No, I'm not analyzing you right now. Probably.`;
+  if(/professor of biology/.test(j))return`I'm a biology professor. Ask me about cells. Actually, please don't, I'll never stop.`;
+  if(/lab manager/.test(j))return`I manage a research lab, which means I keep the freezers cold and the grad students fed.`;
+  if(p.arch==='night')return`I work nights as ${art(j)}, so if you see my light on at 4 AM, that's why.`;
+  if(p.arch==='baker')return`I'm ${art(j)}, which means I get up at 3 AM. Yes, every day.`;
+  if(p.arch==='student')return`I'm ${art(j)}. ${hbPick(r,['Finals are killing me.','Coffee is my main food group.','I should be studying right now.','Ask me about my thesis. Actually, don\'t.'])}`;
+  if(p.arch==='creative')return`I work from home as ${art(j)}${hbPick(r,[' (which means I work in my pajamas).','.',', and yes, that is a real job.'])}`;
+  return hbPick(r,[`I work as ${art(j)}.`,`By day I'm ${art(j)}.`,`I'm ${art(j)} by trade.`])+(r()<.4?' '+hbPick(r,['It pays the bills.','I actually like it!','Most days, anyway.','Ask me anything about it.']):'');
+}
+function hbArc(p,F,r){
+  const L=F.L,d=L-(p.arcS||0);
+  switch(p.arc){
+    case'heartbreak':return d<7?'I just went through a breakup. Please don\'t ask.':d<25?`I'm getting over a breakup. My poems page has more than you want to know.`:`I'm dating again! Things are going well with ${p.dateG.first}.`;
+    case'dating':return d<0?'I\'m single, if anyone\'s asking.':`I've been seeing someone new. Their name is ${p.dateG.first}. That's all I'll say for now ;-)`;
+    case'learning':{const k=learnSkill(p,L);return`I'm learning ${p.learn==='guitar'?'guitar':'to paint'}! ${k<.4?'I am still terrible.':k<.75?'I\'m getting better.':'I\'m actually kind of good now.'}`}
+    case'novel':return L<p.finish?`I'm writing a novel! About ${Math.max(1,Math.round((L-p.arcS)*1.2))},000 words so far.`:L-p.finish<20?'I just finished the first draft of my novel!!':'I\'m revising my novel. It is hard.';
+    case'marathon':return L<p.race?`I'm training for a marathon. ${p.race-L} days to go!`:L-p.race<45?'I ran a marathon! My legs still hurt.':'';
+    case'grief':return`This year I lost ${p.lost}. I made a page for them here.`;
+    case'homesick':return`I'm from ${p.place} originally, and I miss it every day.`;
+    case'lonely':return`It's quiet around here these days. I'd love it if you signed my guestbook.`;
+    case'insomnia':return`I don't sleep much lately, so I'm online at all hours.`;
+  }return'';
+}
+function hbHouse(p,F,v){
+  const a=[];
+  if(p.kid){const par=F.parents.map(hbWho);a.push(`I live in ${hbE(F.aptS)} of the ${hbE(F.bld)} with ${F.parents.length>1?'my parents, '+hbList(par):hbList(par)}${F.sibs.length?' and my '+(F.sibs.length>1?'brothers and sisters':'sibling')+' '+hbList(F.sibs.map(hbWho)):''}.`);
+    if(F.pets.length)a.push(`We have ${art(F.pets[0].kind)} named ${hbE(F.pets[0].name)}!!`);return a.join(' ')}
+  let w=`I live in ${hbE(F.aptS)} of the ${hbE(F.bld)}`;
+  if(F.partner){const n=hbWho(F.partner);w+=F.rel==='newlyweds'?` with ${n}. We just got married!`:` with my ${hbPick(hbR(p,9),['partner','sweetie','better half','significant other'])} ${n}.`;
+    if(F.rel==='steady'&&F.since)w+=` We've been together ${F.since} year${F.since>1?'s':''}.`;if(F.rel==='rocky'&&!v.formal)w+=' Things are a little rocky right now, but we\'re working on it.'}
+  else if(F.mates.length)w+=` with my roommate${F.mates.length>1?'s':''} ${hbList(F.mates.map(hbWho))}.`;
+  else w+=F.pets.length?'':' all by myself.';
+  if(!F.partner&&!F.mates.length&&F.pets.length)w+=` with my ${F.pets[0].kind} ${hbE(F.pets[0].name)}.`;
+  else if(F.pets.length)w+=` Also ${hbE(F.pets[0].name)} the ${F.pets[0].kind}, who thinks it's in charge.`;
+  a.push(w);
+  if(F.kids.length)a.push(`${F.kids.length>1?'Our kids are':'Our kid is'} ${hbList(F.kids.map(k=>`${hbWho(k)} (${k.age})`))}.`);
+  if(F.due!==null)a.push(`We're expecting a baby! ${F.due} day${F.due===1?'':'s'} to go!`);
+  else if(F.baby)a.push(`And baby ${hbE(F.baby)} is here!`);
+  return a.join(' ');
+}
+function hbTitle(s,F){
+  const r=hbR(s.p,4),v=s.v,fn=F.first,ln=F.last,nb=s.nb.id;
+  if(v.kid&&s.p.age>=13)return hbPick(r,[`${fn}'s Page`,`${fn.toLowerCase()}'s room. KEEP OUT`,`${fn}'s Zone`,`~*~${fn}~*~`]);
+  if(v.kid)return hbPick(r,[`${fn}'s KOOL Page`,`~${fn}'s Page~`,`${fn.toUpperCase()}'S WEB SITE`,`${fn}'s Awesome Page!!!`]);
+  if(nb==='PawPrintPark'&&F.pets.length&&r()<.6)return`${F.pets[0].name}'s Home Page (and ${fn}'s too)`;
+  if(v.old)return hbPick(r,[`The ${ln} Family Home Page`,`Welcome to the Web Site of ${fn} ${ln}`,`${fn} ${ln}'s Page`]);
+  if(v.loud)return hbPick(r,[`${fn.toUpperCase()}'S ${hbPick(r,['AWESOME','KOOL','TOTALLY RAD','OFFICIAL','PARTY'])} HOMEPAGE!!!`,`Welcome to ${fn}'s World!!!`,`${fn}'s Happy Place`]);
+  if(v.quiet)return hbPick(r,[`${fn.toLowerCase()}'s corner`,`${fn.toLowerCase()}'s little page`,`a place for ${fn.toLowerCase()}`,`${fn.toLowerCase()}.txt`]);
+  if(v.sparkle)return`~*~ ${fn}'s ${hbPick(r,['Dreamland','Starry Place','Magic Corner','Little Cloud'])} ~*~`;
+  const by={Athens:`The ${ln} Reading Room`,SupperClub:`${fn}'s Kitchen`,SunsetStrip:`${fn} ${ln}: Music & More`,GraveyardShift:`${fn}'s Night Shift`,SiliconAlley:`${fn.toLowerCase()}${s.num%100}'s Cyber Den`,
+    Colosseum:`${fn} Runs!`,LonelyHearts:`${fn}'s Heart`,Serenity:`${fn}'s Quiet Place`,Wanderlust:`${fn}'s Postcards`,SpookyHollow:`${fn}'s Haunted House`,Greenhouse:`${fn}'s Greenhouse`,
+    Marquee:`${fn}'s Picture Show`,CapeCanaveral:s.p.likes&&s.p.likes.prof?`${fn} ${ln}, Ph.D. (Personal Page)`:`${fn}'s Lab Notebook`,WallStreet:`${fn} ${ln}'s Home Page`,MotorCity:`${fn}'s Garage`,CampusQuad:`${fn}'s Dorm Room`,Heartland:`The ${plural(ln)} Home Page`,LeftBank:`${fn}'s Studio`,Area51:`${fn}'s Secret Files`};
+  return by[nb]&&r()<.75?by[nb]:hbPick(r,[`${fn}'s Home Page`,`Welcome to ${fn}'s Page`,`${fn} ${ln} on the Web`]);
+}
+
+/* ---------- little pictures for photo pages ---------- */
+function hbPhoto(kind,seed,o={}){
+  const key='ph|'+kind+'|'+seed+'|'+(o.c||'');let t=HBG.tile.get(key);if(t)return t.url;
+  const W=80,H=60,cv=hbCv(W,H),ctx=cv.getContext('2d'),P=hbPen(ctx),R=mulberry32(seed*31+kind.length*7);
+  const sky=(a,b)=>{for(let y=0;y<H;y++)P.r(0,y,W,1,hbMix(a,b,y/H))};
+  switch(kind){
+    case'skyline':sky('#05051a','#1a1a40');for(let k=0;k<30;k++)P.px(R()*W,R()*25,'#fff');for(let x=0;x<W;){const w=6+R()*10|0,h=15+R()*35|0;P.r(x,H-h,w,h,'#101018');for(let y=H-h+2;y<H-2;y+=3)for(let q=x+1;q<x+w-1;q+=2)if(R()<.35)P.px(q,y,'#ffd36b');x+=w+1}break;
+    case'sunset':sky('#ff8040','#ffd080');P.disc(40,40,10,'#fff0a0');P.r(0,42,W,18,'#2a3a6a');for(let y=44;y<60;y+=3)P.r(30+R()*8,y,20-R()*8,1,'#ffd080');break;
+    case'beach':sky('#60b0ff','#c0e8ff');P.r(0,34,W,10,'#2070c0');P.r(0,44,W,16,'#f0d890');P.disc(66,12,5,'#ffff80');P.r(18,38,2,12,'#806040');P.oval(19,37,6,2,'#30a040');break;
+    case'park':sky('#80c0ff','#d0f0ff');P.r(0,40,W,20,'#50a040');P.r(30,22,4,20,'#704020');P.disc(32,18,11,'#2f8a2f');P.disc(24,22,7,'#3a9a3a');P.disc(40,22,7,'#3a9a3a');break;
+    case'pet':{P.r(0,0,W,H,o.bg||'#e8d8c0');const c=o.c||'#d08a3a';if(o.dog){P.oval(40,34,16,14,c);P.oval(24,26,5,10,hbMix(c,'#000000',.3));P.oval(56,26,5,10,hbMix(c,'#000000',.3));P.disc(34,30,2,'#000');P.disc(46,30,2,'#000');P.oval(40,40,4,3,'#000');P.r(39,46,3,4,'#e05070')}
+      else{P.oval(40,36,15,13,c);for(const s of[-1,1]){for(let k=0;k<8;k++)P.r(40+s*10-(s<0?k:0)+(s>0?0:0),18+k,s<0?k+1:k+1,1,c)}P.oval(33,33,3,2,'#60c060');P.oval(47,33,3,2,'#60c060');P.px(33,33,'#000');P.px(47,33,'#000');P.r(39,39,3,2,'#ff90a0');P.line(26,40,34,41,'#000');P.line(46,41,54,40,'#000')}break}
+    case'cake':P.r(0,0,W,H,'#3a2a4a');P.r(18,30,44,22,'#f8d0e0');P.r(18,30,44,4,'#fff');for(let k=0;k<5;k++){P.r(24+k*8,20,2,10,'#80c0ff');P.disc(25+k*8,17,1,'#ffb000')}P.r(10,52,60,3,'#c0c0c0');break;
+    case'moon':P.r(0,0,W,H,'#020210');for(let k=0;k<40;k++)P.px(R()*W,R()*H,'#fff');P.disc(50,24,12,'#f0f0d8');P.disc(46,20,2,'#d0d0b8');P.disc(55,28,3,'#d0d0b8');break;
+    case'jupiter':P.r(0,0,W,H,'#000');for(let k=0;k<30;k++)P.px(R()*W,R()*H,'#aaa');for(let y=-10;y<=10;y++){const w=Math.round(Math.sqrt(100-y*y));P.r(40-w,30+y,2*w+1,1,y%4===0?'#b07040':y%3===0?'#e0c090':'#d0a070')}P.px(28,27,'#fff');P.px(54,31,'#fff');break;
+    case'aerial':P.r(0,0,W,H,'#50703a');for(let k=0;k<6;k++)P.r(R()*W,R()*H,10+R()*20,8+R()*14,['#6a8a4a','#40602a','#8a8a5a'][k%3]);P.r(0,28,W,4,'#808080');P.r(36,0,4,H,'#808080');P.r(44,10,8,8,'#a04030');break;
+    case'paint':{const hues=[R()*360,R()*360];for(let k=0;k<26;k++){const x=R()*W,y=R()*H;P.oval(x,y,3+R()*12|0,2+R()*8|0,`hsl(${Math.round(hues[k%2]+R()*40)},${50+R()*40|0}%,${40+R()*30|0}%)`)}break}
+    case'me':sky('#a0c8f0','#e0f0ff');P.r(0,48,W,12,'#50a040');P.disc(40,20,6,o.skin||'#e0b090');P.r(34,27,12,16,o.c||'#3050c0');P.r(35,43,4,10,'#304060');P.r(41,43,4,10,'#304060');P.px(38,19,'#000');P.px(42,19,'#000');P.r(38,23,5,1,'#000');break;
+    case'hermann':P.r(0,0,W,H,'#ffffff');for(let y=2;y<H;y+=12)for(let x=2;x<W;x+=12)P.r(x,y,9,9,'#000');break;
+    case'cafewall':P.r(0,0,W,H,'#ffffff');for(let row=0;row<6;row++){const off=[0,3,6,3][row%4];for(let x=-12+off;x<W;x+=16)P.r(x,row*10,8,9,'#000');P.r(0,row*10+9,W,1,'#808080')}break;
+    case'shop':P.r(0,0,W,H,'#e8e8e8');P.r(10,20,60,30,'#8a5a30');for(let k=0;k<6;k++)P.r(14+k*9,12,6,9,`hsl(${k*50},60%,50%)`);P.r(0,50,W,10,'#a0a0a0');break;
+    case'garden':sky('#a0d0ff','#e0f0ff');P.r(0,40,W,20,'#6a4a2a');for(let x=6;x<W;x+=9){P.line(x,40,x,26,'#30a030');P.disc(x,24,2,['#e03060','#f0d020','#8040e0'][x%3])}break;
+    case'tank':P.r(0,0,W,H,'#2060a0');for(let k=0;k<5;k++){const x=10+R()*60,y=10+R()*35;P.oval(x,y,4,2,['#ff9020','#ffe040','#40e0ff','#ff4080'][k%4]);P.px(x-5,y,'#ff9020')}P.r(0,52,W,8,'#d0c090');for(let x=8;x<W;x+=14)P.line(x,52,x+2,36,'#30a040');break;
+    default:sky('#888','#ccc');
+  }
+  const url=cv.toDataURL();HBG.tile.set(key,{url});return url;
+}
+const hbPic=(url,cap,w=160)=>`<table border="2" cellpadding="2" style="display:inline-table;margin:6px"><tr><td align="center"><img src="${url}" width="${w}" height="${Math.round(w*.75)}" class="ph" alt=""><br><font size="2">${hbE(cap)}</font></td></tr></table>`;
+
+/* ---------- subpages: each one a corner of someone's life ---------- */
+const HBPETL={cat:['sleeps 20 hours a day','sits on my keyboard when I type','thinks the 6 AM alarm is my problem','knocked a glass off the counter today, on purpose','is afraid of the vacuum cleaner'],
+  dog:['knows the word "walk" and "w-a-l-k"','greets me like I\'ve been gone for years','ate a whole loaf of bread once','is a very good boy (or girl, he/she doesn\'t care)','barks at the mail carrier every single day']};
+const HBPOEM={sad:[['rain on the window','your coffee cup still in the sink','I can\'t wash it yet'],['the radio plays our song','I change the station','the silence plays it too'],['I count the floors','of the building across the street','none of them are you'],['midnight again','the city hums','I hum back']],
+  happy:[['you laughed at my joke','the subway was late','I didn\'t mind at all'],['two coffees','one umbrella','no complaints'],['your name','in my phone','I check it twice']],
+  calm:[['the kettle sings','the window fogs','morning, again'],['streetlight','on the ceiling','a small moon of my own'],['pigeons on the ledge','they also','live here']]};
+function hbPoems(s,F,r,n){const mood=s.tags.has('heartbreak')||s.tags.has('grief')||s.tags.has('melancholy')?'sad':s.tags.has('dating')||s.tags.has('romantic')?'happy':'calm';
+  return hbPickN(r,HBPOEM[mood].concat(HBPOEM.calm),n).map(l=>`<p><i>${l.map(hbE).join('<br>')}</i></p>`).join(`<p>${'&middot; '.repeat(3)}</p>`)}
+const HBMOD=[
+  {k:'memorial',f:'memorial.html',nav:F=>`In Memory of ${F.p.lost}`,pri:10,when:(s,F)=>F.p.arc==='grief',page(s,F,r){const d=F.L-F.p.arcS;
+    return`<center>${hbImg('candle',{sc:3})}<h2>In Loving Memory of ${hbE(F.p.lost)}</h2>${hbImg('dove')}<p>It has been ${d<60?'a few weeks':d<365?Math.round(d/30)+' months':'a long time'} now.</p>
+    <p>I made this page because I wanted somewhere to put the things I didn't get to say. ${hbE(F.p.lost)} would have laughed at me for making a web page about them. They would have read every word, though.</p>
+    <p>If you knew ${hbE(F.p.lost)}, please sign the guestbook and share a memory. If you didn't, thank you for reading this anyway.</p>${hbImg('candle',{sc:2})} ${hbImg('candle',{sc:2})} ${hbImg('candle',{sc:2})}</center>`}},
+  {k:'novel',f:'novel.html',nav:()=>'My Novel',pri:9,when:(s,F)=>F.p.arc==='novel',page(s,F,r){const p=F.p,done=F.L>=p.finish,w=done?Math.max(60,Math.round((p.finish-p.arcS)*1.2)):Math.max(1,Math.round((F.L-p.arcS)*1.2)),goal=80;
+    const t=hbBook(r),n1=hbPick(r,FIRST),n2=hbPick(r,FIRST),pl=hbPick(r,['the night ferry','a hotel with no elevator','the last diner on Ninth Street','her uncle\'s pawn shop','a lighthouse that was never lit']);
+    const bar=Math.min(100,Math.round(w/goal*100));
+    return`<h2>${hbImg('book')} My Novel: <i>${hbE(t)}</i></h2><p><b>Word count:</b> ${w},000 of about ${goal},000</p><table border="1" width="300" cellspacing="0"><tr><td bgcolor="#00a000" width="${bar}%">&nbsp;</td><td>${bar<100?'&nbsp;':''}</td></tr></table>
+    <p>${done?'The first draft is DONE. Now I have to read it, which is scary.':'I write every night after work. Some nights it\'s 2,000 words. Some nights it\'s one sentence that I delete.'}</p>
+    <h3>Excerpt from Chapter ${1+hash(p.id,F.L>>5)%9}</h3><blockquote><i>${hbE(n1)} had never trusted ${pl}, and tonight was not going to change that. The rain came down the way it always did in this city, sideways and personal. "You're late," said ${hbE(n2)}, without looking up. "I'm exactly on time," ${hbE(n1)} said. "Everyone else is early."</i></blockquote>
+    <p><font size="2">&copy; ${new Date(F.L*864e5).getUTCFullYear()} ${hbE(F.first)} ${hbE(F.last)}. Please don't steal my novel. Agents, my email is at the bottom.</font></p>`}},
+  {k:'marathon',f:'marathon.html',nav:()=>'Road to 26.2',pri:9,when:(s,F)=>F.p.arc==='marathon',page(s,F,r){const p=F.p,left=p.race-F.L;let rows='';
+    const end=Math.min(F.L,p.race-1);for(let k=6;k>=0;k--){const d=end-k*3-(hash(p.id,k)%2);if(d<p.arcS)continue;const tt=Math.max(0,Math.min(1,(d-p.arcS)/Math.max(1,p.race-p.arcS)));const mi=k===0&&p.race-d<7?Math.max(3,Math.round(6+hash(p.id,k,2)%4)):3+Math.round(tt*15)+hash(p.id,k,2)%3;
+      rows+=`<tr><td>${hbDateS(d)}</td><td align="right">${mi}</td><td>${hbE(hbPick(r,['Felt great!','Knee hurts.','Rained the whole time.','New personal best!!','Had to walk the last mile.','Saw a dog wearing boots.','Ran past my old school.','Too hot. Never again. (Until Thursday.)']))}</td></tr>`}
+    return`<h2>${hbImg('runner')} Road to 26.2 ${hbImg('trophy')}</h2>${left>0?`<p><font size="5" color="#ff0000"><b>${left} DAYS TO GO</b></font></p>`:`<p><font size="5"><b>I DID IT!!! I FINISHED A MARATHON!!!</b></font></p>`}
+    <h3>Training log</h3><table border="2" cellpadding="4"><tr><th>Date</th><th>Miles</th><th>Notes</th></tr>${rows||'<tr><td colspan="3">Just getting started!</td></tr>'}</table>
+    <p>Things I have learned: Vaseline is your friend. So are bananas. Hills are not.</p>`}},
+  {k:'resume',f:'resume.html',nav:()=>'My Resume',pri:9,when:(s,F)=>F.p.arc==='jobhunt'&&F.L<F.p.hired,page(s,F,r){const p=F.p,yrs=Math.max(2,Math.min(25,p.age-22));
+    const sk=[];for(const t of p.traits)sk.push({tidy:'Extremely organized',sociable:'Great with people',bookish:'Fast learner, avid reader',anxious:'Detail oriented (very)',easygoing:'Calm under pressure',restless:'High energy',musical:'Can carry a tune (useful?)',cheerful:'Positive attitude!',clumsy:'Good sense of humor',messy:'Creative thinker',dreamy:'Big picture thinker',romantic:'Passionate about my work','a loner':'Works well independently','a foodie':'Knows every lunch spot downtown',melancholy:'Thoughtful',sentimental:'Loyal'}[t]||'Hard worker');
+    return`<center><h1>${hbE(F.first)} ${hbE(F.last)}</h1>${hbE(F.apt)}<br>${hbE(F.first.toLowerCase())}@homeblocks.com</center><hr>
+    <h3>OBJECTIVE</h3><p>To obtain a position as ${art(hbE(p.job))} where I can use my ${yrs} years of experience.</p><h3>EXPERIENCE</h3><p><b>${hbE(hbCap(p.job))}</b>, ${yrs} years<br>Did everything a ${hbE(p.job)} does, and did it well.</p>
+    <h3>SKILLS</h3><ul>${sk.map(x=>`<li>${hbE(x)}`).join('')}<li>Word processing, the Internet, typing (45 wpm)</ul><h3>REFERENCES</h3><p>Available upon request.</p>`}},
+  {k:'home',f:'home.html',nav:F=>`Missing ${F.p.place}`,pri:8,when:(s,F)=>F.p.arc==='homesick',page(s,F,r){const pl=F.p.place;let clock='';
+    try{const ms=(simMin+new Date().getTimezoneOffset())*60000;clock=new Date(ms).toLocaleTimeString('en-US',{timeZone:HBTZ[pl],hour:'numeric',minute:'2-digit'})}catch(e){}
+    return`<h2>${hbImg('globe')} ${hbE(pl)}, I Miss You ${hbImg('plane')}</h2>${clock?`<p><b>Right now in ${hbE(pl)} it is ${clock}.</b> I always check.</p>`:''}
+    <h3>Things I miss</h3><ul>${hbPickN(r,['My mother\'s cooking','The way the air smells in the morning','Speaking my own language all day without thinking','My friends from school','The street where I grew up','Real fruit','The sound of my grandmother\'s radio','Knowing every shortcut','Being called by my nickname'],5).map(x=>`<li>${hbE(x)}`).join('')}</ul>
+    <h3>Things I like about here</h3><ul>${hbPickN(r,['The view from my window','You can get anything at 2 AM','My neighbors','The parks','Nobody knows my business','The subway (sometimes)'],3).map(x=>`<li>${hbE(x)}`).join('')}</ul><p>If you are from ${hbE(pl)} too, PLEASE sign my guestbook!</p>`}},
+  {k:'poems',f:'poems.html',nav:()=>'Poems',pri:7,when:(s,F)=>['heartbreak','dating'].includes(F.p.arc)||s.tags.has('poet'),page(s,F,r){
+    return`<center><h2>${hbImg('heart',{c:'#c02040'})} ${hbSay(s.v,'My Poems',r)} ${hbImg('heart',{c:'#c02040'})}</h2></center>${hbPoems(s,F,r,4)}<p><font size="2">All poems &copy; ${hbE(F.first)} ${hbE(F.last)}. Please ask before using them.</font></p>`}},
+  {k:'guitar',f:'guitar.html',nav:()=>'Learning Guitar',pri:7,when:(s,F)=>F.p.arc==='learning'&&F.p.learn==='guitar',page(s,F,r){const k=learnSkill(F.p,F.L),n=1+Math.floor(k*7);
+    return`<h2>${hbImg('guitar')} My Guitar Journey ${hbImg('note')}</h2><p>Progress: ${'&#9733;'.repeat(Math.max(1,Math.round(k*5)))}${'&#9734;'.repeat(5-Math.max(1,Math.round(k*5)))}</p>
+    <h3>Songs I can play (sort of)</h3><ol>${Array.from({length:n},()=>`<li>${hbE(hbSong(r))}`).join('')}</ol><h3>Chords I know</h3><p>${['G','C','D','E minor','A minor','F (barely)','B minor (no)'].slice(0,2+Math.floor(k*5)).join(', ')}</p>
+    <pre>e|-----0---0-----|\nB|---1---1---1---|\nG|-0-----------0-|</pre><p>${k<.4?'My fingertips hurt SO much.':'My calluses are coming in!'}</p>`}},
+  {k:'gallery',f:'gallery.html',nav:()=>'My Paintings',pri:7,when:(s,F)=>(F.p.arc==='learning'&&F.p.learn==='paint')||/illustrat|comic|art student/.test(F.p.job||'')||(s.tags.has('paint')&&(s.nb.id==='LeftBank'||hash(s.id,61)%3===0)),page(s,F,r){
+    const n=4+hash(F.p.id,2)%4;let h='';for(let k=0;k<n;k++)h+=hbPic(hbPhoto('paint',F.p.id*13+k),hbPick(r,['Untitled #'+(k+1),'Study in Blue','Morning','The Window','Self Portrait (abstract)','Rooftops','Cat? (not sure)','Feelings']),140);
+    return`<center><h2>${hbImg('palette')} The Gallery ${hbImg('palette')}</h2><p>${hbSay(s.v,'Click on a picture to... well, nothing happens yet. I\'m working on it!',r)}</p>${h}</center>`}},
+  {k:'research',f:'research.html',nav:()=>'My Research',pri:8,when:(s,F)=>/professor|scientist|lab manager/.test(F.p.job||''),page(s,F,r){const vis=/vision|neuro|psych/.test(F.p.job);
+    return`<h2>${hbImg('atom')} Research</h2><p>${vis?'I study how the brain builds what we see. Most of the time it does a great job. Sometimes it doesn\'t, and those are the fun cases.':'I study how living things work, one experiment at a time.'}</p>
+    ${vis?`<center>${hbPic(hbPhoto('hermann',1),'Stare at the white lines. See gray dots?',200)}${hbPic(hbPhoto('cafewall',2),'The gray lines are perfectly straight. Really.',200)}</center><p>Neither of those things is actually there. Your visual system adds them. Isn't that something?</p>`:''}
+    <h3>Current projects</h3><ul>${hbPickN(r,['A grant proposal (due Friday, of course)','Teaching an intro class of 200 students','Fixing the lab computer again','Writing a paper that reviewers will hate','Mentoring three grad students','Trying to get the new equipment to work'],3).map(x=>`<li>${hbE(x)}`).join('')}</ul>`}},
+  {k:'family',f:'family.html',nav:()=>'My Family',pri:6,when:(s,F)=>F.kids.length||F.baby||F.due!==null||F.rel==='newlyweds',page(s,F,r){let h=`<h2>${hbImg('house')} My Family ${hbImg('heart')}</h2>`;
+    if(F.partner)h+=`<h3>${F.rel==='newlyweds'?'Just married!':'My partner'}</h3><p>${hbPic(hbPhoto('me',F.partner.id,{c:F.partner.cK||'#a03030',skin:F.partner.cS}),F.partner.first,110)}<br>${hbWho(F.partner)} ${F.rel==='newlyweds'?'and I got married this year. Best day ever.':`and I have been together ${F.since||'many'} years.`}</p>`;
+    for(const k of F.kids)h+=`<h3>${hbE(k.first)}, age ${k.age}</h3><p>${hbPic(hbPhoto('me',k.id,{c:k.cK||'#30a050',skin:k.cS}),k.first,100)}<br>${hbE(k.first)} is ${hbE((k.traits[0]||'a handful').replace(/^a /,'a '))}. ${hbE(hbPick(r,['Loves dinosaurs.','Wants to be an astronaut.','Lost a tooth last week!','Draws on everything.','Reads under the covers with a flashlight.','Is learning to ride a bike.']))}${k.age>=8&&HB.idx&&HB.idx.byId.get(k.id)?` ${hbE(k.first)} has a page too: ${hbWho(k)}!`:''}</p>`;
+    if(F.due!==null)h+=`<h3>${hbImg('baby')} Baby countdown</h3><p><font size="6" color="#ff3399"><b>${F.due}</b></font> days until we meet baby ${hbE(F.babyName||'?')}!</p>`;
+    else if(F.baby)h+=`<h3>${hbImg('baby')} Baby ${hbE(F.baby)}</h3><p>${hbE(F.baby)} is here and we are SO tired. Worth it.</p>`;
+    return h}},
+  {k:'pets',f:'pets.html',nav:F=>F.pets.length?`${F.pets[0].name}'s Page`:'My Aquarium',pri:6,when:(s,F)=>F.pets.length||F.tank,page(s,F,r){let h='';
+    for(const a of F.pets)h+=`<center><h2>${hbImg(a.kind,{c:a.col})} ${hbE(a.name)} the ${a.kind} ${hbImg(a.kind,{c:a.col})}</h2>${hbPic(hbPhoto('pet',F.p.id,{c:a.col,dog:a.kind==='dog'}),a.name+', looking unimpressed',180)}</center>
+      <p>${hbE(a.name)} ${hbPickN(r,HBPETL[a.kind],3).map(hbE).join('. Also, '+hbE(a.name)+' ')}.</p><p><b>Favorite things:</b> ${hbE(hbPickN(r,a.kind==='cat'?['boxes','sunbeams','the bathtub','string','3 AM']:['tennis balls','the park','cheese','car rides','socks'],3).join(', '))}</p>`;
+    if(F.tank)h+=`<center><h2>${hbImg('fish')} My Aquarium ${hbImg('fish',{c:'#40e0ff'})}</h2>${hbPic(hbPhoto('tank',F.p.id),'the tank',200)}</center><p>${F.tank==='shrimp'?'I keep shrimp! They are tiny and they clean everything.':`Residents: ${hbPickN(r,['Bubbles','Captain','Goldie','Nemo Jr.','Sushi (it\'s a joke)','Mr. Fins','Lucky','Flash'],4).map(hbE).join(', ')}.`} Water changes every Sunday.</p>`;
+    return h}},
+  {k:'nightshift',f:'nightshift.html',nav:()=>'Night Shift Diary',pri:5,when:(s,F)=>F.p.arch==='night',page(s,F,r){const j=F.p.job;let rows='';
+    const B={nurse:['Quiet night. That word is cursed and I said it anyway.','A man came in with a fork in his hand. Don\'t ask.','Saved someone today. Then ate vending machine crackers for dinner.'],guard:['Walked the whole building 9 times. Saw a mouse. We are friends now.','Nothing happened. Nothing ever happens. I love it.'],
+      cab:['Drove a bride to the wrong church. Then to the right one.','A guy paid me in quarters. All quarters.','Best fare tonight: an old lady who told me my whole future.'],DJ:['Played three songs in a row nobody requested. Felt powerful.','A trucker called in to say good night. Every night.'],
+      cook:['86\'d the soup at 11. The world did not end.','Burned my arm. Again.'],conductor:['A guy fell asleep and rode the line twice.','Someone brought a goose on the train.'],air:['Watched the sun come up from the tower.','Stacked 14 planes and nobody noticed. That is the job.'],editor:['Rewrote the front page at 3 AM.','Wrote a headline I\'m very proud of. It got cut.'],orderly:['Pushed a gurney about 9 miles tonight.','Night nurses have the best snacks.']};
+    const key=Object.keys(B).find(k=>j.includes(k))||'guard';
+    for(let k=0;k<4;k++)rows+=`<p><b>${hbDateS(F.L-k*2-1)}, ${hbPick(r,['2:14 AM','3:40 AM','4:05 AM','12:30 AM','5:15 AM'])}</b><br>${hbE(hbPick(r,B[key].concat(['Coffee number four.','The city is beautiful at this hour. Nobody believes me.','Got home as everyone was leaving for work.'])))}</p>`;
+    return`<h2>${hbImg('moon')} Night Shift Diary ${hbImg('owl')}</h2><p>I work nights as ${art(hbE(j))}. Here is what happens while you're asleep.</p>${rows}`}},
+  {k:'insomnia',f:'3am.html',nav:()=>'3 A.M. Thoughts',pri:7,when:(s,F)=>F.p.arc==='insomnia',page(s,F,r){
+    const T=['Do fish get thirsty?','Is the guy upstairs also awake? I hear him walking.','I should call my mom more.','What if I just moved to a lighthouse.','The refrigerator hum is in B flat. I checked.','Counted 41 lit windows across the street.','Why do I remember every embarrassing thing I said in 1989?','Made toast. Did not eat toast.','The sky does a thing around 4:30. Gray, then blue, then gray again.'];
+    return`<h2>${hbImg('clock')} 3 A.M. Thoughts</h2><p><i>Things I think about when I can't sleep. Which is a lot lately.</i></p><ul>${hbPickN(r,T,6).map(x=>`<li><tt>${hbPick(r,['2:47','3:12','3:58','4:20','1:33','4:44'])} AM</tt> &mdash; ${hbE(x)}`).join('')}</ul>`}},
+  {k:'music',f:'music.html',nav:()=>'My Music',pri:5,when:(s,F)=>s.tags.has('synth')||s.tags.has('theremin')||s.tags.has('music')||(s.tags.has('guitar')&&F.p.arc!=='learning'),page(s,F,r){const band=hbBand(r);
+    return`<h2>${hbImg('note')} My Music ${hbImg('disc')}</h2><p>${s.tags.has('theremin')?'I play the theremin. You play it without touching it. My neighbors think the apartment is haunted.':s.tags.has('synth')?'I make music with synthesizers. Mostly at night. Mostly with headphones (sorry downstairs).':`I play in a band called <b>${hbE(band)}</b>. We have played two shows and one of them had an audience.`}</p>
+    ${s.tags.has('modular')?'<p>My modular synth has 47 patch cables in it right now. I don\'t know what half of them do. That\'s the point.</p>':''}<h3>Songs</h3><ol>${Array.from({length:4},()=>`<li>${hbE(hbSong(r))} <font size="2">(${1+hash(F.p.id,r()*99|0)%4}:${String(10+hash(F.p.id,7,r()*99|0)%50)})</font>`).join('')}</ol><p>Press play on the MIDI player to hear my latest!</p>`}},
+  {k:'photos',f:'photos.html',nav:()=>'Photos',pri:5,when:(s,F)=>s.tags.has('film')||s.tags.has('drone')||s.tags.has('stargaze')||s.tags.has('darkroom'),page(s,F,r){let h='';const L=[];
+    if(s.tags.has('drone'))L.push(['aerial','From way up there']);if(s.tags.has('stargaze'))L.push(['moon','The moon from my window'],['jupiter','Jupiter! Through my telescope!']);
+    L.push(['skyline','The view from my window'],['sunset','Sunset over the river'],['park','The park in spring'],['beach','Vacation!!'],['cake','My birthday cake']);
+    for(const[k,c]of L.slice(0,6))h+=hbPic(hbPhoto(k,F.p.id+k.length),c,150);
+    return`<center><h2>${hbImg('camera')} Photo Album ${hbImg('camera')}</h2><p>${s.tags.has('darkroom')?'I develop all of these myself in my bathroom. My roommates love it (no they don\'t).':'Some of my favorite pictures. Scanned at the library!'}</p>${h}</center><p><font size="2">These might take a minute to load on a 28.8 modem. Sorry!</font></p>`}},
+  {k:'recipes',f:'recipes.html',nav:()=>'Recipes',pri:5,when:(s,F)=>s.tags.has('food')||s.tags.has('a foodie')||s.tags.has('coffee'),page(s,F,r){const d=hbPick(r,HBFOOD),cof=s.tags.has('coffee')&&!s.tags.has('food');
+    return cof?`<h2>${hbImg('coffee')} The Coffee Corner</h2><p>My setup: a hand grinder, a scale, and a kettle with a long skinny spout. My friends think I've lost it.</p><h3>My morning cup</h3><ol><li>Weigh 20 grams of beans.<li>Grind them medium-fine. Not too fine!<li>Pour a little water to let it "bloom." Wait 30 seconds.<li>Pour the rest, slowly, in circles.<li>Drink it standing at the window.</ol>`
+      :`<h2>${hbImg('cake')} ${hbE(F.first)}'s Recipe Box</h2><h3>${hbE(hbCap(d))}</h3><p><i>${hbE(hbPick(r,['Passed down from my grandmother. Do not tell her I put it on the Internet.','I make this every Sunday.','This is the one people ask me for.']))}</i></p>
+      <ul><li>Love<li>${hbPickN(r,['2 cups flour','1 onion, chopped','3 cloves garlic','a pinch of salt (more than a pinch)','1 can tomatoes','butter. a lot of butter.','2 eggs','whatever is in the fridge'],4).map(hbE).join('<li>')}</ul><p>Cook until it smells right. You'll know.</p>`}},
+  {k:'games',f:'games.html',nav:()=>'High Scores',pri:4,when:(s,F)=>s.tags.has('retro')||(s.tags.has('game')&&(F.p.kid||F.p.arch==='student')),page(s,F,r){
+    return`<h2>${hbImg('joystick')} My High Scores ${hbImg('star')}</h2><table border="3" cellpadding="4"><tr><th>Game</th><th>Score</th></tr>${Array.from({length:5},()=>`<tr><td>${hbE(hbPick(r,['Space Blasters','Turbo Kart','Dungeon Crawl II','Brick Breaker','Ninja Alley','Frog Crossing','Galaxy Defense','Mega Golf']))}</td><td align="right"><tt>${(1000+hash(F.p.id,r()*999|0)%98000)*10}</tt></td></tr>`).join('')}</table><p>Cheat codes are on the next page. (There is no next page. Ha!)</p>`}},
+  {k:'garden',f:'garden.html',nav:()=>'My Plants',pri:4,when:(s,F)=>s.tags.has('carni')||(s.tags.has('plants')&&s.nb.id==='Greenhouse'),page(s,F,r){
+    return`<h2>${hbImg('plant')} My Window Garden ${hbImg('flower')}</h2>${hbPic(hbPhoto('garden',F.p.id),'the windowsill',180)}<p>${s.tags.has('carni')?'I grow carnivorous plants! Venus flytraps, pitcher plants and one very hungry sundew. They eat the fruit flies. Everyone wins.':`I have ${8+hash(F.p.id,3)%30} plants in a ${F.u.n>2?'one':'tiny'}-bedroom apartment. Send help (or more pots).`}</p>`}},
+  {k:'fitness',f:'fitness.html',nav:()=>'Fitness',pri:3,when:(s,F)=>(s.tags.has('exercise')||s.tags.has('cycle')||s.tags.has('yoga'))&&(s.nb.id==='Colosseum'||hash(s.id,62)%2===0),page(s,F,r){
+    return`<h2>${hbImg(s.tags.has('cycle')?'bike':'runner')} Get Moving!</h2><p>${s.tags.has('yoga')?'Yoga every morning. My downward dog is excellent. My actual dog is unimpressed.':s.tags.has('cycle')?'I ride my bike everywhere. Yes, even in the rain. Yes, even over the bridge.':'I work out in my living room with a tape I got at the drugstore. The neighbors downstairs know my routine by heart.'}</p><h3>This week</h3><ul>${['Mon','Tue','Thu','Sat'].map(d=>`<li>${d}: ${hbE(hbPick(r,['30 minutes','an hour','skipped (sorry)','did it twice!','stretching only']))}`).join('')}</ul>`}},
+  {k:'stars',f:'stars.html',nav:()=>'Night Sky Log',pri:4,when:(s,F)=>s.tags.has('stargaze')&&!s.tags.has('film'),page(s,F,r){
+    return`<h2>${hbImg('star')} Night Sky Log ${hbImg('moon')}</h2>${hbPic(hbPhoto('jupiter',F.p.id),'Jupiter (those dots are moons!)',180)}<ul>${Array.from({length:4},(x,k)=>`<li>${hbDateS(F.L-k*9-2)}: ${hbE(hbPick(r,['Clear night. Saw Saturn\'s rings!!','Too cloudy. Watched TV instead.','Saw a meteor. Made a wish. Not telling.','The city lights are too bright. Saw 6 stars. Counted them.','Found the Big Dipper from the fire escape.']))}`).join('')}</ul>`}},
+  {k:'knit',f:'knitting.html',nav:()=>'Knitting',pri:3,when:(s,F)=>s.tags.has('knit'),page(s,F,r){
+    return`<h2>Knit One, Purl Two</h2><p>Currently on the needles: ${hbE(hbPick(r,['a scarf that is now 9 feet long','mittens for my nephew','a sweater (year three)','a blanket for the new baby downstairs','a hat with a pom-pom']))}.</p><p>Pattern of the month: cast on 40, knit until you run out of yarn or patience.</p>`}},
+  {k:'halloween',f:'halloween.html',nav:()=>'HALLOWEEN',pri:6,when:(s,F)=>s.tags.has('spooky'),page(s,F,r){const[y,m,d]=ymd(F.L);let ho=dayOf(y,9,31);if(F.L>ho)ho=dayOf(y+1,9,31);const left=ho-F.L;
+    return`<center><h1><font color="#ff7000">${hbImg('pumpkin')} HALLOWEEN HQ ${hbImg('pumpkin')}</font></h1>${hbImg('ghost')}${hbImg('bat')}${hbImg('ghost')}<p><font size="6" color="#ff7000"><b>${left===0?'HAPPY HALLOWEEN!!!':left+' DAYS UNTIL HALLOWEEN'}</b></font></p></center>
+    <p>Every year I decorate the window. This year: ${hbE(hbPick(r,['a skeleton named Gary','orange lights and a fog machine (sorry, neighbors)','a giant spider','three pumpkins I carved myself']))}.</p><p>Best costume I ever wore: ${hbE(hbPick(r,['a ghost (classic)','a toaster','the Statue of Liberty','a vampire with real fake blood','a traffic light']))}.</p>`}}
+];
+
+/* the pages a site has, in nav order */
+function hbMods(s,F){const m=HBMOD.filter(x=>x.when(s,F)).sort((a,b)=>b.pri-a.pri||hash(s.id,a.k.length)%3-1);return m.slice(0,s.v.kid?2:s.v.old?3:4)}
+
+/* ---------- assembling a page ---------- */
+const HBGBKEY='big-apple-sam/guestbooks';
+function hbGbLoad(){try{return JSON.parse(localStorage.getItem(HBGBKEY)||'{}')||{}}catch(e){return{}}}
+function hbGbSave(o){try{localStorage.setItem(HBGBKEY,JSON.stringify(o))}catch(e){}}
+function hbHead(th,txt,r,sz=6){
+  const t=hbE(txt);
+  switch(th.head){
+    case'rainbow':return`<font size="${sz}" face="${th.font}"><b>${[...txt].map((c,i)=>c===' '?' ':`<font color="hsl(${(i*37)%360},95%,${th.dark||th.panel&&hbLum(th.panel)<.45?60:42}%)">${hbE(c)}</font>`).join('')}</b></font>`;
+    case'shadow':return`<font size="${sz}" face="${th.font}" style="text-shadow:3px 3px 0 ${th.dark?'#606060':'#a0a0a0'}"><b>${t}</b></font>`;
+    case'blink':return`<font size="${sz}" face="${th.font}"><b><span class="blink">${t}</span></b></font>`;
+    case'big':return`<font size="7" face="Impact,${th.font}">${t}</font>`;
+    case'outline':return`<font size="${sz}" face="Arial Black,${th.font}" style="color:transparent;-webkit-text-stroke:1.5px ${th.ink}">${t}</font>`;
+    case'sparkle':return`${hbImg('sparkle',{c:'#ffff80'})}<font size="${sz}" face="${th.font}"><i>${t}</i></font>${hbImg('sparkle',{c:'#ffff80'})}`;
+    default:return`<font size="${sz-1}" face="${th.font}"><b>${t}</b></font>`;
+  }
+}
+function hbHr(th,s){switch(th.hr){case'rainbow':return`<p align="center"><img src="${hbSprite('rainbow').fr[0]}" data-s="rainbow|" width="80%" height="6" class="spr" alt=""></p>`;
+  case'hr':return'<hr size="4" noshade>';case'dots':return`<p align="center">${hbImg('sparkle',{c:th.link,sc:1})} ${hbImg('sparkle',{c:th.vlink,sc:1})} ${hbImg('sparkle',{c:th.link,sc:1})}</p>`;
+  case'sprites':return`<p align="center">${th.spr.map(n=>hbImg(n,{sc:1})).join(' &nbsp; ')}</p>`;default:return'<hr width="90%">'}}
+function hbCounter(s,F){const g=hbGbLoad(),key=city.seed+':'+s.id+':v';const mine=(g[key]||0);
+  const rate=s.tags.has('sociable')?9:s.tags.has('a loner')?1.2:3.5;const n=Math.round((F.L-F.created)*rate)+hash(s.id,city.seed,4260)%60+3+mine;
+  return`<span class="ctr">${String(n).padStart(6,'0').split('').map(d=>`<span>${d}</span>`).join('')}</span>`}
+function hbRing(s,ring){const m=HB.idx.rings[ring]||[];if(m.length<2)return'';const i=m.indexOf(s),pv=m[(i-1+m.length)%m.length],nx=m[(i+1)%m.length],rd=m[hash(s.id,F0(),4270)%m.length];
+  return`<table border="3" cellpadding="6" align="center" bgcolor="${s.th.dark?'#202040':'#e8e8ff'}"><tr><td align="center"><font color="${s.th.dark?'#ffffff':'#000000'}" size="2">This <b>${hbE(ring)}</b> site is owned by ${hbE(s.p.first)}.<br>
+    [<a href="${hbUrl(pv)}">Previous</a>] [<a href="${hbUrl(rd)}">Random</a>] [<a href="${hbUrl(nx)}">Next</a>] [<a href="${HBROOT}ring?r=${encodeURIComponent(ring)}">List Sites</a>]<br><font size="1">${m.length} sites in this ring</font></font></td></tr></table>`}
+function F0(){return Math.floor(simMin/1440)}
+/* neighbors, ring-mates and a fake external link or two */
+function hbFriends(s,F,r,n){const I=HB.idx,o=[],seen=new Set([s.id]);
+  const add=x=>{if(x&&!seen.has(x.id)){seen.add(x.id);o.push(x)}};
+  for(const q of F.u.people)add(I.byId.get(q.id));
+  for(const u2 of F.u.b.units||[]){if(o.length>=n)break;if(u2===F.u)continue;for(const q of u2.people||[])if(r()<.35)add(I.byId.get(q.id))}
+  for(const g of s.rings){const m=I.rings[g]||[];for(let k=0;k<3&&m.length;k++)add(m[Math.floor(r()*m.length)])}
+  const nbm=I.nb[s.nb.id]||[];for(let k=0;k<3&&nbm.length;k++)add(nbm[Math.floor(r()*nbm.length)]);
+  return o.slice(0,n)}
+function hbLinks(s,F,r){const fr=hbFriends(s,F,r,6),out=[];
+  for(const x of fr){const rel=x.u===F.u?(x.p.kid?'':F.partner&&x.p===F.partner?'my partner':'my roommate'):x.u.b===F.u.b?`my neighbor in Apt ${x.u.f+2}${x.u.letter}`:hbPick(r,['a friend','cool page!','check it out','met online','my buddy']);
+    out.push(`<a href="${hbUrl(x)}">${hbE(hbTitleOf(x))}</a>${rel?` <font size="2">(${hbE(rel)})</font>`:''}`)}
+  for(const[t,d]of hbPickN(r,HBFAKE,2))out.push(`<a href="http://${d}/">${hbE(t)}</a>`);
+  return out}
+const HBAWARD=['Golden Doorknob Award','Top 5% of the Block','HomeBlocks Pick of the Week','Rooftop Excellence Award','Fire Escape Seal of Approval','Cool Page Award'];
+function hbAwards(s,r){return`<p align="center">${hbPickN(r,HBAWARD,2).map((a,i)=>`<table border="0" cellpadding="1" style="display:inline-table;margin:4px"><tr><td bgcolor="#c0c0c0" style="border:2px outset #fff"><table bgcolor="${i?'#000080':'#800000'}" cellpadding="4"><tr><td align="center"><font color="#ffff00" size="1" face="Arial"><b>&#9733; ${hbE(a.toUpperCase())} &#9733;</b></font></td></tr></table></td></tr></table>`).join('')}</p>`}
+function hbMidiBox(s){const nm=hbMidiName(s);return`<table border="2" cellpadding="3" bgcolor="#c0c0c0" align="center"><tr><td><font face="Arial" size="1" color="#000000"><b>&#9835; ${hbE(nm)}</b></font><br><a href="midi:play"><img alt="Play" title="Play" src="${hbSprite('mplay').fr[0]}" width="22" height="18"></a> <a href="midi:stop"><img alt="Stop" title="Stop" src="${hbSprite('mstop').fr[0]}" width="22" height="18"></a></td></tr></table>`}
+function hbMidiName(s){const r=hbR(s.p,7);return hbPick(r,['theme','lovesong','sunset','canyon','mysong','groove','dreams','rain','party','nocturne','journey','oldtown'])+(r()<.5?(1+Math.floor(r()*9)):'')+'.mid'}
+
+function hbGuestbook(s,F){
+  const r=hbR(s.p,30),I=HB.idx,n=2+hash(s.id,city.seed,4280)%7+(s.tags.has('sociable')?4:0);let fr=hbFriends(s,F,r,n+2).filter(x=>x.u!==F.u);
+  const days=Math.max(1,F.L-F.created);const ents=[];
+  fr.slice(0,n).forEach((x,i)=>{const rr=hbR(x.p,31+s.id%97),d=F.created+Math.floor(days*(i+1+rr())/(n+1.2));
+    const parts=[];const T=k=>s.tags.has(k);
+    if(x.u.b===F.u.b)parts.push(hbPick(rr,[`Hi from ${'Apt '+(x.u.f+2)+x.u.letter}! Didn't know you had a homepage!`,'Hey neighbor!',`We should talk in the elevator more!`]));
+    else{const g=s.rings.find(q=>x.rings.includes(q));if(g)parts.push(`Found you through the ${g}!`);else parts.push(hbPick(rr,['Great page!','Cool site!','Nice page!','Just surfing by!','Love the graphics!','WOW what a page.']))}
+    if(T('grief')&&d>=F.p.arcS)parts.push(hbPick(rr,['So sorry for your loss.','Thinking of you.','What a beautiful tribute.']));
+    else if(F.pets.length&&rr()<.6)parts.push(`${F.pets[0].name} is SO cute!`);
+    else if(T('marathon'))parts.push('Good luck with the marathon!!');
+    else if(T('novel'))parts.push('Can\'t wait to read your book!');
+    else if(F.due!==null||F.baby)parts.push('Congrats on the baby!!!');
+    else if(T('heartbreak'))parts.push('Your poems made me cry. Hang in there.');
+    else if(T('homesick'))parts.push(`I've always wanted to visit ${F.p.place}!`);
+    else if(T('spooky'))parts.push('Your Halloween page is SO creepy, I love it.');
+    else parts.push(hbPick(rr,['Come visit my page sometime!','Keep up the good work!','Added you to my links!','How did you make the background??','Your page loads faster than mine, what\'s your secret?']));
+    ents.push({nm:`${x.p.first} ${x.p.kid?'':x.p.last}`.trim(),from:x.u.b.name,url:hbUrl(x),d,msg:hbSay(x.v,parts.join(' '),rr)+x.v.emo})});
+  const g=hbGbLoad()[city.seed+':'+s.id]||[];for(const e of g)ents.push({nm:e.n,from:e.w||'',url:'',d:e.d,msg:e.m,you:true});
+  ents.sort((a,b)=>b.d-a.d);return ents;
+}
+function hbGbPage(s,F){const ents=hbGuestbook(s,F),th=s.th;
+  return`<center>${hbHead(th,hbSay(s.v,`${F.first}'s Guestbook`,hbR(s.p,32)),hbR(s.p,33),5)}<p>Thanks for visiting! Sign my guestbook below.</p></center>
+  <form data-gb="${s.id}"><table border="2" cellpadding="4" align="center" bgcolor="${th.dark?'#202030':'#f0f0f0'}"><tr><td><font color="${th.dark?'#ffffff':'#000000'}">Name:</font></td><td><input name="n" size="24" maxlength="40"></td></tr>
+  <tr><td><font color="${th.dark?'#ffffff':'#000000'}">Where you live:</font></td><td><input name="w" size="24" maxlength="40"></td></tr><tr><td valign="top"><font color="${th.dark?'#ffffff':'#000000'}">Comments:</font></td><td><textarea name="m" rows="4" cols="30" maxlength="400"></textarea></td></tr>
+  <tr><td colspan="2" align="center"><input type="submit" value="Sign Guestbook"> <input type="reset" value="Clear"></td></tr></table></form><br>
+  ${ents.map(e=>`<table width="90%" align="center" border="1" cellpadding="4" ${th.panel?'':`bgcolor="${th.dark?'#101020':'#ffffff'}"`}><tr><td><font color="${th.dark&&!th.panel?'#ffffff':th.ink}"><b>${e.url?`<a href="${e.url}">${hbE(e.nm)}</a>`:hbE(e.nm)}</b>${e.from?` <font size="2">from ${hbE(e.from)}</font>`:''}<br><font size="2">${hbDate(e.d)}</font><br>${hbE(e.msg)}</font></td></tr></table><br>`).join('')||'<p align="center">No entries yet. Be the first!</p>'}`}
+
+function hbPage(s,file){
+  const L=F0(),F=hbFacts(s,L);s.F=F;s.title=s.title||hbTitle(s,F);const th=s.th=s.th||hbTheme(s),v=s.v,r=hbR(s.p,40+file.length);
+  const mods=hbMods(s,F),nav=[['index.html','Home']].concat(mods.map(m=>[m.f,m.nav(F)]),[['guestbook.html','Guestbook'],['links.html','Links']]);
+  let body='';const mod=mods.find(m=>m.f===file);
+  if(file==='index.html')body=hbIndexBody(s,F,mods,r);
+  else if(file==='guestbook.html')body=hbGbPage(s,F);
+  else if(file==='links.html')body=`<center>${hbHead(th,hbSay(v,'Cool Links',r),r,5)}</center><ul>${hbLinks(s,F,hbR(s.p,41)).map(x=>`<li>${x}`).join('')}</ul>${s.rings.map(g=>hbRing(s,g)).join('<br>')}`;
+  else if(mod)body=mod.page(s,F,r);
+  else return null;
+  const navH=nav.map(([f,t])=>f===file?`<b>${hbE(t)}</b>`:`<a href="${hbUrl(s,f)}">${hbE(t)}</a>`);
+  const foot=`${hbHr(th,s)}<center><font size="2">${th.counter?`You are visitor number ${hbCounter(s,F)}<br>`:''}${th.mail?`${hbImg('mail',{sc:1})} <a href="mailto:${hbE((F.first+'_'+F.last).toLowerCase().replace(/[^a-z_]/g,''))}@homeblocks.com">Email me!</a><br>`:''}
+    This page was last updated on ${hbDate(F.updated)}.<br>${v.old?'Best viewed with your glasses on.':hbPick(r,['Best viewed at 800x600 in 256 colors.','Best viewed with your eyes.','This page is best viewed at 640x480.','Made with Notepad and love.'])}<br>
+    <a href="${HBROOT}">${'&#9668;'} Back to HomeBlocks</a> | <a href="${HBROOT}${s.nb.id}/">${hbE(s.nb.nm)} Neighborhood</a></font></center>`;
+  let main;
+  const navBar=`<p align="center"><font size="2">[ ${navH.join(' | ')} ]</font></p>`;
+  if(th.layout==='side')main=`<table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td width="${th.tl.side-8}" valign="top"><font size="2" face="Arial"><br>${navH.map(x=>th.tile==='stripe'?x.replace('<a ','<a class="sn" ').replace('<b>','<b style="color:#fff">'):x).join('<br><br>')}</font></td><td width="18"></td><td valign="top">${body}${foot}</td></tr></table>`;
+  else if(th.layout==='side2')main=`<table border="${v.formal?0:3}" cellpadding="8" cellspacing="0" width="96%" align="center"><tr><td width="130" valign="top" bgcolor="${th.dark?'#202040':'#d8d8f8'}"><font size="2" face="Arial" color="${th.dark?'#ffffff':'#000000'}"><b>MENU</b><br><br>${navH.map(x=>x.replace('<a ',`<a style="color:${th.dark?'#ffff80':'#0000c0'}" `)).join('<br><br>')}</font></td><td valign="top">${body}${foot}</td></tr></table>`;
+  else if(th.layout==='table')main=`<table width="640" border="${hash(s.id,7)%3+1}" cellpadding="14" align="center"${th.panel?` bgcolor="${th.panel}"`:''}><tr><td>${navBar}${body}${foot}</td></tr></table>`;
+  else main=`${th.layout==='center'&&file==='index.html'?'':navBar}${body}${th.layout==='center'&&file==='index.html'?hbHr(th,s)+navBar:''}${foot}`;
+  if(th.panel&&th.layout!=='table')main=`<table width="${th.layout==='side'?'100%':'92%'}" align="center" cellpadding="12" bgcolor="${th.panel}"><tr><td>${main}</td></tr></table>`;
+  const title=file==='index.html'?s.title:`${s.title} - ${(nav.find(x=>x[0]===file)||['',''])[1]}`;
+  const bg=th.tl.grad?`background:${th.tl.base} url(${th.tl.url}) repeat-x`:`background:${th.tl.base} url(${th.tl.url})`;
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${hbE(title)}</title><style>
+  body{${bg};color:${th.ink};font-family:"${th.font}",serif;margin:${th.layout==='side'?'10px 10px 10px 0':'12px'};font-size:${th.size===4?17:15}px}
+  a{color:${th.link}}a:visited{color:${th.vlink}}a.sn{color:#ffffff;font-weight:bold}
+  img.spr,img.ph{image-rendering:pixelated;vertical-align:middle}
+  .blink{animation:bl 1s steps(1) infinite}@keyframes bl{50%{visibility:hidden}}
+  .ctr span{display:inline-block;background:#000;color:#20ff20;font:bold 15px "Courier New",monospace;padding:1px 3px;margin:0 1px;border:1px solid #606060}
+  blockquote{border-left:3px double ${th.ink};padding-left:10px}
+  marquee{font-weight:bold}h1,h2,h3{font-family:"${th.font}",serif}
+  .trail{position:absolute;pointer-events:none;width:7px;height:7px;transition:opacity .6s}
+  </style></head><body>${main}</body></html>`;
+  return{title,html,s,file};
+}
+function hbIndexBody(s,F,mods,r){
+  const v=s.v,th=s.th,p=s.p,R=hbR(s.p,50);const sayp=t=>t?`<p>${hbSay(v,t,R)}</p>`:'';
+  const greet=v.kid&&p.age>=13?hbPick(R,['hey. welcome to my page.','Welcome to my page!','sup. you found my page.']):v.kid?'HI!!! WELCOME TO MY PAGE!!!':v.old?hbPick(R,['Hello and welcome.','Welcome to my page.']):v.quiet?'hi. you found my page.':v.loud?'HI!!! WELCOME TO MY HOMEPAGE!!!':v.sparkle?'Welcome, traveler.':v.formal?'Welcome, and thank you for visiting.':hbPick(R,['Hi! Welcome to my page.','Hello and welcome to my little corner of the Web!','Hey, thanks for stopping by.']);
+  const help=v.old?hbPick(R,[' My grandson showed me how to make this page.',' My niece helped me put this on the computer.',' I made this at the library computer class.']):v.kid&&p.age<12?' My family helped me make it.':'';
+  const me=p.kid?`My name is ${F.first} and I am ${F.age}${p.age<12?hbPick(R,[' and three quarters',' (almost '+(F.age+1)+')','']):''}.`:`My name is ${F.first} ${F.last} and I am ${F.age} years old.`;
+  let about=hbSayHtml(v,`${greet+help} ${me} ${hbHouse(p,F,v)}`,R);
+  const job=hbJob(p,F,v,R),arc=hbArc(p,F,R),tr=(p.traits||[]).map(t=>hbPick(R,HBTRAIT[t]||['']));
+  const ints=[];for(const h of new Set(p.hobbies||[]))if(HBINT[h]&&!((h==='tv'||h==='phone'||h==='vacuum')&&hash(s.id,h.length,63)%2))ints.push(HBINT[h]);if(p.likes)for(const k in p.likes)if(p.likes[k]&&HBINT[k]&&!ints.includes(HBINT[k]))ints.push(HBINT[k]);
+  if(p.kid)ints.push(...hbPickN(R,['Dinosaurs','Recess','Drawing','My bike','Cartoons on Saturday','Pizza'],2));
+  const fav=v.old?[]:[['Favorite band',hbBand(R)],['Favorite movie',hbMovie(R)],['Favorite book',hbBook(R)],['Favorite food',hbPick(R,HBFOOD)]];
+  const q=hbPick(R,HBQUOTE);
+  let h=`<center>${th.spr[0]?hbImg(th.spr[0]):''} ${hbHead(th,s.title,R)} ${th.spr[1]?hbImg(th.spr[1]):''}</center>`;
+  if(th.cons)h+=`<p align="center">${hbImg('cons',{sc:2})}<br><font size="2">${hbSay(v,'This page is under construction. Please come back soon!',R)}</font> ${hbImg('cone')}</p>`;
+  if(th.marquee)h+=`<marquee scrollamount="${4+hash(s.id,9)%5}" behavior="${R()<.3?'alternate':'scroll'}"><font size="4" color="${th.link}">${hbE(hbSay(v,hbPick(R,[`Welcome to ${F.first}'s page!!!`,'Thanks for stopping by!',`Greetings from the ${F.bld}!`,'Sign my guestbook!!!','Under construction (forever)!']),R))}</font></marquee>`;
+  h+=hbHr(th,s);
+  h+=`<h2>${hbSay(v,'About Me',R)}</h2>${th.music?`<table align="right" cellpadding="8"><tr><td>${hbMidiBox(s)}</td></tr></table>`:''}<p>${about}</p>`;
+  h+=sayp([job,tr.filter(Boolean).join(' '),arc].filter(Boolean).join(' '));
+  if(F.p.arc==='dating'&&F.L>=p.arcS&&!v.formal)h+=`<p>${hbImg('heart')} ${hbSay(v,'P.S. I met someone. More soon.',R)}</p>`;
+  if(mods.length)h+=`<h3>${hbSay(v,'On this site',R)}</h3><ul>${mods.map(m=>`<li>${m.f==='memorial.html'||R()<.5?'':hbImg('newb',{sc:1})+' '}<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`).join('')}<li><a href="${hbUrl(s,'guestbook.html')}">Sign my guestbook!</a></ul>`;
+  if(ints.length)h+=`<h3>${hbSay(v,'My Interests',R)}</h3><ul>${ints.slice(0,7).map(x=>`<li>${hbE(hbSay(v,x,R))}`).join('')}</ul>`;
+  if(fav.length&&R()<.75)h+=`<h3>${hbSay(v,'Favorite Things',R)}</h3><table border="1" cellpadding="4">${fav.map(([a,b])=>`<tr><td><b>${a}</b></td><td>${hbE(b)}</td></tr>`).join('')}</table>`;
+  if(!v.quiet&&R()<.5)h+=`<h3>Quote of the Day</h3><p><i>"${hbE(q[0])}"</i><br>&mdash; ${hbE(q[1])}</p>`;
+  if(F.hist.length>1&&(v.formal||v.old||R()<.4))h+=`<h3>${hbSay(v,'My Timeline',R)}</h3><ul>${F.hist.map(([d,t])=>`<li><b>${fmtMonth(d)}</b>: ${hbE(t)}`).join('')}</ul>`;
+  const lk=hbLinks(s,F,hbR(s.p,41));h+=`<h3>${hbSay(v,'Cool Links',R)}</h3><ul>${lk.slice(0,5).map(x=>`<li>${x}`).join('')}</ul>`;
+  h+=sayp(v.kid?'SIGN MY GUESTBOOK!!! PLEEEASE':v.old?'Thank you for visiting my page. Please sign the guest book.':v.quiet?'sign the guestbook if you want. or don\'t.':v.loud?'Thanks for stopping by!!! Sign my guestbook!!!':'Thanks for visiting! Please sign my guestbook before you go.');
+  h+=`<p align="center"><a href="${hbUrl(s,'guestbook.html')}">Sign</a> | <a href="${hbUrl(s,'guestbook.html')}">View</a> my guestbook</p>`;
+  for(const g of s.rings)h+=hbRing(s,g)+'<br>';
+  if(th.awards)h+=hbAwards(s,R);
+  return h;
+}
+
+/* ---------- the HomeBlocks portal, directories, search and errors ---------- */
+function hbTitleOf(x){if(!x.title)x.title=hbTitle(x,hbFacts(x,F0()));return x.title}
+function hbCreatedOf(x){if(x.created===undefined)x.created=hbFacts(x,F0()).created;return x.created}
+function hbDoc(title,body,css=''){return`<!doctype html><html><head><meta charset="utf-8"><title>${hbE(title)}</title><style>body{margin:0;background:#ffffff;color:#000;font:13px Verdana,Arial,sans-serif}a{color:#0000cc}a:visited{color:#551a8b}
+  img.spr{image-rendering:pixelated;vertical-align:middle}.blink{animation:bl 1s steps(1) infinite}@keyframes bl{50%{visibility:hidden}}${css}</style></head><body>${body}</body></html>`}
+function hbMast(sub){return`<table width="100%" cellpadding="6" cellspacing="0" bgcolor="#003399"><tr><td><a href="${HBROOT}" style="text-decoration:none">${hbImg('house',{sc:2})} <font face="Arial Black,Arial" size="6" color="#ffcc00"><b>Home</b></font><font face="Arial Black,Arial" size="6" color="#ffffff"><b>Blocks</b></font></a>${sub?` <font color="#ffffff" size="4" face="Arial">&raquo; ${sub}</font>`:''}</td>
+  <td align="right"><form data-search="1" style="margin:0"><input name="q" size="22"> <input type="submit" value="Search"></form></td></tr></table>
+  <table width="100%" cellpadding="3" cellspacing="0" bgcolor="#ffcc00"><tr><td><font size="2" face="Arial"><b>Free homesteads for every block in the city!</b></font></td><td align="right"><font size="2" face="Arial"><a href="${HBROOT}">Home</a> | <a href="${HBROOT}new">New Homesteads</a> | <a href="${HBROOT}rings">Webrings</a> | <a href="${HBROOT}help">Help</a></font></td></tr></table>`}
+function hbFootP(){const y=new Date(F0()*864e5).getUTCFullYear();return`<hr><center><font size="1" face="Arial">&copy; 1996-${y} HomeBlocks. All homesteads are the property of their residents. HomeBlocks is not responsible for blinking text.</font></center>`}
+function hbSiteRow(x,extra=''){return`<li><a href="${hbUrl(x)}"><b>${hbE(hbTitleOf(x))}</b></a> <font size="1" color="#606060">by ${hbE(x.p.first)}${x.p.kid?'':' '+hbE(x.p.last)} &middot; ${hbE(x.nb.nm)}/${hbE(x.sub)}/${x.num}${extra}</font>`}
+function hbBanner(r){const ads=[['WIN A FREE 56K MODEM!!!','Click the duck to win!','#ff0000','#ffff00'],['Are you the 1,000,000th visitor?','Click here to claim your prize','#000080','#ffffff'],['LEARN HTML TODAY','Make a homepage in 24 days!','#008000','#ffffff'],['Lonely? Bored? Hungry?','Pizza delivered in 30 minutes or less','#800000','#ffff80']];
+  const a=hbPick(r,ads),d=hbPick(r,HBFAKE)[1];return`<p align="center"><a href="http://${d}/" style="text-decoration:none"><table width="468" height="60" cellpadding="4" bgcolor="${a[2]}" style="border:2px outset #ccc"><tr><td align="center"><font face="Arial Black,Arial" size="4" color="${a[3]}"><span class="blink">${hbE(a[0])}</span></font><br><font face="Arial" size="2" color="${a[3]}">${hbE(a[1])}</font></td></tr></table></a><font size="1">advertisement</font></p>`}
+function hbPortal(){const I=hbIndex(),L=F0(),r=mulberry32(hash(L,city.seed,4300));
+  const feat=I.list.length?I.list[Math.floor(r()*I.list.length)]:null;
+  const nbs=HBNB.filter(n=>(I.nb[n.id]||[]).length);
+  let grid='<table width="100%" cellpadding="6" cellspacing="4">';for(let i=0;i<nbs.length;i+=2){grid+='<tr>';for(const n of nbs.slice(i,i+2))grid+=`<td valign="top" width="50%" bgcolor="#eef2ff">${hbImg(n.s[0],{sc:1})} <a href="${HBROOT}${n.id}/"><b>${hbE(n.nm)}</b></a> <font size="1">(${I.nb[n.id].length})</font><br><font size="2">${hbE(n.ab)}</font></td>`;grid+='</tr>'}grid+='</table>';
+  const news=I.list.slice().sort((a,b)=>hbCreatedOf(b)-hbCreatedOf(a)).slice(0,6);
+  const body=`${hbMast('')}<table width="100%" cellpadding="10"><tr><td valign="top">${hbBanner(r)}
+    <h2><font face="Arial">Welcome to HomeBlocks!</font></h2><p>Every resident of the city gets a free homestead. Right now <b>${I.list.length.toLocaleString('en-US')}</b> of your neighbors have a page here. Pick a neighborhood and start exploring, or search for someone you know.</p>
+    ${feat?`<table width="100%" border="1" cellpadding="8" bgcolor="#ffffee"><tr><td>${hbImg('star',{c:'#ff8000'})} <b>Homestead of the Day:</b> <a href="${hbUrl(feat)}">${hbE(hbTitleOf(feat))}</a><br><font size="2">by ${hbE(feat.p.first)} ${feat.p.kid?'':hbE(feat.p.last)} in ${hbE(feat.nb.nm)}</font></td></tr></table>`:''}
+    <h3><font face="Arial">Neighborhoods</font></h3>${grid}</td><td valign="top" width="220" bgcolor="#ffffcc"><font face="Arial" size="2"><b>${hbImg('newb',{sc:1})} Newest Homesteads</b><ul>${news.map(x=>`<li><a href="${hbUrl(x)}">${hbE(hbTitleOf(x))}</a>`).join('')}</ul>
+    <b>Popular Webrings</b><ul>${Object.entries(I.rings).sort((a,b)=>b[1].length-a[1].length).slice(0,6).map(([g,m])=>`<li><a href="${HBROOT}ring?r=${encodeURIComponent(g)}">${hbE(g)}</a> (${m.length})`).join('')}</ul>
+    <b>Get your own homestead!</b><br>You already have one. You live here.</font></td></tr></table>${hbFootP()}`;
+  return{title:'HomeBlocks - Free Homesteads for Every Block',html:hbDoc('HomeBlocks',body)}}
+function hbNbPage(n){const I=hbIndex(),m=(I.nb[n.id]||[]).slice().sort((a,b)=>a.sub.localeCompare(b.sub)||a.num-b.num);let h='';
+  for(const sub of n.subs){const ms=m.filter(x=>x.sub===sub);if(!ms.length)continue;h+=`<h3><font face="Arial">${hbE(sub)}</font> <font size="1">(${ms.length})</font></h3><ul>${ms.map(x=>hbSiteRow(x)).join('')}</ul>`}
+  const tl=hbTile(n.t[0],null,3);
+  return{title:`HomeBlocks - ${n.nm}`,html:hbDoc(n.nm,`${hbMast(hbE(n.nm))}<table width="100%" cellpadding="10"><tr><td style="background:${tl.base} url(${tl.url})" align="center"><table bgcolor="#ffffff" cellpadding="8" border="2"><tr><td align="center">${n.s.map(x=>hbImg(x)).join(' ')}<br><font face="Arial Black,Arial" size="5">${hbE(n.nm)}</font><br>${hbE(n.ab)}</td></tr></table></td></tr></table>
+    <table width="100%" cellpadding="10"><tr><td>${m.length?h:'<p>No homesteads here yet.</p>'}</td></tr></table>${hbFootP()}`)}}
+function hbSearch(q){const I=hbIndex(),w=q.toLowerCase().split(/\s+/).filter(Boolean);let res=[];
+  if(w.length)for(const x of I.list){const hay=[x.p.first,x.p.last,hbTitleOf(x),x.p.job||'',x.nb.nm,x.sub,...x.rings,...x.tags,...[...x.tags].map(t=>HBINT[t]||''),...(x.u.pets||[]).map(a=>a.name),x.u.b.name].join(' ').toLowerCase();if(w.every(t=>hay.includes(t)||(t.length>3&&t.endsWith('s')&&hay.includes(t.slice(0,-1)))))res.push(x)}
+  const n=res.length;res=res.slice(0,60);
+  return{title:`HomeBlocks Search: ${q}`,html:hbDoc('Search',`${hbMast('Search')}<table width="100%" cellpadding="10"><tr><td><p>Your search for <b>${hbE(q)}</b> found <b>${n}</b> homestead${n===1?'':'s'}${n>60?' (showing the first 60)':''}.</p>${n?`<ol>${res.map(x=>hbSiteRow(x,x.p.job?' &middot; '+hbE(x.p.job):'')).join('')}</ol>`:'<p>Try a name, a job, a pet\'s name, or something people like: <i>cats, guitar, marathon, poems, night shift</i>.</p>'}</td></tr></table>${hbFootP()}`)}}
+function hbRingPage(g){const I=hbIndex(),m=I.rings[g]||[];return{title:`HomeBlocks Webrings: ${g}`,html:hbDoc(g,`${hbMast('Webrings')}<table width="100%" cellpadding="10"><tr><td><h2><font face="Arial">${hbE(g)}</font></h2><p>${m.length} member site${m.length===1?'':'s'}.</p><ol>${m.map(x=>hbSiteRow(x)).join('')}</ol></td></tr></table>${hbFootP()}`)}}
+function hbRingsPage(){const I=hbIndex();return{title:'HomeBlocks Webrings',html:hbDoc('Webrings',`${hbMast('Webrings')}<table width="100%" cellpadding="10"><tr><td><p>A webring links pages about the same thing in a circle. Click Next and you'll eventually come back around.</p><ul>${Object.entries(I.rings).sort((a,b)=>a[0].localeCompare(b[0])).map(([g,m])=>`<li><a href="${HBROOT}ring?r=${encodeURIComponent(g)}">${hbE(g)}</a> (${m.length} sites)`).join('')}</ul></td></tr></table>${hbFootP()}`)}}
+function hbNewPage(){const I=hbIndex(),m=I.list.slice().sort((a,b)=>hbCreatedOf(b)-hbCreatedOf(a)).slice(0,40);
+  return{title:'HomeBlocks: New Homesteads',html:hbDoc('New',`${hbMast('New Homesteads')}<table width="100%" cellpadding="10"><tr><td><ul>${m.map(x=>hbSiteRow(x,' &middot; opened '+hbDate(hbCreatedOf(x)))).join('')}</ul></td></tr></table>${hbFootP()}`)}}
+function hbHelpPage(){return{title:'HomeBlocks Help',html:hbDoc('Help',`${hbMast('Help')}<table width="100%" cellpadding="10"><tr><td><h3>Frequently Asked Questions</h3><p><b>How do I get a homestead?</b><br>Live in the city. That's it. When you move in, a page goes up. When you move out, it comes down.</p>
+  <p><b>Who wrote these pages?</b><br>The residents did, in their own words, about their own lives. Pages change as their lives do.</p><p><b>Why is everything blinking?</b><br>We don't know either.</p><p><b>Can I sign a guestbook?</b><br>Yes! Your entries are saved on this computer.</p><p><b>Is everyone here?</b><br>Everyone in the regular buildings. People in the giant towers use some other network we don't talk about.</p></td></tr></table>${hbFootP()}`)}}
+function hbErr(t,msg){return{title:t,html:hbDoc(t,`<table width="100%" height="90%"><tr><td align="center" valign="middle"><table width="440" bgcolor="#c0c0c0" cellpadding="0" style="border:2px outset #fff"><tr><td bgcolor="#000080"><font color="#ffffff" face="Arial" size="2"><b>&nbsp;NetSurfer</b></font></td></tr><tr><td><table cellpadding="12"><tr><td valign="top"><font size="6" color="#c00000"><b>&#9888;</b></font></td><td><font face="Arial" size="2">${msg}</font></td></tr></table></td></tr></table></td></tr></table>`,'body{background:#808080}')}}
+function hbMailPage(addr){return{title:'Send Mail',html:hbDoc('Mail',`<table width="100%" cellpadding="14"><tr><td><form data-mail="1"><table bgcolor="#c0c0c0" cellpadding="6" style="border:2px outset #fff"><tr><td colspan="2" bgcolor="#000080"><font color="#fff" face="Arial"><b>Message Composition</b></font></td></tr>
+  <tr><td><font face="Arial" size="2">To:</font></td><td><input size="40" value="${hbE(addr)}" readonly></td></tr><tr><td><font face="Arial" size="2">Subject:</font></td><td><input size="40" name="s" value="I saw your homepage!"></td></tr><tr><td colspan="2"><textarea rows="8" cols="54"></textarea></td></tr><tr><td colspan="2" align="right"><input type="submit" value="Send"></td></tr></table></form></td></tr></table>`,'body{background:#808080}')}}
+function hbRoute(url){
+  url=String(url||'').trim();if(/^mailto:/i.test(url))return hbMailPage(url.slice(7));
+  if(!/^[a-z]+:\/\//i.test(url))url='http://'+url.replace(/^\/+/,'');
+  const m=url.match(/^[a-z]+:\/\/([^\/?#]+)(\/[^?#]*)?(\?[^#]*)?/i);if(!m)return hbErr('Error','The location is not a valid address.');
+  const host=m[1].toLowerCase(),path=m[2]||'/',qs=new URLSearchParams((m[3]||'').slice(1));
+  if(host!==HBHOST&&host!=='homeblocks.com')return hbErr('Unable to locate server',`NetSurfer is unable to locate the server <b>${hbE(host)}</b>.<br><br>The server does not have a DNS entry. Check the server name in the Location (URL) and try again.`);
+  if(path==='/'||path==='/index.html')return hbPortal();
+  if(path==='/search')return hbSearch(qs.get('q')||'');
+  if(path==='/ring')return hbRingPage(qs.get('r')||'');
+  if(path==='/rings')return hbRingsPage();if(path==='/new')return hbNewPage();if(path==='/help')return hbHelpPage();
+  let k=path.match(/^\/(\w+)\/?$/);if(k&&HBNBI[k[1]])return hbNbPage(HBNBI[k[1]]);
+  k=path.match(/^\/(\w+)\/(\w+)\/(\d+)\/?([\w.-]*)$/);
+  if(k){const s=hbIndex().byUrl.get(`/${k[1]}/${k[2]}/${k[3]}/`);
+    if(!s)return hbErr('404 Not Found',`<b>404 Not Found</b><br><br>The homestead <b>${hbE(path)}</b> is empty. Whoever lived here has moved on.<br><br><a href="${HBROOT}">Back to HomeBlocks</a>`);
+    const pg=hbPage(s,k[4]||'index.html');if(pg)return pg}
+  return hbErr('404 Not Found',`<b>404 Not Found</b><br><br>The requested URL <b>${hbE(path)}</b> was not found on this server.`);
+}
+
+/* ---------- MIDI: a little General-MIDI-ish tune per page ---------- */
+HBS.mplay={w:11,h:9,n:1,ms:1000,d(P){P.r(0,0,11,9,'#c0c0c0');for(let k=0;k<4;k++)P.r(4+k,1+k,1,7-2*k,'#000')}};
+HBS.mstop={w:11,h:9,n:1,ms:1000,d(P){P.r(0,0,11,9,'#c0c0c0');P.r(3,2,5,5,'#000')}};
+function hbTune(s){
+  const r=hbR(s.p,60),T=k=>s.tags.has(k),sad=T('heartbreak')||T('grief')||T('melancholy')||T('lonely'),spooky=T('spooky'),fast=s.v.loud||T('restless')||T('exercise')||s.v.kid;
+  const minor=sad||spooky||r()<.25,bpm=sad?72+r()*16:fast?128+r()*28:96+r()*24,root=48+Math.floor(r()*7);
+  const sc=minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11];
+  const progs=minor?[[0,5,2,6],[0,3,4,0],[0,5,3,4]]:[[0,4,5,3],[0,3,4,4],[0,5,3,4],[0,3,0,4]];const pr=hbPick(r,progs);
+  const deg=(d,o=0)=>root+12*Math.floor(d/7)+sc[((d%7)+7)%7]+o;
+  const mel=[];let d=4+Math.floor(r()*3);
+  for(let bar=0;bar<8;bar++){const ch=pr[bar%4];for(let st=0;st<8;st++){if(r()<(fast?.18:.3)){mel.push(null);continue}
+    const tones=[ch,ch+2,ch+4];if(st%2===0&&r()<.6)d=tones[Math.floor(r()*3)]+7;else d+=Math.floor(r()*3)-1;d=Math.max(4,Math.min(15,d));mel.push(deg(d,12))}}
+  return{bpm,pr,deg,mel,inst:spooky?'square':sad?'triangle':hbPick(r,['square','square','sawtooth','triangle'])}
+}
+function hbMidiStop(){const m=HB.midi;if(!m)return;clearInterval(m.iv);try{m.g.gain.setTargetAtTime(0,m.ac.currentTime,.05)}catch(e){}HB.midi=null}
+function hbMidiPlay(s){hbMidiStop();let ac=HB.ac;try{if(!ac)ac=HB.ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return}if(ac.state==='suspended')ac.resume();
+  const t=hbTune(s),g=ac.createGain();g.gain.value=.16;g.connect(ac.destination);const spb=60/t.bpm/2;let step=0,next=ac.currentTime+.08;
+  const note=(midi,at,dur,type,vol)=>{const o=ac.createOscillator(),e=ac.createGain();o.type=type;o.frequency.value=440*Math.pow(2,(midi-69)/12);e.gain.setValueAtTime(0,at);e.gain.linearRampToValueAtTime(vol,at+.01);e.gain.setTargetAtTime(0,at+dur*.6,dur*.25);o.connect(e);e.connect(g);o.start(at);o.stop(at+dur+.3)};
+  const iv=setInterval(()=>{while(next<ac.currentTime+.25){const i=step%t.mel.length,bar=Math.floor(i/8),ch=t.pr[bar%4];
+    const n=t.mel[i];if(n!==null)note(n,next,spb*.9,t.inst,.18);if(i%4===0)note(t.deg(ch,-12),next,spb*3.6,'triangle',.32);if(i%8===0)for(const k of[0,2,4])note(t.deg(ch+k),next,spb*7,'sine',.07);
+    step++;next+=spb}},60);HB.midi={ac,g,iv,id:s.id}}
+
+/* ---------- NetSurfer: the browser window ---------- */
+function hbEl(id){return document.getElementById(id)}
+function hbOpen(url){HB.open=true;mini.web=false;renderIcons();hbEl('web').hidden=false;hbGo(url||HBROOT)}
+function hbClose(){HB.open=false;hbMidiStop();hbEl('web').hidden=true;hbEl('wFrame').srcdoc='';HB.doc=null;renderIcons()}
+function hbOpenPerson(pid){const s=hbIndex().byId.get(pid);hbOpen(s?hbUrl(s):HBROOT)}
+function hbGo(url,mode){
+  url=String(url||'').trim();if(!url)return;if(!/^[a-z]+:/i.test(url))url='http://'+url.replace(/^\/+/,'');
+  if(/^midi:/.test(url))return;
+  if(mode!=='back'&&mode!=='reload'){HB.hist=HB.hist.slice(0,HB.hi+1);HB.hist.push(url);HB.hi=HB.hist.length-1}
+  hbMidiStop();const host=(url.match(/^[a-z]+:\/\/([^\/?#]+)/i)||[,''])[1]||'mail';
+  const st=hbEl('wStat'),pg=hbEl('wProg'),t0=performance.now(),dur=mode==='reload'?250:220+Math.random()*520;HB.loading=t0;
+  st.textContent=`Contacting host: ${host}...`;pg.style.width='0%';hbEl('wUrl').value=url;hbNavBtns();
+  const tick=()=>{if(HB.loading!==t0)return;const k=(performance.now()-t0)/dur;pg.style.width=Math.min(100,k*100)+'%';
+    if(k<.35)st.textContent=`Contacting host: ${host}...`;else if(k<1)st.textContent=`Transferring data from ${host}...`;
+    if(k<1)requestAnimationFrame(tick);else hbShow(url)};requestAnimationFrame(tick);
+}
+function hbShow(url){
+  let res;try{res=hbRoute(url)}catch(e){console.error(e);res=hbErr('Error','Something went wrong loading this page.')}
+  HB.loading=0;HB.cur={url,res};const fr=hbEl('wFrame');HB.doc=null;fr.srcdoc=res.html;
+  hbEl('wTitle').textContent=`NetSurfer - [${res.title}]`;hbEl('wStat').textContent='Document: Done';hbEl('wProg').style.width='0%';
+  if(res.s&&res.file==='index.html'){const g=hbGbLoad(),k=city.seed+':'+res.s.id+':v';g[k]=(g[k]||0)+1;hbGbSave(g)}
+  hbEl('wFind').disabled=!res.s;hbNavBtns();
+}
+function hbNavBtns(){hbEl('wBack').disabled=HB.hi<=0;hbEl('wFwd').disabled=HB.hi>=HB.hist.length-1}
+function hbHook(){
+  const fr=hbEl('wFrame'),doc=fr.contentDocument;if(!doc||!doc.body)return;HB.doc=doc;HB.imgs=[...doc.querySelectorAll('img[data-s]')];
+  doc.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href]');if(!a)return;e.preventDefault();const h=a.getAttribute('href');
+    if(h==='midi:play'){if(HB.cur&&HB.cur.res.s)hbMidiPlay(HB.cur.res.s);return}if(h==='midi:stop'){hbMidiStop();return}hbGo(h)});
+  doc.addEventListener('mouseover',e=>{const a=e.target.closest&&e.target.closest('a[href]');hbEl('wStat').textContent=a?(/^midi:/.test(a.getAttribute('href'))?'Play MIDI':a.getAttribute('href')):'Document: Done'});
+  doc.addEventListener('submit',e=>{e.preventDefault();const f=e.target,fd=new FormData(f);
+    if(f.dataset.search)return hbGo(HBROOT+'search?q='+encodeURIComponent((fd.get('q')||'').toString().trim()));
+    if(f.dataset.mail){const doc2=hbDoc('Sent','<center><br><br><font face="Arial">Your message was sent.<br><br><font size="1">(Probably.)</font></font></center>');fr.srcdoc=doc2;hbEl('wStat').textContent='Message sent.';return}
+    if(f.dataset.gb){const n=String(fd.get('n')||'').trim().slice(0,40),m=String(fd.get('m')||'').trim().slice(0,400),w=String(fd.get('w')||'').trim().slice(0,40);if(!n||!m){hbEl('wStat').textContent='Please enter your name and a comment.';return}
+      const g=hbGbLoad(),k=city.seed+':'+f.dataset.gb;(g[k]=g[k]||[]).push({n,m,w,d:F0()});if(g[k].length>30)g[k].shift();hbGbSave(g);hbGo(HB.cur.url,'reload')}});
+  const th=HB.cur&&HB.cur.res.s&&HB.cur.res.s.th;
+  if(th&&th.trail){const sp=hbSprite('sparkle',{c:th.link}),fx=[];doc.addEventListener('mousemove',e=>{if(fx.length>14)return;const i=doc.createElement('img');i.src=sp.fr[Math.floor(Math.random()*sp.fr.length)];i.className='trail';
+    i.style.left=(e.pageX+4)+'px';i.style.top=(e.pageY+6)+'px';doc.body.appendChild(i);fx.push(i);setTimeout(()=>{i.style.opacity='0'},60);setTimeout(()=>{i.remove();fx.splice(fx.indexOf(i),1)},700)})}
+}
+function hbAnimate(){if(!HB.open||!HB.doc||mini.web)return;const now=performance.now();
+  for(const im of HB.imgs||[]){const s=HBG.spr.get(im.dataset.s);if(!s||s.fr.length<2)continue;const f=Math.floor(now/s.ms)%s.fr.length;if(im._f!==f){im._f=f;im.src=s.fr[f]}}
+  const tb=hbEl('wThrob');if(tb){const s=hbSprite('globe'),f=HB.loading?Math.floor(now/90)%s.fr.length:0;if(tb._f!==f){tb._f=f;tb.src=s.fr[f]}}}
+function hbBoot(){
+  const fr=hbEl('wFrame');fr.addEventListener('load',hbHook);
+  hbEl('wClose').addEventListener('click',hbClose);hbEl('wMin').addEventListener('click',()=>{mini.web=true;hbMidiStop();hbEl('web').hidden=true;renderIcons()});
+  hbEl('wMax').addEventListener('click',e=>{const on=hbEl('web').classList.toggle('maxed');e.currentTarget.setAttribute('aria-label',on?'Restore':'Maximize');e.currentTarget.title=on?'Restore':'Maximize'});
+  hbEl('wBack').addEventListener('click',()=>{if(HB.hi>0){HB.hi--;hbGo(HB.hist[HB.hi],'back')}});
+  hbEl('wFwd').addEventListener('click',()=>{if(HB.hi<HB.hist.length-1){HB.hi++;hbGo(HB.hist[HB.hi],'back')}});
+  hbEl('wHome').addEventListener('click',()=>hbGo(HBROOT));
+  hbEl('wReload').addEventListener('click',()=>{if(HB.cur)hbGo(HB.cur.url,'reload')});
+  hbEl('wFind').addEventListener('click',()=>{const s=HB.cur&&HB.cur.res.s;if(!s)return;const u=s.u;mini.web=true;hbMidiStop();hbEl('web').hidden=true;renderIcons();
+    if(AP.on)apStop();select(u);follow=true;flyTo(u.x0+u.n*CW/2,u.wy+RH/2,clamp(W*.55/(Math.max(3,u.n)*CW),DET1()*1.4,Math.min(sMax,H*.3/RH)),1400);renderPanel()});
+  hbEl('wLoc').addEventListener('submit',e=>{e.preventDefault();hbGo(hbEl('wUrl').value)});
+  dragWin(hbEl('web'),hbEl('wTb'));
+  hbEl('webBtn').addEventListener('click',()=>{if(HB.open&&!mini.web)hbClose();else if(HB.open){mini.web=false;hbEl('web').hidden=false;renderIcons()}else hbOpen(HBROOT)});
+  hbEl('pbody').addEventListener('click',e=>{const a=e.target.closest('[data-hb]');if(!a)return;e.preventDefault();hbOpenPerson(+a.dataset.hb)});
+  hbEl('wThrob').src=hbSprite('globe').fr[0];
+  setInterval(hbAnimate,80);
+}
+
+
 function boot(){
   cv=document.getElementById('c');ctx=cv.getContext('2d');bufCv=document.createElement('canvas');bctx=bufCv.getContext('2d');
   clockEl=document.getElementById('clk');liveEl=document.getElementById('live');whenBtn=document.getElementById('when');hintEl=document.getElementById('hint');
@@ -3116,14 +3945,14 @@ function boot(){
   const closeDlg=()=>{dlg.hidden=true;dlg.removeAttribute('style');if(dlgRet)dlgRet.focus()};
   document.getElementById('new').addEventListener('click',e=>{dlgRet=e.currentTarget;dlg.hidden=false;dNo.focus()});
   dNo.addEventListener('click',closeDlg);
-  dOk.addEventListener('click',()=>{closeDlg();simMin=localNow();speed=1;paused=false;mini.panel=false;
+  dOk.addEventListener('click',()=>{closeDlg();if(HB.open)hbClose();HB.hist=[];HB.hi=-1;HB.idx=null;simMin=localNow();speed=1;paused=false;mini.panel=false;
     startCity((Math.random()*2e9)|0,Math.floor(localNow()/1440));syncBtns();renderIcons();saveState();renderPanel()});
   dlg.addEventListener('keydown',e=>{if(e.key==='Tab'){e.preventDefault();(document.activeElement===dOk?dNo:dOk).focus()}});
   window.isDlgOpen=()=>!dlg.hidden;window.closeDlg=closeDlg;
   document.getElementById('hudMin').addEventListener('click',()=>{mini.hud=true;hudHover=false;renderIcons()});
   document.getElementById('pMin').addEventListener('click',()=>{mini.panel=true;renderIcons();renderPanel()});
   document.getElementById('pMax').addEventListener('click',e=>{const on=document.getElementById('panel').classList.toggle('maxed');e.currentTarget.setAttribute('aria-label',on?'Restore':'Maximize');e.currentTarget.title=on?'Restore':'Maximize'});
-  document.getElementById('icons').addEventListener('click',e=>{const b=e.target.closest('.ico');if(!b)return;mini[b.dataset.w]=false;renderIcons();renderPanel()});
+  document.getElementById('icons').addEventListener('click',e=>{const b=e.target.closest('.ico');if(!b)return;mini[b.dataset.w]=false;if(b.dataset.w==='web')document.getElementById('web').hidden=false;renderIcons();renderPanel()});
   dragWin(document.getElementById('hud'),document.getElementById('hudTb'));
   dragWin(document.getElementById('panel'),document.getElementById('pTb'));
   dragWin(dlg,document.getElementById('dTb'));
@@ -3139,9 +3968,12 @@ function boot(){
   document.getElementById('fbody').addEventListener('click',e=>{const b=e.target.closest('.fr');if(!b)return;const u=city.units[+b.dataset.id];if(u){favI=favs.findIndex(f=>f.id===u.id);visitFav(u)}});
   dragWin(document.getElementById('flw'),document.getElementById('fTb'));syncFavBtn();
   addEventListener('keydown',e=>{wake();if(window.isDlgOpen&&isDlgOpen()){if(e.key==='Escape')closeDlg();return}
-    if((e.target.tagName==='BUTTON'||e.target.tagName==='INPUT')&&(e.key===' '||e.key==='Enter'))return;
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+    if((e.target.tagName==='BUTTON')&&(e.key===' '||e.key==='Enter'))return;
     if(e.key===' '){e.preventDefault();togglePause()}
     else if('12345'.includes(e.key)&&e.key.length===1)setSpeed([1,60,600,6000,86400][+e.key-1]);
+    else if(e.key==='Escape'&&HB.open&&!mini.web)hbClose();
+    else if(e.key==='w'||e.key==='W'){if(HB.open&&!mini.web)hbClose();else if(HB.open){mini.web=false;document.getElementById('web').hidden=false;renderIcons()}else hbOpen()}
     else if(e.key==='Escape'){if(flwOpen)toggleFollowing(false);else if(sel)select(null);else zoomOut()}
     else if(e.key==='p'||e.key==='P')peek();
     else if(e.key==='g'||e.key==='G')setGfx({cga:'ega',ega:'vga',vga:'svga',svga:'cga'}[GFX]);
@@ -3160,6 +3992,7 @@ function boot(){
     if(e.type==='pointermove'){if(AP.mx===undefined){AP.mx=e.clientX;AP.my=e.clientY;return}if(Math.hypot(e.clientX-AP.mx,e.clientY-AP.my)<12)return}
     apStop()};
   for(const ev of ['pointermove','pointerdown','keydown','wheel'])addEventListener(ev,apExit,true);
+  hbBoot();
   if(SAVER)apStart(true);
   lastWall=Date.now();wake();renderIcons();renderPanel();requestAnimationFrame(frame);
 }

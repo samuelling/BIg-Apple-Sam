@@ -26,11 +26,24 @@ Open `index.html` in a browser (or the GitHub Pages site). No build step and no 
 
 ## Controls
 
-Scroll or pinch to zoom, drag to pan, click a window. On the ground floor, click a shop to see who's inside and when it closes, or a lobby for the building's residents, recent move-ins and move-outs, or an office tower's directory. Keys: `Space` pause, `1`–`5` speed, `P` peek into a random window, `S` screensaver (autopilot), `F` follow, `C` following list, `N` visit next followed, `G` display mode, `Esc` close / zoom out, `+`/`-` zoom.
+Scroll or pinch to zoom, drag to pan, click a window. On the ground floor, click a shop to see who's inside and when it closes, or a lobby for the building's residents, recent move-ins and move-outs, or an office tower's directory. Keys: `Space` pause, `1`–`5` speed, `P` peek into a random window, `S` screensaver (autopilot), `F` follow, `C` following list, `N` visit next followed, `G` display mode, `W` HomeBlocks, `Esc` close / zoom out, `+`/`-` zoom.
 
 **Screensaver button.** Hands the camera to an autopilot. About half the time it holds the classic full skyline, still, the way the old screensaver looked. The rest of the time it takes shots of lively apartments (a party, a date night, someone up at 3 AM): a quick approach and a lingering close-up with a caption, a long slow push-in from the skyline, a drift across facades at mid distance, a crane shot up a building to the water tower, or a tracking shot gliding along a floor from apartment to apartment. Then it slowly pulls back out. Move the mouse or press a key to take over again.
 
 **City code.** The controls window shows a code like `bod5nr-g09`. Open the page with `#city-bod5nr-g09` on the end of the address, or paste the code into the screen saver's options, to watch the same city somewhere else.
+
+## HomeBlocks
+
+Every adult in the city (and every kid 8 and up) has a homepage, the way people did around 1998. Click **Home page** next to a resident's name, or press **HomeBlocks** (`W`) to open the portal in NetSurfer, a little browser window with Back, Forward, Home and a Location bar.
+
+- **Neighborhoods.** Each page lands in the neighborhood that fits the person: night-shift workers in Graveyard Shift, the newly bereaved in Serenity, cat people in PawPrint Park, marathon trainees in the Colosseum, Halloween fanatics in Spooky Hollow. There are 22, each with its own suburbs and addresses like `/Heartland/Porch/4412/`.
+- **In their own words.** Pages are written from each person's real state in the simulation: name, age, job, traits, interests, who they live with, their pets, their current storyline and their household history. A loner writes in lowercase, a sociable person in capitals with too many exclamation points, a retiree thanks the grandchild who set the page up, and a messy person makes typos.
+- **Subpages** follow their lives: a memorial page for someone they lost, a novel with an excerpt and a word count, a marathon training log, a resume while they're out of work, poems after a breakup, a baby countdown, a night-shift diary, the time right now in the hometown they miss, a research page with optical illusions, a pet's own page, recipes, high scores, a Halloween countdown.
+- **The 90s bits:** tiled backgrounds, animated pixel GIFs, Under Construction signs, marquees, blinking text, hit counters, awards, a MIDI player that plays a tune written for that page, sparkle cursor trails, and webrings that link everyone who shares an interest.
+- **Guestbooks** are signed by their neighbors and ring-mates, each in their own voice. You can sign them too; your entries are saved in this browser.
+- **Find Window** flies the camera to the person whose page you're reading.
+
+Pages change as lives change, a new city gets a whole new web, and the people in the cyberpunk mega towers aren't on it.
 
 ## Screen savers (macOS and Windows)
 
