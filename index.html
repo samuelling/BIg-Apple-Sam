@@ -3290,7 +3290,8 @@ function hbSite(p,u,L){
   const r=hbR(p,1),tags=hbTags(p,u,L),sc={};
   for(const nb of HBNB){let s=r()*1.4;for(const[k,v]of Object.entries(nb.w))if(tags.has(k))s+=v;sc[nb.id]=s}
   let nb=HBNB[0];for(const n of HBNB)if(sc[n.id]>sc[nb.id])nb=n;
-  const sub=nb.subs[Math.floor(r()*nb.subs.length)],num=1000+hash(p.id,city.seed,4243)%9000;
+  const kev=hbIsKev(p);if(kev)nb=HBNBI.SunsetStrip;
+  const sub=kev?'Amplifier':nb.subs[Math.floor(r()*nb.subs.length)],num=1000+hash(p.id,city.seed,4243)%9000;
   const v=hbVoice(p,u,tags,hbR(p,2));
   const rings=[];for(const k of ['spooky','novel','marathon','grief','homesick','heartbreak','dating','insomnia','theremin','newlywed','baby','kid','cat','dog','guitar','synth','fish','film','retro','stargaze','carni','knit','coffee','paint','yoga','computer','science','night','parent','retiree','student','a foodie','food','plants','cycle','lonely','music'])
     if(tags.has(k)&&HBRINGS[k]&&!rings.includes(HBRINGS[k])&&rings.length<2)rings.push(HBRINGS[k]);
@@ -3363,6 +3364,7 @@ function hbTheme(s){
   if(s.kind==='construction'){th.cons=true;th.awards=false;th.music=r()<.3}
   if(s.kind==='hobby'&&HBHOB[s.hob]&&r()<.6){const t2=hbTile(hbPick(r,HBHOB[s.hob].tile),null,s.num%5+1);th.tile='x';th.tl=t2;th.dark=t2.dark;const pl=t2.dark?hbPick(r,HBPAL):hbPick(r,HBPALL);th.ink=pl[0];th.link=pl[1];th.vlink=pl[2];if(th.layout==='side')th.layout='center'}
   if(s.kind==='business'){th.marquee=false;th.cons=false;th.trail=false}
+  if(s.kind==='positron'){const t2=hbTile('flames',null,2);Object.assign(th,{tile:'flames',tl:t2,dark:true,ink:'#ffffff',link:'#ffff00',vlink:'#ff8000',font:'Arial Black',head:'big',layout:'table',panel:'#000000',music:true,marquee:false,cons:false,splash:false,awards:true,counter:true,trail:true,gfx:['#ffff00','#ff2000','#400000'],align:'left',bullet:'#ff2020'})}
   if(th.panel&&th.dark!==(hbLum(th.panel)<.45)){const p2=th.dark?HBPAL:HBPALL;const q=hbLum(th.panel)<.45?hbPick(r,HBPAL):hbPick(r,HBPALL);th.ink=q[0];th.link=q[1];th.vlink=q[2]}
   return th;
 }
@@ -3653,7 +3655,7 @@ function hbLinks(s,F,r){const fr=hbFriends(s,F,r,6),out=[];
 const HBAWARD=['Golden Doorknob Award','Top 5% of the Block','HomeBlocks Pick of the Week','Rooftop Excellence Award','Fire Escape Seal of Approval','Cool Page Award'];
 function hbAwards(s,r){return`<p align="center">${hbPickN(r,HBAWARD,2).map((a,i)=>`<table border="0" cellpadding="1" style="display:inline-table;margin:4px"><tr><td bgcolor="#c0c0c0" style="border:2px outset #fff"><table bgcolor="${i?'#000080':'#800000'}" cellpadding="4"><tr><td align="center"><font color="#ffff00" size="1" face="Arial"><b>&#9733; ${hbE(a.toUpperCase())} &#9733;</b></font></td></tr></table></td></tr></table>`).join('')}</p>`}
 function hbMidiBox(s){const nm=hbMidiName(s);return`<table border="2" cellpadding="3" bgcolor="#c0c0c0" align="center"><tr><td><font face="Arial" size="1" color="#000000"><b>&#9835; ${hbE(nm)}</b></font><br><a href="midi:play"><img alt="Play" title="Play" src="${hbSprite('mplay').fr[0]}" width="22" height="18"></a> <a href="midi:stop"><img alt="Stop" title="Stop" src="${hbSprite('mstop').fr[0]}" width="22" height="18"></a></td></tr></table>`}
-function hbMidiName(s){const r=hbR(s.p,7);return hbPick(r,['theme','lovesong','sunset','canyon','mysong','groove','dreams','rain','party','nocturne','journey','oldtown'])+(r()<.5?(1+Math.floor(r()*9)):'')+'.mid'}
+function hbMidiName(s){if(s.kind==='positron')return'mylittlefriend.mid';const r=hbR(s.p,7);return hbPick(r,['theme','lovesong','sunset','canyon','mysong','groove','dreams','rain','party','nocturne','journey','oldtown'])+(r()<.5?(1+Math.floor(r()*9)):'')+'.mid'}
 
 function hbGuestbook(s,F){
   const r=hbR(s.p,30),I=HB.idx,n=2+hash(s.id,city.seed,4280)%7+(s.tags.has('sociable')?4:0);let fr=hbFriends(s,F,r,n+2).filter(x=>x.u!==F.u);
@@ -3662,7 +3664,8 @@ function hbGuestbook(s,F){
     const parts=[];const T=k=>s.tags.has(k);
     if(x.u.b===F.u.b)parts.push(hbPick(rr,[`Hi from ${'Apt '+(x.u.f+2)+x.u.letter}! Didn't know you had a homepage!`,'Hey neighbor!',`We should talk in the elevator more!`]));
     else{const g=s.rings.find(q=>x.rings.includes(q));if(g)parts.push(`Found you through the ${g}!`);else parts.push(hbPick(rr,['Great page!','Cool site!','Nice page!','Just surfing by!','Love the graphics!','WOW what a page.']))}
-    if(T('grief')&&d>=F.p.arcS)parts.push(hbPick(rr,['So sorry for your loss.','Thinking of you.','What a beautiful tribute.']));
+    if(s.kind==='positron')parts.push(hbPick(rr,['POSITRON RULES!!!','Play Abercrombian Bitch at the next show!!','My Little Friend is stuck in my head. Thanks a lot.','When is the next show???','Saw you guys in Rochester, you were SO loud.','Tell Brody and Nate to show up more.']));
+    else if(T('grief')&&d>=F.p.arcS)parts.push(hbPick(rr,['So sorry for your loss.','Thinking of you.','What a beautiful tribute.']));
     else if(F.pets.length&&rr()<.6)parts.push(`${F.pets[0].name} is SO cute!`);
     else if(T('marathon'))parts.push('Good luck with the marathon!!');
     else if(T('novel'))parts.push('Can\'t wait to read your book!');
@@ -3820,6 +3823,7 @@ const HBBIZ=[[/seamstress/,'Alterations by {F}','Hems, zippers, wedding dresses.
   [/travel agent/,'{F}\'s Travel Deals','Cruises, flights and getaways. Call me before you book!'],[/jazz pianist/,'Piano Lessons with {F}','All ages, all levels. 50 years of playing.'],[/architect/,'{L} Design Studio','Renovations, additions and dream houses.'],[/accountant|bookkeep/,'{L} Tax & Bookkeeping','Tax season is coming. Don\'t panic. Call me.']];
 const HBFANSHOW=['The {N} Files','Late Night at the {N}','{A} Heights','Captain {N}','The {N} Family','{A} Detectives'];
 function hbKind(s){
+  if(hbIsKev(s.p))return'positron';
   const r=hbR(s.p,70),T=k=>s.tags.has(k),v=s.v,p=s.p;if(v.kid)return r()<.25?'construction':'about';
   const hob=Object.keys(HBHOB).filter(k=>T(k));const biz=!p.kid&&HBBIZ.find(([re])=>re.test(p.job||''));
   const w=[['about',3],['construction',v.young||T('messy')||T('restless')?.9:v.old?.2:.45],['links',.25],['fan',.3]];
@@ -3834,7 +3838,7 @@ function hbKindTitle(s,F){const r=hbR(s.p,73),p=s.p;
   switch(s.kind){case'hobby':return hbFill(hbPick(r,HBHOB[s.hob].t),s,F);case'family':return hbPick(r,[`The ${plural(p.last)} Home Page`,`The ${p.last} Family`,`Welcome to the ${p.last} House!`]);
     case'construction':return hbPick(r,[`${p.first}'s Page (UNDER CONSTRUCTION)`,'My First Web Page!!!',`${p.first}'s Home Page`,`Coming Soon: ${p.first}'s Page`]);
     case'diary':return hbPick(r,[`${p.first}'s Online Journal`,'Dear Diary...',`${p.first.toLowerCase()}'s notebook`,'Thoughts From Apartment '+(F?F.u.f+2+F.u.letter:'')]);
-    case'business':return hbFill(s.biz[1],s,F);case'fan':s.fan=s.fan||hbFanName(s);return`The Unofficial ${s.fan} Fan Page`;case'links':return hbPick(r,[`${p.first}'s Hotlist`,`${p.first}'s Favorite Places on the Web`,'Cool Links!!!'])}
+    case'business':return hbFill(s.biz[1],s,F);case'fan':s.fan=s.fan||hbFanName(s);return`The Unofficial ${s.fan} Fan Page`;case'positron':return'POSITRON - Official Home Page';case'links':return hbPick(r,[`${p.first}'s Hotlist`,`${p.first}'s Favorite Places on the Web`,'Cool Links!!!'])}
   return null}
 function hbFanName(s){const r=hbR(s.p,74);return r()<.5?hbBand(r):hbPick(r,HBFANSHOW).replace('{N}',hbPick(r,HBNOUN)).replace('{A}',hbPick(r,HBADJ))}
 /* graphic headers: words drawn as an image, the way people made section titles in paint programs */
@@ -3925,6 +3929,28 @@ function hbKLinks(s,F,mods,r){const R=hbR(s.p,88),v=s.v;const fr=hbFriends(s,F,R
   ${hbH(s,'Search the Web',R)}<form data-search="1"><input name="q" size="24"> <input type="submit" value="Search HomeBlocks"></form>
   ${s.rings.map(g=>hbRing(s,g)).join('<br>')}<p><a href="${hbUrl(s,'guestbook.html')}">Know a cool site? Tell me in my guestbook!</a></p>`}
 const HBKIND={construction:hbKConstruction,hobby:hbKHobby,family:hbKFamily,diary:hbKDiary,business:hbKBusiness,fan:hbKFan,links:hbKLinks};
+/* Positron, from Rochester, New York. Always Kevin's site, whoever the city's Kevin is right now. */
+const hbIsKev=p=>typeof city!=='undefined'&&city&&city.kev===p&&p.first==='Kevin';
+function hbKPositron(s,F,mods,r){const R=hbR(s.p,95),th=s.th,yrs=new Date(F.L*864e5).getUTCFullYear();
+  const mem=[['Kevin','also runs this web page',s.p],['Sam','',null],['Jim','',null],['Brody','sometimes',null],['Nate','sometimes',null]];
+  const songs=[['My Little Friend','3:41'],['Abercrombian Bitch','2:58']];
+  const t=hbGfxText('POSITRON','#ffff00','#ff2000','#400000');
+  return`<center><img src="${t.url}" width="${t.w*3}" height="${t.h*3}" alt="POSITRON" class="ph"><br><font size="4" color="#ffffff"><b>from Rochester, New York</b></font><br>${hbImg('flame')}${hbImg('note')}${hbImg('guitar',{sc:2})}${hbImg('note')}${hbImg('flame')}</center>
+  <marquee scrollamount="7"><font size="5" color="#ffff00"><b>*** WELCOME TO THE OFFICIAL POSITRON HOME PAGE *** TURN IT UP *** ROCHESTER NY ***</b></font></marquee>
+  <center><img src="${hbSprite('rainbow').fr[0]}" data-s="rainbow|" width="80%" height="6" class="spr" alt=""></center>
+  <table align="right" cellpadding="10"><tr><td>${hbMidiBox(s)}</td></tr></table>
+  <p><font size="4">Welcome to the official (and only) home page of <b>POSITRON</b>, straight outta Rochester, NY. This page is maintained by Kevin, who lives in ${hbE(F.apt)} now but will always be from the 716.</font></p>
+  ${hbH(s,'The Band',R)}<center>${mem.map(([n,,],i)=>hbPic(hbPhoto('me',s.id*13+i,{c:['#202020','#a01010','#202060','#305030','#604020'][i],skin:['#e0b090','#d8a070','#f0c8a0','#c08860','#e8c0a0'][i]}),n,96)).join('')}</center>
+  <table border="2" cellpadding="6" align="center" bgcolor="#000000">${mem.map(([n,x,p])=>`<tr><td><font color="#ffff00"><b>${p?hbWho(p):hbE(n)}</b></font></td><td><font color="#ffffff">${x?hbE(x):'&nbsp;'}</font></td></tr>`).join('')}</table>
+  <p align="center"><font size="2">(Brody and Nate are in the band when they show up.)</font></p>
+  ${hbH(s,'Songs',R)}<table border="3" cellpadding="6" align="center" bgcolor="#200000">${songs.map(([n,l],i)=>`<tr><td><font color="#ff8000">${i+1}.</font></td><td><font color="#ffffff" size="4"><b>${hbE(n)}</b></font></td><td><font color="#c0c0c0">${l}</font></td><td>${hbImg('newb',{sc:1})}</td></tr>`).join('')}</table>
+  <p align="center">Press play on the MIDI player to hear <i>My Little Friend</i> (MIDI version, sounds better live).</p>
+  ${hbH(s,'Shows',R)}<p><b>Upcoming:</b> none booked. Call Kevin.<br><b>Past:</b> basements, garages and one battle of the bands in Rochester that we are still not over.</p>
+  ${hbH(s,'Merch',R)}<p>We do not have T-shirts. If you make one, send us one.</p>
+  <p align="center">${hbImg('heart')} <a href="${hbUrl(s,'guestbook.html')}"><font size="5"><b>SIGN THE POSITRON GUESTBOOK</b></font></a> ${hbImg('heart')}</p>
+  <p align="center"><font size="2">POSITRON &copy; ${yrs}. Best viewed LOUD.</font></p>
+  ${mods.length?hbUl(mods.map(m=>`<a href="${hbUrl(s,m.f)}">${hbE(m.nav(F))}</a>`)):''}`}
+HBKIND.positron=hbKPositron;
 
 /* ---------- the HomeBlocks portal, directories, search and errors ---------- */
 const HBAPP='https://samuelling.github.io/Big-Apple-Sam/';
@@ -3991,15 +4017,15 @@ function hbRoute(url){
 HBS.mplay={w:11,h:9,n:1,ms:1000,d(P){P.r(0,0,11,9,'#c0c0c0');for(let k=0;k<4;k++)P.r(4+k,1+k,1,7-2*k,'#000')}};
 HBS.mstop={w:11,h:9,n:1,ms:1000,d(P){P.r(0,0,11,9,'#c0c0c0');P.r(3,2,5,5,'#000')}};
 function hbTune(s){
-  const r=hbR(s.p,60),T=k=>s.tags.has(k),sad=T('heartbreak')||T('grief')||T('melancholy')||T('lonely'),spooky=T('spooky'),fast=s.v.loud||T('restless')||T('exercise')||s.v.kid;
-  const minor=sad||spooky||r()<.25,bpm=sad?72+r()*16:fast?128+r()*28:96+r()*24,root=48+Math.floor(r()*7);
+  const r=hbR(s.p,s.kind==='positron'?7160:60),T=k=>s.tags.has(k),sad=T('heartbreak')||T('grief')||T('melancholy')||T('lonely'),spooky=T('spooky'),fast=s.v.loud||T('restless')||T('exercise')||s.v.kid;
+  const pos=s.kind==='positron',minor=!pos&&(sad||spooky||r()<.25),bpm=pos?152:sad?72+r()*16:fast?128+r()*28:96+r()*24,root=48+Math.floor(r()*7);
   const sc=minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11];
   const progs=minor?[[0,5,2,6],[0,3,4,0],[0,5,3,4]]:[[0,4,5,3],[0,3,4,4],[0,5,3,4],[0,3,0,4]];const pr=hbPick(r,progs);
   const deg=(d,o=0)=>root+12*Math.floor(d/7)+sc[((d%7)+7)%7]+o;
   const mel=[];let d=4+Math.floor(r()*3);
   for(let bar=0;bar<8;bar++){const ch=pr[bar%4];for(let st=0;st<8;st++){if(r()<(fast?.18:.3)){mel.push(null);continue}
     const tones=[ch,ch+2,ch+4];if(st%2===0&&r()<.6)d=tones[Math.floor(r()*3)]+7;else d+=Math.floor(r()*3)-1;d=Math.max(4,Math.min(15,d));mel.push(deg(d,12))}}
-  return{bpm,pr,deg,mel,inst:spooky?'square':sad?'triangle':hbPick(r,['square','square','sawtooth','triangle'])}
+  return{bpm,pr,deg,mel,inst:pos?'sawtooth':spooky?'square':sad?'triangle':hbPick(r,['square','square','sawtooth','triangle'])}
 }
 function hbMidiStop(){const m=HB.midi;if(!m)return;clearInterval(m.iv);try{m.g.gain.setTargetAtTime(0,m.ac.currentTime,.05)}catch(e){}HB.midi=null}
 function hbMidiPlay(s){hbMidiStop();let ac=HB.ac;try{if(!ac)ac=HB.ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return}if(ac.state==='suspended')ac.resume();

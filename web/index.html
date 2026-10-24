@@ -72,7 +72,7 @@ async function start(){
   W$.sim0=mine?st.sim+(st.paused?0:(Date.now()-st.at)/60000):localNow();W$.t0=Date.now();simMin=W$.sim0;
   step('Building the city...',60);await new Promise(r=>setTimeout(r,30));
   city=genCity(want.seed,want.born);markParlors(city);addFrontage(city);pickKevin(city);addMega(city);
-  const L=Math.floor(simMin/1440);for(const u of city.units)if(u.eras&&!u.mega)syncEra(u,L);refreshAges(L);
+  const L=Math.floor(simMin/1440);for(const u of city.units)if(u.eras&&!u.mega)syncEra(u,L);refreshAges(L);kevinCheck();
   if(!st){try{localStorage.setItem(STORE,JSON.stringify({seed:city.seed,born:city.born,sim:simMin,at:Date.now(),speed:1,paused:false}))}catch(e){}}
   W$.code=cityCode();HB.standalone=W$.code;
   step('Document: Done',100);
